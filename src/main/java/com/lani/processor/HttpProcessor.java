@@ -84,7 +84,7 @@ public class HttpProcessor {
     private void parseHeaders(SocketInputStream input) throws ServletException {
         while (true) {
             HttpHeader header = new HttpHeader();
-            input.readHeader(header);
+            input.readHeader(header); // TODO 待实现
 
             if (header.nameEnd == 0) {
                 if (header.valueEnd == 0) {
