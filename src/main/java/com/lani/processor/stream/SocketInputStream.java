@@ -176,7 +176,9 @@ public class SocketInputStream extends InputStream {
      * @param header
      */
     public void readHeader(HttpHeader header) {
-
+        // 初始化header
+        if (header.nameEnd != 0)
+            header.recycle();
     }
 
     /**

@@ -29,4 +29,12 @@ public class HttpHeader {
         this.value = value;
         this.valueEnd = valueEnd;
     }
+
+    /**
+     * 初始化参数
+     */
+    public void recycle() {
+        this.nameEnd = 0;
+        this.valueEnd = 0;
+    }
 }
