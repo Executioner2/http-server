@@ -1,9 +1,10 @@
 package com.lani.processor.stream;
 
 import com.lani.processor.http.HttpHeader;
+import com.lani.processor.http.HttpRequest;
 import com.lani.processor.http.HttpRequestLine;
 
-import javax.swing.*;
+import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -16,13 +17,13 @@ import java.io.InputStream;
  * @Date 2022-03-02 20:00
  */
 public class SocketInputStream extends InputStream {
-
+    private static final byte NUL = 0;
     private static final byte CR = (byte)'\r';
     private static final byte LF = (byte)'\n';
     private static final byte SP = (byte)' ';
     private static final byte HT = (byte)'\t';
     private static final byte COLON = (byte)':';
-    private static final int LC_OFFSET = 'A' - 'a';
+    private static final int OFFSET = 'a' - 'A';
 
 
     private InputStream is;
@@ -49,7 +50,7 @@ public class SocketInputStream extends InputStream {
      */
     @Override
     public int read() throws IOException {
-        if (pos >= buffer.length) {
+        if (pos >= count) {
             fill();
             if (pos >= count) return -1; // 读完了
         }
@@ -106,7 +107,7 @@ public class SocketInputStream extends InputStream {
 
             val = read();
             if (val == -1) throw new IOException("请求包状态行错误！"); // 没有可以读取的数据了
-            space = (val == SP); // 是否是空格，是空格将结束循环
+            space = (val == SP || val == NUL); // 是否是空格，是空格将结束循环
             requestLine.method[readCount++] = (char)val;
         }
 
@@ -152,7 +153,7 @@ public class SocketInputStream extends InputStream {
 
         // 处理protocol
         while (!eof) {
-            if (readCount > maxRead) {
+            if (readCount >= maxRead) {
                 if (maxRead * 2 <= HttpRequestLine.MAX_PROTOCOL_SIZE) {
                     char[] newBuffer= new char[maxRead * 2];
                     System.arraycopy(requestLine.protocol, 0, newBuffer, 0, maxRead);
@@ -172,13 +173,107 @@ public class SocketInputStream extends InputStream {
     }
 
     /**
-     * TODO 从数据流中读取数据到HttpHeader中
+     * 从数据流中读取数据到HttpHeader中
      * @param header
      */
-    public void readHeader(HttpHeader header) {
+    public void readHeader(HttpHeader header) throws IOException {
         // 初始化header
         if (header.nameEnd != 0)
             header.recycle();
+
+        int val = read();
+
+        // 1、判断一个参数是否读完
+        if (val == CR || val == LF) {
+            if (val == CR) read(); // 如果当前读取的字符时\r，那么再读取一位，将下一位的\n也读了，不然会导致下一次读也读不出参数
+            return;
+        }
+
+        pos--; // 往回退一手，下次把刚刚读了的再读一次
+
+        // 2、读取name并写入到header对象的name属性中
+        int maxRead = header.name.length;
+        int readCount = 0;
+        boolean colon = false; // 是否遇到了分号(:)
+
+        while (!colon) {
+            // 如果header.name装满了，就扩容
+            if (readCount >= maxRead) {
+                if (maxRead * 2 <= HttpHeader.MAX_NAME_SIZE) {
+                    char[] newBuffer = new char[maxRead * 2];
+                    System.arraycopy(header.name, 0, newBuffer, 0, maxRead);
+                    header.name = newBuffer;
+                    maxRead = header.name.length;
+                } else {
+                    throw new IOException("请求体请求参数name过长！");
+                }
+            }
+
+            val = read();
+            if (val == -1) throw new IOException("请求体错误！");
+            colon = val == COLON;
+            header.name[readCount++] = (char)(val >= 'A' && val <= 'Z' ? val + OFFSET : val); // 转小写字符
+        }
+
+        header.nameEnd = readCount - 1;
+
+        maxRead = header.value.length;
+        readCount = 0;
+        boolean eol = false; // 是否读完了
+        boolean validLine = true; // 有效行
+
+        while (validLine) {
+            // 3、消除name与value之间的空格
+            boolean space = true;
+            while (space) {
+                val = read();
+                if (val == -1) throw new IOException("请求体错误！");
+                if (val != SP && val != HT && (--pos) >= 0) space = false;
+            }
+
+            // 4、读取value并写入到header对象的value属性中
+            while (!eol) {
+                if (readCount >= maxRead) {
+                    if (maxRead * 2 <= HttpHeader.MAX_VALUE_SIZE) {
+                        char[] newBuffer = new char[maxRead * 2];
+                        System.arraycopy(header.value, 0, newBuffer, 0, maxRead);
+                        header.value = newBuffer;
+                        maxRead = header.value.length;
+                    } else {
+                        throw new IOException("请求体请求参数value过长！");
+                    }
+                }
+
+                val = read();
+                if (val == -1) throw new IOException("请求体错误！");
+                if (val == LF) {
+                    eol = true;
+                } else {
+                    header.value[readCount++] = (char)val;
+                }
+            } // while(!eol) - end
+
+            // XXX 下一个字符是空格或者水平制表符表示后面还有value。（但是上面是读value是遇到LF才结束的，如果行是有前导空格或水平制表符的下一个name，将会出现错误）
+            val = read();
+            if (val == SP || val == HT) {
+                if (readCount >= maxRead) {
+                    if (maxRead * 2 <= HttpHeader.MAX_VALUE_SIZE) {
+                        char[] newBuffer = new char[maxRead * 2];
+                        System.arraycopy(header.value, 0, newBuffer, 0, maxRead);
+                        header.value = newBuffer;
+                        maxRead = header.value.length;
+                    } else {
+                        throw new IOException("请求体请求参数value过长！");
+                    }
+                }
+                header.value[readCount++] = ' ';
+            } else {
+                pos--;
+                validLine = false;
+            }
+        } // while(validLine) - end
+
+        header.valueEnd = readCount;
     }
 
     /**

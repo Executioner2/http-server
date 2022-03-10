@@ -37,7 +37,6 @@ public class HttpRequest implements HttpServletRequest{
     private InetAddress inetAddress;
     private InputStream input = null;
     private String method;
-    private String uri;
     private String queryString;
     private String requestURI;
     private String serverName;
@@ -165,7 +164,7 @@ public class HttpRequest implements HttpServletRequest{
 
     @Override
     public String getRequestURI() {
-        return null;
+        return requestURI;
     }
 
     @Override
@@ -371,14 +370,6 @@ public class HttpRequest implements HttpServletRequest{
 
     public void setMethod(String method) {
         this.method = method;
-    }
-
-    public String getUri() {
-        return uri;
-    }
-
-    public void setUri(String uri) {
-        this.uri = uri;
     }
 
     public void setQueryString(String queryString) {

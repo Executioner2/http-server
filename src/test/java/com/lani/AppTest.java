@@ -11,6 +11,12 @@ import java.util.List;
  */
 public class AppTest {
     @Test
+    public void test() {
+        int a = 68;
+        System.out.println((a >= 'A' && a <= 'Z'));
+    }
+
+    @Test
     public void stringReplaceTest() {
         String uri = "//lani.com//servlet/getName/";
 

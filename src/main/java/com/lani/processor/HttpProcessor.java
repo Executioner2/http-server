@@ -10,8 +10,7 @@ import com.lani.util.RequestUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 
 /**
@@ -81,10 +80,10 @@ public class HttpProcessor {
      * 解析请求头
      * @param input
      */
-    private void parseHeaders(SocketInputStream input) throws ServletException {
+    private void parseHeaders(SocketInputStream input) throws ServletException, IOException {
         while (true) {
             HttpHeader header = new HttpHeader();
-            input.readHeader(header); // TODO 待实现
+            input.readHeader(header);
 
             if (header.nameEnd == 0) {
                 if (header.valueEnd == 0) {
@@ -186,7 +185,6 @@ public class HttpProcessor {
             request.setRequestedSessionURL(false);
         }
 
-
         String normalizedUri = normalize(uri); // 对uri进行修正
         request.setMethod(method);
 
@@ -251,7 +249,7 @@ public class HttpProcessor {
 
         if ("/.".equals(normalized)) return "/";
 
-        if (normalized.indexOf("/...") != 0) return  null;
+        if (normalized.indexOf("/...") >= 0) return  null;
 
         return normalized;
     }
