@@ -141,6 +141,8 @@ public class HttpProcessor {
         if (method.length() < 1) throw new ServletException("缺少HTTP请求方法");
         if (requestLine.uriEnd < 1) throw new ServletException("缺少uri信息");
 
+        request.setMethod(method);
+
         // 解析存在于uri中的查询参数
         int question = requestLine.indexOf('?');
         if (question >= 0) {
@@ -186,7 +188,6 @@ public class HttpProcessor {
         }
 
         String normalizedUri = normalize(uri); // 对uri进行修正
-        request.setMethod(method);
 
         if (normalizedUri != null) {
             request.setRequestURI(normalizedUri);

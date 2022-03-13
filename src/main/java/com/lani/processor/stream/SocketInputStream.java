@@ -1,10 +1,8 @@
 package com.lani.processor.stream;
 
 import com.lani.processor.http.HttpHeader;
-import com.lani.processor.http.HttpRequest;
 import com.lani.processor.http.HttpRequestLine;
 
-import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.InputStream;
 

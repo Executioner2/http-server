@@ -1,6 +1,7 @@
 package com.lani.processor.http;
 import com.lani.processor.stream.SocketInputStream;
 import com.lani.util.Enumerator;
+import com.lani.util.RequestUtil;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletInputStream;
@@ -14,6 +15,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.security.Principal;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -32,6 +35,15 @@ public class HttpRequest implements HttpServletRequest{
     protected ParameterMap parameters = null;
     protected ServletInputStream stream = null;
     protected BufferedReader reader = null;
+    protected boolean parsed = false; // 是否已经解析完成
+    protected String pathInfo = null;
+    protected Map attributes = new HashMap();
+
+    protected SimpleDateFormat formats[] = {
+            new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US),
+            new SimpleDateFormat("EEEEEE, dd-MMM-yy HH:mm:ss zzz", Locale.US),
+            new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.US)
+    };
 
 
     private InetAddress inetAddress;
@@ -73,14 +85,40 @@ public class HttpRequest implements HttpServletRequest{
         }
     }
 
+    /**
+     * 从header中获取日期
+     * @param s
+     * @return
+     */
     @Override
     public long getDateHeader(String s) {
-        return 0;
+        String value = getHeader(s);
+
+        for (int i = 0; i < formats.length; i++) {
+            try {
+                // 第一个格式能转就转了
+                Date date = formats[i].parse(value);
+                return date.getTime();
+            } catch (ParseException e) {
+                ;
+            }
+        }
+
+        throw new IllegalArgumentException(value);
     }
 
+    /**
+     * 获取headers中指定name的第一个值
+     * @param s
+     * @return
+     */
     @Override
     public String getHeader(String s) {
-        return null;
+        s = s.toLowerCase();
+        synchronized (headers) {
+            List<String> values = headers.get(s);
+            return values == null ? null : values.get(0);
+        }
     }
 
     /**
@@ -92,7 +130,7 @@ public class HttpRequest implements HttpServletRequest{
     public Enumeration getHeaders(String s) {
         s = s.toLowerCase();
         synchronized (headers) {
-            ArrayList<String> values = headers.get(s);
+            List<String> values = headers.get(s);
             if (values == null) {
                 return new Enumerator(empty);
             } else {
@@ -112,19 +150,29 @@ public class HttpRequest implements HttpServletRequest{
         }
     }
 
+    /**
+     * 获取headers中指定name的第一个值并转为数值型
+     * @param s
+     * @return
+     */
     @Override
     public int getIntHeader(String s) {
-        return 0;
+        String value = getHeader(s);
+        if (value == null) {
+            return -1;
+        } else {
+            return Integer.parseInt(value);
+        }
     }
 
     @Override
     public String getMethod() {
-        return null;
+        return this.method;
     }
 
     @Override
     public String getPathInfo() {
-        return null;
+        return this.pathInfo;
     }
 
     @Override
@@ -134,12 +182,12 @@ public class HttpRequest implements HttpServletRequest{
 
     @Override
     public String getContextPath() {
-        return null;
+        return this.contextPath;
     }
 
     @Override
     public String getQueryString() {
-        return null;
+        return queryString;
     }
 
     @Override
@@ -159,7 +207,7 @@ public class HttpRequest implements HttpServletRequest{
 
     @Override
     public String getRequestedSessionId() {
-        return null;
+        return this.requestedSessionId;
     }
 
     @Override
@@ -169,7 +217,7 @@ public class HttpRequest implements HttpServletRequest{
 
     @Override
     public StringBuffer getRequestURL() {
-        return null;
+        return new StringBuffer(this.requestURI);
     }
 
     @Override
@@ -209,12 +257,16 @@ public class HttpRequest implements HttpServletRequest{
 
     @Override
     public Object getAttribute(String s) {
-        return null;
+        synchronized (attributes) {
+            return attributes.get(s);
+        }
     }
 
     @Override
     public Enumeration getAttributeNames() {
-        return null;
+        synchronized (attributes) {
+            return (new Enumerator(attributes));
+        }
     }
 
     @Override
@@ -234,31 +286,87 @@ public class HttpRequest implements HttpServletRequest{
 
     @Override
     public String getContentType() {
-        return null;
+        return this.contentType;
     }
 
     @Override
     public ServletInputStream getInputStream() throws IOException {
-        return null;
+        return this.stream;
+    }
+
+    /**
+     * 内部调用，解析参数
+     * 在调用 getParameter、getParameterNames、getParameterValues 和 getParameterMap时会先调用该方法
+     */
+    private void parseParameters() {
+        if (parsed) return; // 已经解析了
+
+        ParameterMap result = new ParameterMap(); // 这里新建一个引用是为了保证中途的操作能够全部正常完成后再交给parameters引用，避免数据不一致。
+        result.setLocked(false);
+
+        String encoding = getCharacterEncoding() == null ? "ISO-8859-1" : getCharacterEncoding(); // TODO getCharacterEncoding 待实现
+
+        if ("GET".equals(getMethod())) {
+            RequestUtil.parseParameters(result, getQueryString(), encoding); // TODO 待实现 这里是解析查询字符串的参数，但按规范只对GET请求生效
+        }
+
+        String contentType = getContentType();
+        if (contentType == null) {
+            contentType = "";
+        } else {
+            int semicolon = contentType.indexOf(";");
+            if (semicolon >= 0) contentType = contentType.substring(0, semicolon).trim();
+            else contentType = getContentType().trim();
+        }
+
+        if ("POST".equals(getMethod()) && "application/x-www-form-urlencoded".equals(contentType)
+                && getContentLength() > 0) {
+            // 解析请求体
+            int max = getContentLength();
+            int len = 0;
+            byte buffer[] = new byte[getContentLength()]; // 把剩余的数据全部读出来\
+
+            try {
+                ServletInputStream is = getInputStream();
+                while (len < max) {
+                    int next = is.read(buffer, len, max - len);
+                    if (next < 0) break;
+                    len += max;
+                }
+                is.close();
+                if (len < max) throw new RuntimeException("请求体内容未读完！");
+                RequestUtil.parseParameters(result, buffer, encoding); // TODO 解析请求体待实现
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        result.setLocked(true);
+        parsed = true;
+        parameters = result;
     }
 
     @Override
     public String getParameter(String s) {
+        // TODO 获取参数
         return null;
     }
 
     @Override
     public Enumeration getParameterNames() {
+        // TODO 获取参数
         return null;
     }
 
     @Override
     public String[] getParameterValues(String s) {
+        // TODO 获取参数
         return new String[0];
     }
 
     @Override
     public Map getParameterMap() {
+        // TODO 获取参数
         return null;
     }
 
@@ -386,6 +494,10 @@ public class HttpRequest implements HttpServletRequest{
 
     public void setServerPort(int serverPort) {
         this.serverPort = serverPort;
+    }
+
+    public void setPathInfo(String path) {
+        this.pathInfo = path;
     }
 
     public Socket getSocket() {
