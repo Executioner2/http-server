@@ -66,6 +66,40 @@ public class HttpResponse implements HttpServletResponse {
     }
 
     /**
+     * TODO 向响应体写入数据
+     * @param b
+     */
+    public void write(int b) {
+
+    }
+
+    /**
+     * TODO 向响应体写入数据
+     * @param b
+     */
+    public void write(byte[] b) {
+
+    }
+
+    /**
+     * TODO 向响应体写入数据
+     * @param b
+     * @param off
+     * @param len
+     */
+    public void write(byte b[], int off, int len) {
+
+    }
+
+
+    /**
+     * TODO 发送静态资源
+     */
+    public void sendStaticResource() {
+
+    }
+
+    /**
      * 没有发送就发送请求头
      */
     protected void sendHeaders() {
@@ -263,6 +297,7 @@ public class HttpResponse implements HttpServletResponse {
 
     /**
      * 获得ResponseWriter(继承于PrintWriter)对象，用于向对端发送消息
+     * 这个方法主要是给mvc的c层也就是j2ee中的servlet使用
      * @return
      * @throws IOException
      */
