@@ -32,7 +32,7 @@ public class HttpRequest implements HttpServletRequest{
 
     protected Map<String, ArrayList<String>> headers = new HashMap<>();
     protected List<Cookie> cookies = new ArrayList<>();
-    protected ParameterMap parameters = null;
+    protected ParameterMap<String, String[]> parameters = null;
     protected ServletInputStream stream = null;
     protected BufferedReader reader = null;
     protected boolean parsed = false; // 是否已经解析完成
@@ -298,7 +298,7 @@ public class HttpRequest implements HttpServletRequest{
      * 内部调用，解析参数
      * 在调用 getParameter、getParameterNames、getParameterValues 和 getParameterMap时会先调用该方法
      */
-    private void parseParameters() {
+    private void parseParameters() throws UnsupportedEncodingException {
         if (parsed) return; // 已经解析了
 
         ParameterMap result = new ParameterMap(); // 这里新建一个引用是为了保证中途的操作能够全部正常完成后再交给parameters引用，避免数据不一致。
@@ -307,7 +307,7 @@ public class HttpRequest implements HttpServletRequest{
         String encoding = getCharacterEncoding() == null ? "ISO-8859-1" : getCharacterEncoding(); // TODO getCharacterEncoding 待实现
 
         if ("GET".equals(getMethod())) {
-            RequestUtil.parseParameters(result, getQueryString(), encoding); // TODO 待实现 这里是解析查询字符串的参数，但按规范只对GET请求生效
+            RequestUtil.parseParameters(result, getQueryString(), encoding); // 这里是解析查询字符串的参数，但按规范只对GET请求生效
         }
 
         String contentType = getContentType();
@@ -324,7 +324,7 @@ public class HttpRequest implements HttpServletRequest{
             // 解析请求体
             int max = getContentLength();
             int len = 0;
-            byte buffer[] = new byte[getContentLength()]; // 把剩余的数据全部读出来\
+            byte buffer[] = new byte[getContentLength()]; // 把剩余的数据全部读出来
 
             try {
                 ServletInputStream is = getInputStream();
@@ -335,7 +335,7 @@ public class HttpRequest implements HttpServletRequest{
                 }
                 is.close();
                 if (len < max) throw new RuntimeException("请求体内容未读完！");
-                RequestUtil.parseParameters(result, buffer, encoding); // TODO 解析请求体待实现
+                RequestUtil.parseParameters(result, buffer, encoding); // 解析请求体待实现
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -348,26 +348,48 @@ public class HttpRequest implements HttpServletRequest{
 
     @Override
     public String getParameter(String s) {
-        // TODO 获取参数
-        return null;
+        try {
+            parseParameters();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        String[] values = parameters.get(s);
+
+        return values == null ? null : values[0];
     }
 
     @Override
     public Enumeration getParameterNames() {
-        // TODO 获取参数
-        return null;
+        try {
+            parseParameters();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        return new Enumerator(parameters.keySet());
     }
 
     @Override
     public String[] getParameterValues(String s) {
-        // TODO 获取参数
-        return new String[0];
+        try {
+            parseParameters();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        return parameters.get(s);
     }
 
     @Override
     public Map getParameterMap() {
-        // TODO 获取参数
-        return null;
+        try {
+            parseParameters();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        
+        return parameters;
     }
 
     @Override

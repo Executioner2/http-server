@@ -2,6 +2,7 @@ package com.lani;
 
 import org.junit.Test;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -123,6 +124,25 @@ public class AppTest {
         }
 
         System.out.println(ars);
+    }
+
+    @Test
+    public void encodingTest() throws UnsupportedEncodingException {
+        String str = "name";
+        byte[] bytes = str.getBytes();
+
+        System.out.println(str);
+        System.out.println(bytes);
+
+        System.out.println("编码：" + new String(bytes, 0, 4, "ISO-8859-1"));
+    }
+
+    @Test
+    public void arsTest() {
+        int[] ars = {1, 2, 3};
+        int i = 0;
+
+        System.out.println(ars[i++] + ars[i++]);
     }
 
 }

@@ -1,12 +1,7 @@
 package com.lani.processor.http;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Title: HttpServer
@@ -16,7 +11,7 @@ import java.util.function.Function;
  * @Email 1205878539@qq.com
  * @Date 2022-03-02 21:37
  */
-public class ParameterMap extends HashMap {
+public class ParameterMap<K, V> extends HashMap<K, V> {
     private boolean locked = true;
 
     public ParameterMap(int initialCapacity, float loadFactor) {
@@ -54,7 +49,7 @@ public class ParameterMap extends HashMap {
     }
 
     @Override
-    public Object get(Object key) {
+    public V get(Object key) {
         return super.get(key);
     }
 
@@ -64,7 +59,7 @@ public class ParameterMap extends HashMap {
     }
 
     @Override
-    public Object put(Object key, Object value) {
+    public V put(K key, V value) {
         if (locked) throw new IllegalStateException("parameterMap 已锁定");
         return super.put(key, value);
     }
@@ -76,7 +71,7 @@ public class ParameterMap extends HashMap {
     }
 
     @Override
-    public Object remove(Object key) {
+    public V remove(Object key) {
         if (locked) throw new IllegalStateException("parameterMap 已锁定");
         return super.remove(key);
     }
