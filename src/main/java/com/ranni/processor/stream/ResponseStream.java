@@ -1,10 +1,9 @@
-package com.lani.processor.stream;
+package com.ranni.processor.stream;
 
-import com.lani.processor.http.HttpResponse;
+import com.ranni.processor.http.HttpResponse;
 
 import javax.servlet.ServletOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 
 /**
  * Title: HttpServer

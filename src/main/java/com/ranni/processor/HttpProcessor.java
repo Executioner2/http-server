@@ -1,12 +1,12 @@
-package com.lani.processor;
+package com.ranni.processor;
 
-import com.lani.connector.HttpConnector;
-import com.lani.processor.http.HttpHeader;
-import com.lani.processor.http.HttpRequest;
-import com.lani.processor.http.HttpRequestLine;
-import com.lani.processor.http.HttpResponse;
-import com.lani.processor.stream.SocketInputStream;
-import com.lani.util.RequestUtil;
+import com.ranni.connector.HttpConnector;
+import com.ranni.processor.http.HttpHeader;
+import com.ranni.processor.http.HttpRequest;
+import com.ranni.processor.http.HttpRequestLine;
+import com.ranni.processor.http.HttpResponse;
+import com.ranni.processor.stream.SocketInputStream;
+import com.ranni.util.RequestUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;

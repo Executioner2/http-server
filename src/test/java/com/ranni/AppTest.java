@@ -1,4 +1,4 @@
-package com.lani;
+package com.ranni;
 
 import org.junit.Test;
 

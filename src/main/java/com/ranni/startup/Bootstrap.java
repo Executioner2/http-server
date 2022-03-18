@@ -1,6 +1,6 @@
-package com.lani.startup;
+package com.ranni.startup;
 
-import com.lani.connector.HttpConnector;
+import com.ranni.connector.HttpConnector;
 
 /**
  * Title: HttpServer

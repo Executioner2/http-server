@@ -61,7 +61,7 @@
  *
  */
 
-package com.lani.util;
+package com.ranni.util;
 
 import java.text.*;
 import java.util.*;

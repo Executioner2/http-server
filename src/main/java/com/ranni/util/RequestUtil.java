@@ -1,6 +1,6 @@
-package com.lani.util;
+package com.ranni.util;
 
-import com.lani.processor.http.ParameterMap;
+import com.ranni.processor.http.ParameterMap;
 
 import javax.servlet.http.Cookie;
 import java.io.UnsupportedEncodingException;

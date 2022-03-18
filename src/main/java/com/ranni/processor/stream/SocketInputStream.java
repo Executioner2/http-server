@@ -1,7 +1,7 @@
-package com.lani.processor.stream;
+package com.ranni.processor.stream;
 
-import com.lani.processor.http.HttpHeader;
-import com.lani.processor.http.HttpRequestLine;
+import com.ranni.processor.http.HttpHeader;
+import com.ranni.processor.http.HttpRequestLine;
 
 import java.io.IOException;
 import java.io.InputStream;

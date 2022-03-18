@@ -1,10 +1,7 @@
-package com.lani.processor;
+package com.ranni.processor;
 
-import com.lani.processor.http.HttpRequest;
-import com.lani.processor.http.HttpResponse;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import com.ranni.processor.http.HttpRequest;
+import com.ranni.processor.http.HttpResponse;
 
 /**
  * Title: HttpServer

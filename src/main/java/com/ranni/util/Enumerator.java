@@ -1,4 +1,4 @@
-package com.lani.util;
+package com.ranni.util;
 
 import java.util.*;
 

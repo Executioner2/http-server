@@ -1,7 +1,7 @@
-package com.lani.processor.http;
-import com.lani.processor.stream.SocketInputStream;
-import com.lani.util.Enumerator;
-import com.lani.util.RequestUtil;
+package com.ranni.processor.http;
+import com.ranni.processor.stream.SocketInputStream;
+import com.ranni.util.Enumerator;
+import com.ranni.util.RequestUtil;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletInputStream;

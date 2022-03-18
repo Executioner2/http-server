@@ -1,6 +1,6 @@
-package com.lani.connector;
+package com.ranni.connector;
 
-import com.lani.processor.HttpProcessor;
+import com.ranni.processor.HttpProcessor;
 
 import java.io.IOException;
 import java.net.InetAddress;

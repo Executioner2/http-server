@@ -1,8 +1,8 @@
-package com.lani.processor.http;
+package com.ranni.processor.http;
 
-import com.lani.processor.stream.ResponseStream;
-import com.lani.processor.stream.ResponseWriter;
-import com.lani.util.CookieTools;
+import com.ranni.processor.stream.ResponseStream;
+import com.ranni.processor.stream.ResponseWriter;
+import com.ranni.util.CookieTools;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
@@ -66,23 +66,28 @@ public class HttpResponse implements HttpServletResponse {
     }
 
     /**
-     * TODO 向响应体写入数据
+     * 就是先加入到buffer中，等buffer满了再发送出去
      * @param b
      */
-    public void write(int b) {
-
+    public void write(int b) throws IOException {
+        if (bufferCount >= buffer.length) {
+            flushBuffer();
+        }
+        buffer[bufferCount++] = (byte)b;
+        contentCount++;
     }
 
     /**
-     * TODO 向响应体写入数据
+     * 把数据写入缓冲区(buffer)
      * @param b
      */
     public void write(byte[] b) {
-
+        write(b, 0, b.length);
     }
 
     /**
-     * TODO 向响应体写入数据
+     * 把数据写入缓冲区(buffer)
+     * 缓冲区满了就发送出去
      * @param b
      * @param off
      * @param len
