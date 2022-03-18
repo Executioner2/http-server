@@ -1,4 +1,5 @@
 package com.ranni.processor.http;
+import com.ranni.processor.stream.RequestStream;
 import com.ranni.processor.stream.SocketInputStream;
 import com.ranni.util.Enumerator;
 import com.ranni.util.RequestUtil;
@@ -8,10 +9,7 @@ import javax.servlet.ServletInputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.security.Principal;
@@ -33,7 +31,7 @@ public class HttpRequest implements HttpServletRequest{
     protected Map<String, ArrayList<String>> headers = new HashMap<>();
     protected List<Cookie> cookies = new ArrayList<>();
     protected ParameterMap<String, String[]> parameters = null;
-    protected ServletInputStream stream = null;
+    protected ServletInputStream stream = null; // 这个流的实际对象是RequestStream
     protected BufferedReader reader = null;
     protected boolean parsed = false; // 是否已经解析完成
     protected String pathInfo = null;
@@ -60,6 +58,7 @@ public class HttpRequest implements HttpServletRequest{
     private String contextPath;
     private String contentType; // 请求体类型
     private int contentLength;
+    private String protocol; // 协议
 
     public HttpRequest() {
     }
@@ -290,8 +289,16 @@ public class HttpRequest implements HttpServletRequest{
     }
 
     @Override
-    public ServletInputStream getInputStream() throws IOException {
+    public synchronized ServletInputStream getInputStream() throws IOException {
+        if (stream == null) {
+            stream = createInputStream();
+        }
+
         return this.stream;
+    }
+
+    public ServletInputStream createInputStream() {
+        return new RequestStream(this);
     }
 
     /**
@@ -326,16 +333,15 @@ public class HttpRequest implements HttpServletRequest{
             int len = 0;
             byte buffer[] = new byte[getContentLength()]; // 把剩余的数据全部读出来
 
-            try {
-                ServletInputStream is = getInputStream();
+            try (ServletInputStream is = getInputStream()) {
                 while (len < max) {
                     int next = is.read(buffer, len, max - len);
                     if (next < 0) break;
                     len += max;
                 }
-                is.close();
+
                 if (len < max) throw new RuntimeException("请求体内容未读完！");
-                RequestUtil.parseParameters(result, buffer, encoding); // 解析请求体待实现
+                RequestUtil.parseParameters(result, buffer, encoding); // 解析请求体
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -394,7 +400,11 @@ public class HttpRequest implements HttpServletRequest{
 
     @Override
     public String getProtocol() {
-        return null;
+        return this.protocol;
+    }
+
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
     }
 
     @Override
@@ -414,7 +424,14 @@ public class HttpRequest implements HttpServletRequest{
 
     @Override
     public BufferedReader getReader() throws IOException {
-        return null;
+        if (stream != null) throw new IllegalStateException("getInputStream已经被调用！");
+        if (reader == null) {
+            String encoding = getCharacterEncoding();
+            if (encoding == null) encoding = "ISO-8859-1";
+            InputStreamReader isr = new InputStreamReader(input, encoding);
+            reader = new BufferedReader(isr);
+        }
+        return reader;
     }
 
     @Override
@@ -582,6 +599,19 @@ public class HttpRequest implements HttpServletRequest{
     public void addCookie(Cookie cookie) {
         synchronized (cookies) {
             cookies.add(cookie);
+        }
+    }
+
+    public void close() {
+        try {
+            if (stream != null) {
+                stream.close();
+            }
+            if (input != null) {
+                input.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

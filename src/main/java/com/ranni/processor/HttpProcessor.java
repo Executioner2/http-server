@@ -26,6 +26,7 @@ public class HttpProcessor {
     private HttpRequestLine requestLine = new HttpRequestLine();
     private HttpRequest request = null;
     private HttpResponse response = null;
+    private boolean nullRequest;
 
     public HttpProcessor() {
     }
@@ -53,9 +54,15 @@ public class HttpProcessor {
             response = new HttpResponse(output); // 创建http响应对象
 
             response.setRequest(request); // 在响应对象中设置请求对象
-            response.setHeader("Server", "Lani Servlet Container"); // 设置响应头
+            response.setHeader("Server", "Ranni Servlet Container"); // 设置响应头
 
             parseRequest(input, output); // 对请求行进行解析
+            if (nullRequest) {
+                // XXX request空包，抽空找下原因（通过排查input流，并未发现是因为流没关闭的原因）
+                request.close();
+                response.finishResponse();
+                return;
+            }
             parseHeaders(input); // 对请求头进行解析
 
             if (request.getRequestURI().startsWith("/servlet/")) {
@@ -134,14 +141,22 @@ public class HttpProcessor {
      */
     private void parseRequest(SocketInputStream input, OutputStream output) throws ServletException, IOException {
         input.readRequestLine(requestLine);
+
+        if (input.isNullRequest()) {
+            this.nullRequest = true;
+            return;
+        }
+
         String method = new String(requestLine.method, 0, requestLine.methodEnd);
         String uri = null;
         String protocol = new String(requestLine.protocol, 0, requestLine.protocolEnd);
 
         if (method.length() < 1) throw new ServletException("缺少HTTP请求方法");
+        if (protocol.length() < 1) throw new ServletException("缺少protocol");
         if (requestLine.uriEnd < 1) throw new ServletException("缺少uri信息");
 
         request.setMethod(method);
+        request.setProtocol(protocol);
 
         // 解析存在于uri中的查询参数
         int question = requestLine.indexOf('?');

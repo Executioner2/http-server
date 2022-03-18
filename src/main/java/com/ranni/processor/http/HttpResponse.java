@@ -1,5 +1,6 @@
 package com.ranni.processor.http;
 
+import com.ranni.connector.Constants;
 import com.ranni.processor.stream.ResponseStream;
 import com.ranni.processor.stream.ResponseWriter;
 import com.ranni.util.CookieTools;
@@ -21,6 +22,13 @@ import java.util.*;
  */
 public class HttpResponse implements HttpServletResponse {
     private static final int BUFFER_SIZE = 1024;
+    final static String errorMessage = "" +
+            "HTTP/1.1 404 File Not Found\r\n" +
+            "Content-Type: text/html\r\n" +
+            "Content-Length: 23\r\n" +
+            "\r\n" +
+            "<h1>File Not Found</h1>";
+    final static byte[] errorMessageBytes = errorMessage.getBytes();
 
     private HttpRequest request;
     private OutputStream output;
@@ -28,7 +36,7 @@ public class HttpResponse implements HttpServletResponse {
 
     protected byte[] buffer = new byte[BUFFER_SIZE];
     protected int bufferCount = 0;
-    protected boolean committed = false; // 是否已提交
+    protected boolean committed = false; // 是否已提交响应头
     protected int contentCount = 0; // 写入响应包的实际字节数
     protected int contentLength = -1; // 响应包内容的长度
     protected String contentType = null; // 响应内容类型
@@ -50,7 +58,7 @@ public class HttpResponse implements HttpServletResponse {
      * 调用此方法发送响应包
      */
     public void finishResponse() {
-        sendHeaders();
+//        sendHeaders();
         if (writer != null) {
             writer.flush();
             writer.close();
@@ -81,7 +89,7 @@ public class HttpResponse implements HttpServletResponse {
      * 把数据写入缓冲区(buffer)
      * @param b
      */
-    public void write(byte[] b) {
+    public void write(byte[] b) throws IOException {
         write(b, 0, b.length);
     }
 
@@ -92,16 +100,68 @@ public class HttpResponse implements HttpServletResponse {
      * @param off
      * @param len
      */
-    public void write(byte b[], int off, int len) {
+    public void write(byte b[], int off, int len) throws IOException {
+        if (b == null) throw new NullPointerException("写入数据不能为空！");
+        if (len > b.length) throw new IllegalArgumentException("发送的长度不能超过要发送的数据长度！");
 
+        int pos = off;
+
+        // 循环发送完b[]中的数据
+        while (pos < len) {
+            int sendSize = Math.min(len - pos, buffer.length - bufferCount);
+            System.arraycopy(b, pos, buffer, bufferCount, sendSize);
+            bufferCount += sendSize;
+            contentCount += sendSize;
+            pos += sendSize;
+            if (bufferCount >= buffer.length) flushBuffer();
+        }
     }
 
+    /**
+     * 发送静态资源
+     */
+    public void sendStaticResource() throws IOException {
+        int status = 200;
+        String msg = "OK";
+
+        // 取得文件
+        File file = new File(Constants.WEB_ROOT, request.getRequestURI());
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] bytes = new byte[BUFFER_SIZE];
+            int len = fis.read(bytes, 0, BUFFER_SIZE);
+
+            String head = String.format("" +
+                    "HTTP/1.1 %d %s\r\n" +
+                    "Content-Type: %s\r\n" +
+                    "Content-Length: %d\r\n" +
+                    "\r\n", status, msg, getStatusFileContentType(file), file.length());
+
+            output.write(head.getBytes());
+            while (len != -1) {
+                output.write(bytes, 0, len);
+                len = fis.read(bytes, 0, BUFFER_SIZE);
+            }
+        } catch (FileNotFoundException e) {
+            // 返回错误信息
+            output.write(errorMessageBytes);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
-     * TODO 发送静态资源
+     * XXX 获取静态文件的文件类型 (写得还不完整)
+     * @param file
+     * @return
      */
-    public void sendStaticResource() {
-
+    private String getStatusFileContentType(File file) {
+        String name = file.getAbsoluteFile().getName();
+        String suffix = name.substring(name.lastIndexOf(".") + 1);
+        if ("text".equals(suffix) || "html".equals(suffix)) {
+            return "text/html";
+        } else {
+            return suffix;
+        }
     }
 
     /**
@@ -129,12 +189,24 @@ public class HttpResponse implements HttpServletResponse {
         }
         pw.print("\r\n");
 
+        // 输出content-type 和 content-count
+        if (contentType != null) {
+            pw.print("Content-Type: ");
+            pw.print(contentType);
+            pw.print("\r\n");
+        }
+        if (contentLength != -1) {
+            pw.print("Content-Length: ");
+            pw.print(contentLength);
+            pw.print("\r\n");
+        }
+
         // 输出响应头
         synchronized (headers) {
             for (String key : headers.keySet()) {
                 List<String> values = headers.get(key);
                 for (String value : values) {
-                    // XXX 这段代码有问题，响应头会有多个相同的name的不同value。HowTomcatWorks源码这样写的，不太理解
+                    // XXX 这段代码有问题，响应头会有多个相同name的不同value。HowTomcatWorks源码这样写的，不太理解
                     pw.print(key);
                     pw.print(": ");
                     pw.print(value);
@@ -308,10 +380,11 @@ public class HttpResponse implements HttpServletResponse {
      */
     @Override
     public PrintWriter getWriter() throws IOException {
-        ResponseStream newStream = new ResponseStream(this); // TODO 待实现
-        newStream.setCommit(false); // TODO 待实现
+        sendHeaders(); // 当此方法被调用时，说明要发送响应体的内容，故把响应头发送过去
+        ResponseStream newStream = new ResponseStream(this);
+        newStream.setCommit(false); // 是否允许调用flush刷新提交buffer的内容
         OutputStreamWriter osw = new OutputStreamWriter(newStream, getCharacterEncoding());
-        writer = new ResponseWriter(osw);  // TODO 待实现
+        writer = new ResponseWriter(osw);
         return writer;
     }
 

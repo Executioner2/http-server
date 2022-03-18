@@ -2,7 +2,12 @@ package com.ranni;
 
 import org.junit.Test;
 
-import java.io.UnsupportedEncodingException;
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.URLStreamHandler;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -71,7 +76,7 @@ public class AppTest {
             fl(count - 2, A, C, B, false); // 只有第一次才两极反转
         } else {
             hnt (count - 2, A, B, C); // 将A移动到C上
-            fl(count - 2, A, B, C, false); // 正常递归两极反转
+            fl(count - 2, A, B, C, false); // 正常递归
         }
     }
 
@@ -138,11 +143,31 @@ public class AppTest {
     }
 
     @Test
-    public void arsTest() {
-        int[] ars = {1, 2, 3};
-        int i = 0;
+    public void urlClassLoaderTest() throws MalformedURLException, ClassNotFoundException {
+        String path = System.getProperty("user.dir") + File.separator + "webroot";
+        System.out.println(path);
 
-        System.out.println(ars[i++] + ars[i++]);
+        URL[] urls = new URL[1];
+        URLStreamHandler streamHandler = null;
+        String repository = (new URL("file", null, new File(path).getAbsolutePath() + File.separator)).toString();
+        urls[0] = new URL(null, repository, streamHandler);
+//        System.out.println(new URL(null, "file:"+path, streamHandler));
+        System.out.println(urls[0]);
+
+        URLClassLoader urlClassLoader = new URLClassLoader(urls);
+        Class<?> testServlet = urlClassLoader.loadClass("TestServlet");
+        System.out.println(testServlet);
+//        urlClassLoader.loadClass()
+
+    }
+
+    @Test
+    public void streamCloseTest() throws IOException {
+        InputStream is = new FileInputStream(new File("E:\\JavaProject\\project\\HttpServer\\webroot\\TestServlet.java"));
+        byte[] bytes = is.readAllBytes();
+        System.out.println(new String(bytes));
+        is.close();
+        is.close();
     }
 
 }

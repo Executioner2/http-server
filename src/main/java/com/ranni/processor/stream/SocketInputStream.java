@@ -3,8 +3,7 @@ package com.ranni.processor.stream;
 import com.ranni.processor.http.HttpHeader;
 import com.ranni.processor.http.HttpRequestLine;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
 /**
  * Title: HttpServer
@@ -24,10 +23,12 @@ public class SocketInputStream extends InputStream {
     private static final int OFFSET = 'a' - 'A';
 
 
+
     private InputStream is;
     private byte[] buffer;
     private int pos;
     private int count;
+    private boolean nullRequest = false; // 空的请求包
 
     public SocketInputStream() {
     }
@@ -41,6 +42,10 @@ public class SocketInputStream extends InputStream {
         this.buffer = new byte[bufferSize];
     }
 
+    public boolean isNullRequest() {
+        return this.nullRequest;
+    }
+
     /**
      * 读取字节流中的数据，一次只读一个字节
      * @return
@@ -52,6 +57,7 @@ public class SocketInputStream extends InputStream {
             fill();
             if (pos >= count) return -1; // 读完了
         }
+
         return buffer[pos++];
     }
 
@@ -71,7 +77,6 @@ public class SocketInputStream extends InputStream {
      */
     public void readRequestLine(HttpRequestLine requestLine) throws IOException {
         requestLine.recycle(); // 初始化一些参数
-
         int val;
 
         // 处理/r/n
@@ -83,7 +88,10 @@ public class SocketInputStream extends InputStream {
             }
         } while (val == CR || val == LF);
 
-        pos--;
+        if (--pos == -1) {
+            this.nullRequest = true; // 空包
+            return;
+        }
 
         // 初始数据，准备处理method
         boolean space = false;

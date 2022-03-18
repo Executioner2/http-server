@@ -3,6 +3,8 @@ package com.ranni.processor;
 import com.ranni.processor.http.HttpRequest;
 import com.ranni.processor.http.HttpResponse;
 
+import java.io.IOException;
+
 /**
  * Title: HttpServer
  * Description:
@@ -15,6 +17,16 @@ public class StaticResourceProcessor {
     public StaticResourceProcessor() {
     }
 
+    /**
+     * 静态资源处理
+     * @param request
+     * @param response
+     */
     public void process(HttpRequest request, HttpResponse response) {
+        try {
+            response.sendStaticResource();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
