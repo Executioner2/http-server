@@ -1,7 +1,5 @@
 package com.ranni.processor.http;
 
-import com.ranni.processor.stream.ResponseWriter;
-
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
