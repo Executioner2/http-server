@@ -3,6 +3,7 @@ package com.ranni.connector.stream;
 import com.ranni.connector.http.HttpHeader;
 import com.ranni.connector.http.HttpRequestLine;
 
+import javax.servlet.ServletException;
 import java.io.*;
 
 /**
@@ -73,7 +74,7 @@ public class SocketInputStream extends InputStream {
      * 解析请求行
      * @param requestLine
      */
-    public void readRequestLine(HttpRequestLine requestLine) throws IOException {
+    public void readRequestLine(HttpRequestLine requestLine) throws IOException, ServletException {
         requestLine.recycle(); // 初始化一些参数
         int val;
 
@@ -87,8 +88,7 @@ public class SocketInputStream extends InputStream {
         } while (val == CR || val == LF);
 
         if (--pos == -1) {
-            System.out.println("有空包"); // TODO sout
-            this.nullRequest = true; // 空包
+            this.nullRequest = true; // XXX 空包
             return;
         }
 
