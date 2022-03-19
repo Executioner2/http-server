@@ -57,12 +57,7 @@ public class HttpProcessor {
             response.setHeader("Server", "Ranni Servlet Container"); // 设置响应头
 
             parseRequest(input, output); // 对请求行进行解析
-            if (nullRequest) {
-                // XXX request空包，抽空找下原因（通过排查input流，并未发现是因为流没关闭的原因）
-                request.close();
-                response.finishResponse();
-                return;
-            }
+            if (nullRequest) return; // XXX request空包，抽空找下原因（通过排查input流，并未发现是因为流没关闭的原因）
             parseHeaders(input); // 对请求头进行解析
 
             if (request.getRequestURI().startsWith("/servlet/")) {
@@ -76,7 +71,7 @@ public class HttpProcessor {
             e.printStackTrace();
         } finally {
             try {
-                socket.close();
+                socket.close(); // 关闭socket，同时也会关闭InputStream和OutputStream
             } catch (IOException e) {
                 e.printStackTrace();
             }

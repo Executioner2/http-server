@@ -333,7 +333,7 @@ public class HttpRequest implements HttpServletRequest{
             int len = 0;
             byte buffer[] = new byte[getContentLength()]; // 把剩余的数据全部读出来
 
-            try (ServletInputStream is = getInputStream()) {
+            try (ServletInputStream is = getInputStream()) { // 这里调用is的关闭并没有真正关闭流
                 while (len < max) {
                     int next = is.read(buffer, len, max - len);
                     if (next < 0) break;
@@ -599,19 +599,6 @@ public class HttpRequest implements HttpServletRequest{
     public void addCookie(Cookie cookie) {
         synchronized (cookies) {
             cookies.add(cookie);
-        }
-    }
-
-    public void close() {
-        try {
-            if (stream != null) {
-                stream.close();
-            }
-            if (input != null) {
-                input.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 }

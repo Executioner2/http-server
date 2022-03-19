@@ -70,6 +70,8 @@ public class RequestStream extends ServletInputStream {
 
     /**
      * 逻辑上关闭流
+     * 注意：如果关闭了InputStream或OutputStream都将关闭socket
+     * 所以即使读取完了InputStream中的数据，也只能逻辑上关闭流
      * @throws IOException
      */
     @Override

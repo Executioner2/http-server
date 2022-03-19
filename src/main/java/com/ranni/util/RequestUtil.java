@@ -73,16 +73,16 @@ public class RequestUtil {
             byte b = data[i];
             switch ((char)b) {
                 case '&':
-                    pos = i + 1;
                     if (key != null) {
                         // key不为null，说明前面已经有value可以解析了
-                        value = new String(data, pos, i - pos + 1, encoding);
+                        value = new String(data, pos, i - pos, encoding);
                         putMapEntry(map, key, value);
                         key = null;
                     }
+                    pos = i + 1;
                     break;
                 case '=':
-                    key = new String(data, pos, i - pos + 1, encoding);
+                    key = new String(data, pos, i - pos, encoding);
                     pos = i + 1;
                     break;
                 case '+': // +号变空格

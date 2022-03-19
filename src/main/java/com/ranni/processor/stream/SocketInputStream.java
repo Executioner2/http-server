@@ -22,8 +22,6 @@ public class SocketInputStream extends InputStream {
     private static final byte COLON = (byte)':';
     private static final int OFFSET = 'a' - 'A';
 
-
-
     private InputStream is;
     private byte[] buffer;
     private int pos;
@@ -89,6 +87,7 @@ public class SocketInputStream extends InputStream {
         } while (val == CR || val == LF);
 
         if (--pos == -1) {
+            System.out.println("有空包"); // TODO sout
             this.nullRequest = true; // 空包
             return;
         }
@@ -175,7 +174,6 @@ public class SocketInputStream extends InputStream {
         }
 
         requestLine.protocolEnd = readCount;
-
     }
 
     /**

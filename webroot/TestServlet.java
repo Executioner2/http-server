@@ -20,8 +20,7 @@ public class TestServlet extends HttpServlet {
 
     @Override
     public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
-        String name = req.getParameter("name");
-        String age = req.getParameter("age");
+        String value = req.getParameter("value");
         res.setContentType("text/html");
         PrintWriter out = res.getWriter();
         res.flushBuffer();
@@ -30,7 +29,7 @@ public class TestServlet extends HttpServlet {
         out.println("<body>");
         out.println("<br><hr>");
         out.println("<form>");
-        out.println("New Value: <input name=value>");
+        out.println("New Value: <input name=value value=" + value + ">");
         out.println("<input type=submit>");
         out.println("</form>");
         out.println("</body>");

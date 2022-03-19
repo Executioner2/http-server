@@ -58,7 +58,9 @@ public class HttpResponse implements HttpServletResponse {
      * 调用此方法发送响应包
      */
     public void finishResponse() {
-//        sendHeaders();
+        if (!isCommitted())
+            sendHeaders();
+
         if (writer != null) {
             writer.flush();
             writer.close();
