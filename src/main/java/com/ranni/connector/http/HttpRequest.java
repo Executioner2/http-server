@@ -1,6 +1,6 @@
-package com.ranni.processor.http;
-import com.ranni.processor.stream.RequestStream;
-import com.ranni.processor.stream.SocketInputStream;
+package com.ranni.connector.http;
+import com.ranni.connector.stream.RequestStream;
+import com.ranni.connector.stream.SocketInputStream;
 import com.ranni.util.Enumerator;
 import com.ranni.util.RequestUtil;
 

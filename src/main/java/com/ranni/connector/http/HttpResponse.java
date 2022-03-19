@@ -1,8 +1,8 @@
-package com.ranni.processor.http;
+package com.ranni.connector.http;
 
 import com.ranni.connector.Constants;
-import com.ranni.processor.stream.ResponseStream;
-import com.ranni.processor.stream.ResponseWriter;
+import com.ranni.connector.stream.ResponseStream;
+import com.ranni.connector.stream.ResponseWriter;
 import com.ranni.util.CookieTools;
 
 import javax.servlet.ServletOutputStream;

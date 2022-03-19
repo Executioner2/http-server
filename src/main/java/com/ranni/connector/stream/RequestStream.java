@@ -1,6 +1,6 @@
-package com.ranni.processor.stream;
+package com.ranni.connector.stream;
 
-import com.ranni.processor.http.HttpRequest;
+import com.ranni.connector.http.HttpRequest;
 
 import javax.servlet.ServletInputStream;
 import java.io.IOException;

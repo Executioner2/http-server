@@ -1,11 +1,12 @@
-package com.ranni.processor;
+package com.ranni.connector;
 
-import com.ranni.connector.HttpConnector;
-import com.ranni.processor.http.HttpHeader;
-import com.ranni.processor.http.HttpRequest;
-import com.ranni.processor.http.HttpRequestLine;
-import com.ranni.processor.http.HttpResponse;
-import com.ranni.processor.stream.SocketInputStream;
+import com.ranni.connector.http.HttpHeader;
+import com.ranni.connector.http.HttpRequest;
+import com.ranni.connector.http.HttpRequestLine;
+import com.ranni.connector.http.HttpResponse;
+import com.ranni.connector.stream.SocketInputStream;
+import com.ranni.processor.ServletProcessor;
+import com.ranni.processor.StaticResourceProcessor;
 import com.ranni.util.RequestUtil;
 
 import javax.servlet.ServletException;

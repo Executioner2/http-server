@@ -1,7 +1,5 @@
 package com.ranni.connector;
 
-import com.ranni.processor.HttpProcessor;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;

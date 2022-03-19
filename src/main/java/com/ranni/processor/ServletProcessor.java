@@ -1,10 +1,10 @@
 package com.ranni.processor;
 
 import com.ranni.connector.Constants;
-import com.ranni.processor.http.HttpRequest;
-import com.ranni.processor.http.HttpRequestFacade;
-import com.ranni.processor.http.HttpResponse;
-import com.ranni.processor.http.HttpResponseFacade;
+import com.ranni.connector.http.HttpRequest;
+import com.ranni.connector.http.HttpRequestFacade;
+import com.ranni.connector.http.HttpResponse;
+import com.ranni.connector.http.HttpResponseFacade;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;

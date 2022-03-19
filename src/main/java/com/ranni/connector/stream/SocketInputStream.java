@@ -1,7 +1,7 @@
-package com.ranni.processor.stream;
+package com.ranni.connector.stream;
 
-import com.ranni.processor.http.HttpHeader;
-import com.ranni.processor.http.HttpRequestLine;
+import com.ranni.connector.http.HttpHeader;
+import com.ranni.connector.http.HttpRequestLine;
 
 import java.io.*;
 
