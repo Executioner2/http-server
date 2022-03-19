@@ -8,7 +8,7 @@ import java.io.PrintWriter;
  * Description:
  * 此类并无新增自己的代码。
  * 这个类只允许写入，且写入方法都仅仅是在写入后再调入父类的flush方法。
- * 注意：这个类不允许关闭流，流应该让servlet来关闭
+ * 注意：这个类不允许关闭流，流应该让processor调用socket.close()来关闭
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
