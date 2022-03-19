@@ -24,7 +24,6 @@ import java.net.Socket;
  */
 public class HttpProcessor {
     private HttpConnector httpConnector;
-    private HttpRequestLine requestLine = new HttpRequestLine();
     private HttpRequest request = null;
     private HttpResponse response = null;
     private boolean nullRequest;
@@ -136,6 +135,7 @@ public class HttpProcessor {
      * @param output
      */
     private void parseRequest(SocketInputStream input, OutputStream output) throws ServletException, IOException {
+        HttpRequestLine requestLine = new HttpRequestLine();
         input.readRequestLine(requestLine);
 
         if (input.isNullRequest()) {
@@ -198,7 +198,7 @@ public class HttpProcessor {
             request.setRequestedSessionURL(false);
         }
 
-        String normalizedUri = normalize(uri); // 对uri进行修正
+        String normalizedUri = RequestUtil.normalize(uri); // 对uri进行修正
 
         if (normalizedUri != null) {
             request.setRequestURI(normalizedUri);
@@ -207,62 +207,5 @@ public class HttpProcessor {
         }
 
         if (normalizedUri == null) throw new ServletException("未规范化 URI: " + uri);
-    }
-
-    /**
-     * 对uri进行修正（规范化），如 '\' 会被替换为 '/'
-     * @param uri
-     * @return normalized 规范化后的uri
-     */
-    private String normalize(String uri) {
-        if (uri == null) return null;
-
-        String normalized = uri;
-
-        // 不符合规范的转义字符，以下是特殊转义字符
-        // 一般只有uri中的参数部分才需要用到下述转义字符
-        // 在调用该方法之前已经对参数部分进行过处理，当前的uri中不会有参数部分
-        // 如果当前的uri中出现了下述转义，则不符合规范
-        if ((normalized.indexOf("%25") >= 0) // %
-          || (normalized.indexOf("%2F") >= 0) // /
-          || (normalized.indexOf("%2E") >= 0) // .
-          || (normalized.indexOf("%5C") >= 0) // \
-          || (normalized.indexOf("%2f") >= 0) // /
-          || (normalized.indexOf("%2e") >= 0) // .
-          || (normalized.indexOf("%5c") >= 0) // \
-        ){
-            return null;
-        }
-
-        // 开头为 "/%7E" 和 "/%7e" 转义后为 /~ 这个是合法的，需要转回来
-        if (normalized.startsWith("/%7E") || normalized.startsWith("/%7e")) normalized = normalized.substring(4);
-
-        if (!normalized.startsWith("/")) normalized = "/" + normalized;
-
-        // 将 "//" 转换为 '/'
-        normalized.replaceAll("//", "/");
-
-        // 将 "\\" 转换为 '/'
-        normalized.replaceAll("\\\\", "/");
-
-        // 将 "/./" 转换为 '/'
-        normalized.replaceAll("/\\./", "/");
-
-        // 转换 "/.." ，这个是返回上一级
-        while (true) {
-            int index = normalized.indexOf("/../");
-            if (index < 0) break;
-            if (index == 0) return null; // 试图跳出WEB_ROOT
-
-            int index2 = normalized.lastIndexOf("/", index - 1); // 从[0, index - 1]内最后一次出现的 '/'
-            normalized = normalized.substring(0, index2) + normalized.substring(index + 3);
-
-        }
-
-        if ("/.".equals(normalized)) return "/";
-
-        if (normalized.indexOf("/...") >= 0) return  null;
-
-        return normalized;
     }
 }
