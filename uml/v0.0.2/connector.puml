@@ -44,7 +44,7 @@ class HttpConnector {
 }
 
 class HttpProcessorPool {
-    - Stack<HttpProcessor> processors
+    - processors : Stack<HttpProcessor>
     # HttpProcessor createProcessor()
 }
 

@@ -2,10 +2,10 @@
 
 title v0.0.2 request UML图
 interface Request
-interface ServletRequest
-interface HttpServletRequest
+interface javax.servlet.ServletRequest
+interface javax.servlet.http.HttpServletRequest
 interface HttpRequest
-interface ServletInputStream
+abstract class javax.servlet.ServletInputStream
 class RequestBase
 class HttpRequestBase
 class HttpRequestImpl
@@ -14,17 +14,17 @@ class RequestFacade
 class RequestStream
 
 Request <|-- HttpRequest
-ServletRequest <|-- HttpServletRequest
+javax.servlet.ServletRequest <|-- javax.servlet.http.HttpServletRequest
 RequestBase <|-- HttpRequestBase
 HttpRequestBase <|-- HttpRequestImpl
 RequestFacade <|-- HttpRequestFacade
 Request <|.. RequestBase
-ServletRequest <|.. RequestBase
+javax.servlet.ServletRequest <|.. RequestBase
 HttpRequest <|.. HttpRequestBase
-HttpServletRequest <|.. HttpRequestBase
-ServletRequest <|.. RequestFacade
-HttpServletRequest <|.. HttpRequestFacade
-ServletInputStream <|.. RequestStream
+javax.servlet.http.HttpServletRequest <|.. HttpRequestBase
+javax.servlet.ServletRequest <|.. RequestFacade
+javax.servlet.http.HttpServletRequest <|.. HttpRequestFacade
+javax.servlet.ServletInputStream <|.. RequestStream
 RequestBase "1" *-- "1" RequestStream
 
 @enduml
