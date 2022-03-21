@@ -27,6 +27,7 @@
 - 采用单例模式获取ServerSocket对象  
   
 **已知问题：**
+- CookieTools和DateTool为Tomcat源码文件  
 
 # 
 ### 版本说明：0.0.1
