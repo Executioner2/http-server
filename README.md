@@ -8,8 +8,27 @@
 |com.ranni.util|此目录为工具模块|
 |com.ranni.processor|此目录为核心模块|
 |com.ranni.connector|此目录为连接器模块|  
-|com.ranni.startup|此目录为HTTP服务器启动模块|
-     
+|com.ranni.startup|此目录为HTTP服务器启动模块|  
+
+#
+### 版本说明：0.0.2
+**UML类图：**
+![img](uml/v0.0.2/connector.png)
+
+![img](uml/v0.0.2/request.png)
+
+![img](uml/v0.0.2/response.png)
+
+**更新：**
+- 新增HttpProcessorPool
+- 采用异步处理Http请求
+- 更新Request类关系
+- 更新Response类关系
+- 采用单例模式获取ServerSocket对象  
+  
+**已知问题：**
+
+# 
 ### 版本说明：0.0.1
 **更新：**
 - 实现简单的启动器模块

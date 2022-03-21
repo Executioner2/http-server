@@ -1,0 +1,30 @@
+@startuml
+
+title v0.0.2 request UML图
+interface Request
+interface ServletRequest
+interface HttpServletRequest
+interface HttpRequest
+interface ServletInputStream
+class RequestBase
+class HttpRequestBase
+class HttpRequestImpl
+class HttpRequestFacade
+class RequestFacade
+class RequestStream
+
+Request <|-- HttpRequest
+ServletRequest <|-- HttpServletRequest
+RequestBase <|-- HttpRequestBase
+HttpRequestBase <|-- HttpRequestImpl
+RequestFacade <|-- HttpRequestFacade
+Request <|.. RequestBase
+ServletRequest <|.. RequestBase
+HttpRequest <|.. HttpRequestBase
+HttpServletRequest <|.. HttpRequestBase
+ServletRequest <|.. RequestFacade
+HttpServletRequest <|.. HttpRequestFacade
+ServletInputStream <|.. RequestStream
+RequestBase "1" *-- "1" RequestStream
+
+@enduml

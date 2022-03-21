@@ -1,0 +1,34 @@
+@startuml
+
+title v0.0.2 response UML图
+interface Response
+interface ServletResponse
+interface HttpServletResponse
+interface HttpResponse
+interface ServletOutputStream
+interface PrintWriter
+class ResponseBase
+class HttpResponseBase
+class HttpResponseImpl
+class ResponseFacade
+class HttpResponseFacade
+class ResponseWriter
+class ResponseStream
+
+Response <|-- HttpResponse
+ServletResponse <|-- HttpServletResponse
+ResponseBase <|-- HttpResponseBase
+ResponseFacade <|-- HttpResponseFacade
+HttpResponseBase <|-- HttpResponseImpl
+Response <|.. ResponseBase
+HttpResponse <|.. HttpResponseBase
+ServletResponse <|.. ResponseBase
+HttpServletResponse <|.. HttpResponseBase
+ServletResponse <|.. ResponseFacade
+HttpServletResponse <|.. HttpResponseFacade
+PrintWriter <|.. ResponseWriter
+ServletOutputStream <|.. ResponseStream
+ResponseBase "1" *-- ResponseStream
+ResponseWriter <.. ResponseBase
+
+@enduml

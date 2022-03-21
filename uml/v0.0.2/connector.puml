@@ -1,0 +1,57 @@
+@startuml
+title v0.0.2 连接器UML图
+interface Connector
+interface Container
+interface Request
+interface Response
+interface ServerSocketFactory
+class Bootstrap
+class DefaultServerSocketFactory
+class SimpleContainer
+class HttpConnector
+class HttpProcessor
+class HttpHeader
+class HttpRequestLine
+class SocketInputStream
+class HttpProcessorPool
+
+Connector <|.. HttpConnector : 实现
+Container <|.. SimpleContainer : 实现
+ServerSocketFactory <|.. DefaultServerSocketFactory : 实现
+HttpProcessorPool o-- HttpProcessor : 聚合
+Connector "1" --> "1" Container : 关联
+HttpConnector "1" <-- "1" HttpProcessorPool : 关联
+HttpConnector "1" --> "1" Bootstrap : 关联
+Request <.. Connector : 依赖
+Response <.. Connector : 依赖
+HttpHeader <.. HttpProcessor : 依赖
+HttpRequestLine <.. HttpProcessor : 依赖
+SocketInputStream <.. HttpProcessor : 依赖
+DefaultServerSocketFactory <.. HttpConnector : 依赖
+
+interface Connector {
+    + Connector getContainer()
+    + void setContainer()
+    + void createRequest()
+    + void createResponse()
+    + void initialize()
+}
+
+class HttpConnector {
+    - ServerSocket open() 返回ServerSocket实例
+    - HttpProcessor createProcessor()
+    # void recycle(HttpProcessor) 将用完的processor压回栈
+}
+
+class HttpProcessorPool {
+    - Stack<HttpProcessor> processors
+    # HttpProcessor createProcessor()
+}
+
+class HttpProcessor {
+    void assign(Socket) 获取套接字并开启线程执行后续的任务
+    - process(Socket) 处理任务
+    - Socket await()
+}
+
+@enduml
