@@ -25,8 +25,6 @@ import java.util.*;
  * @Date 2022-03-21 23:06
  */
 public class HttpRequestBase extends RequestBase implements HttpRequest, HttpServletRequest {
-
-    protected HttpRequestFacade facade = new HttpRequestFacade(this);
     protected static List<String> empty = new ArrayList(); // 统一返回的空数组
     protected Map<String, ArrayList<String>> headers = new HashMap<>(); // 请求头中的信息
     protected List<Cookie> cookies = new ArrayList<>();
