@@ -2,7 +2,6 @@ package com.ranni.connector.http.request;
 
 import com.ranni.connector.http.Connector;
 import com.ranni.connector.http.Context;
-import com.ranni.connector.http.ParameterMap;
 import com.ranni.connector.http.Wrapper;
 import com.ranni.connector.http.response.Response;
 import com.ranni.util.Enumerator;
@@ -10,7 +9,6 @@ import com.ranni.util.Enumerator;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletRequest;
-import javax.servlet.http.Cookie;
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
@@ -45,16 +43,10 @@ public abstract class RequestBase implements Request, ServletRequest {
     protected boolean secure; // 是否是安全的请求
     protected String serverName; // 服务器名
     protected int serverPort; // 服务器端口号
-    protected static List<String> empty = new ArrayList(); // 统一返回的空数组
-    protected Map<String, ArrayList<String>> headers = new HashMap<>();
-    protected List<Cookie> cookies = new ArrayList<>();
-    protected ParameterMap<String, String[]> parameters = null;
-    protected boolean parsed = false; // 是否已经解析完成
-    protected String pathInfo = null;
     protected Map<String, Object> attributes = new HashMap();
     protected String characterEncoding; // 字符编码格式
     protected String remoteHost; // 远程主机完全限定名
-    protected ArrayList<Locale> locales = new ArrayList(); // 与此请求相关联的地区
+    protected ArrayList<Locale> locales = new ArrayList(); // 与此请求相关联首选语言
 
     public RequestBase() {
         facade = new RequestFacade(this);
@@ -358,5 +350,15 @@ public abstract class RequestBase implements Request, ServletRequest {
     @Override
     public String getRealPath(String s) {
         return null;
+    }
+
+    /**
+     * 增加本地语言环境
+     * @param locale
+     */
+    public void addLocale(Locale locale) {
+        synchronized (locales) {
+            locales.add(locale);
+        }
     }
 }

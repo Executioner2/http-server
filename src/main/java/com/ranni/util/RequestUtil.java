@@ -191,4 +191,13 @@ public class RequestUtil {
 
         return normalized;
     }
+
+    /**
+     * TODO uri解码
+     * @param requestURI
+     * @return
+     */
+    public static String URLDecode(String requestURI) {
+        return "";
+    }
 }

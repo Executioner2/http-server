@@ -1,5 +1,6 @@
 package com.ranni.connector.http.request;
 
+import javax.servlet.ServletRequest;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -15,6 +16,13 @@ import java.util.Enumeration;
  * @Date 2022-03-21 23:09
  */
 public class HttpRequestFacade extends RequestFacade implements HttpServletRequest {
+    public HttpRequestFacade() {
+    }
+
+    public HttpRequestFacade(ServletRequest request) {
+        super(request);
+    }
+
     @Override
     public String getAuthType() {
         return null;

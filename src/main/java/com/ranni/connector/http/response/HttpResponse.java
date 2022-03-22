@@ -1,5 +1,7 @@
 package com.ranni.connector.http.response;
 
+import javax.servlet.http.Cookie;
+
 /**
  * Title: HttpServer
  * Description:
@@ -9,4 +11,8 @@ package com.ranni.connector.http.response;
  * @Date 2022-03-22 18:26
  */
 public interface HttpResponse extends Response {
+//    // 获取cookies
+//    Cookie[] getCookies();
+
+
 }

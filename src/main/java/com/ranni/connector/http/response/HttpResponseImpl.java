@@ -8,5 +8,5 @@ package com.ranni.connector.http.response;
  * @Email 1205878539@qq.com
  * @Date 2022-03-22 18:28
  */
-public class HttpResponseImpl extends HttpResponseBase {
+public final class HttpResponseImpl extends HttpResponseBase {
 }
