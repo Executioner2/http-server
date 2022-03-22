@@ -2,11 +2,11 @@
 
 title v0.0.2 response UML图
 interface Response
-interface ServletResponse
-interface HttpServletResponse
+interface javax.servlet.ServletResponse
+interface javax.servlet.http.HttpServletResponse
 interface HttpResponse
-interface ServletOutputStream
-interface PrintWriter
+abstract class javax.servlet.ServletOutputStream
+class java.io.PrintWriter
 class ResponseBase
 class HttpResponseBase
 class HttpResponseImpl
@@ -16,18 +16,18 @@ class ResponseWriter
 class ResponseStream
 
 Response <|-- HttpResponse
-ServletResponse <|-- HttpServletResponse
+javax.servlet.ServletResponse <|-- javax.servlet.http.HttpServletResponse
 ResponseBase <|-- HttpResponseBase
 ResponseFacade <|-- HttpResponseFacade
 HttpResponseBase <|-- HttpResponseImpl
+java.io.PrintWriter <|-- ResponseWriter
 Response <|.. ResponseBase
 HttpResponse <|.. HttpResponseBase
-ServletResponse <|.. ResponseBase
-HttpServletResponse <|.. HttpResponseBase
-ServletResponse <|.. ResponseFacade
-HttpServletResponse <|.. HttpResponseFacade
-PrintWriter <|.. ResponseWriter
-ServletOutputStream <|.. ResponseStream
+javax.servlet.ServletResponse <|.. ResponseBase
+javax.servlet.http.HttpServletResponse <|.. HttpResponseBase
+javax.servlet.ServletResponse <|.. ResponseFacade
+javax.servlet.http.HttpServletResponse <|.. HttpResponseFacade
+javax.servlet.ServletOutputStream <|.. ResponseStream
 ResponseBase "1" *-- ResponseStream
 ResponseWriter <.. ResponseBase
 
