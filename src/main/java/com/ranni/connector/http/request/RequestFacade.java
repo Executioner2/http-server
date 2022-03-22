@@ -13,6 +13,7 @@ import java.util.Map;
 /**
  * Title: HttpServer
  * Description:
+ * ServletRequest的外观类
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -21,135 +22,139 @@ import java.util.Map;
 public class RequestFacade implements ServletRequest {
     protected ServletRequest request;
 
-    public RequestFacade() {
-    }
-
     public RequestFacade(ServletRequest request) {
         this.request = request;
     }
 
+    /**
+     * 清除掉request
+     */
+    public void clear() {
+        request = null;
+    }
+
     @Override
     public Object getAttribute(String s) {
-        return null;
+        return request.getAttribute(s);
     }
 
     @Override
     public Enumeration getAttributeNames() {
-        return null;
+        return request.getAttributeNames();
     }
 
     @Override
     public String getCharacterEncoding() {
-        return null;
+        return request.getCharacterEncoding();
     }
 
     @Override
     public void setCharacterEncoding(String s) throws UnsupportedEncodingException {
-
+        request.setCharacterEncoding(s);
     }
 
     @Override
     public int getContentLength() {
-        return 0;
+        return request.getContentLength();
     }
 
     @Override
     public String getContentType() {
-        return null;
+        return request.getContentType();
     }
 
     @Override
     public ServletInputStream getInputStream() throws IOException {
-        return null;
+        return request.getInputStream();
     }
 
     @Override
     public String getParameter(String s) {
-        return null;
+        return request.getParameter(s);
     }
 
     @Override
     public Enumeration getParameterNames() {
-        return null;
+        return request.getParameterNames();
     }
 
     @Override
     public String[] getParameterValues(String s) {
-        return new String[0];
+        return request.getParameterValues(s);
     }
 
     @Override
     public Map getParameterMap() {
-        return null;
+        return request.getParameterMap();
     }
 
     @Override
     public String getProtocol() {
-        return null;
+        return request.getProtocol();
     }
 
     @Override
     public String getScheme() {
-        return null;
+        return request.getScheme();
     }
 
     @Override
     public String getServerName() {
-        return null;
+        return request.getServerName();
     }
 
     @Override
     public int getServerPort() {
-        return 0;
+        return request.getServerPort();
     }
 
     @Override
     public BufferedReader getReader() throws IOException {
-        return null;
+        return request.getReader();
     }
 
     @Override
     public String getRemoteAddr() {
-        return null;
+        return request.getRemoteAddr();
     }
 
     @Override
     public String getRemoteHost() {
-        return null;
+        return request.getRemoteHost();
     }
 
     @Override
     public void setAttribute(String s, Object o) {
-
+        request.setAttribute(s, o);
     }
 
     @Override
     public void removeAttribute(String s) {
-
+        request.removeAttribute(s);
     }
 
     @Override
     public Locale getLocale() {
-        return null;
+        return request.getLocale();
     }
 
     @Override
     public Enumeration getLocales() {
-        return null;
+        return request.getLocales();
     }
 
     @Override
     public boolean isSecure() {
-        return false;
+        return request.isSecure();
     }
 
     @Override
     public RequestDispatcher getRequestDispatcher(String s) {
-        return null;
+        return request.getRequestDispatcher(s);
     }
 
     @Override
     public String getRealPath(String s) {
-        return null;
+        return request.getRealPath(s);
     }
 }
