@@ -19,6 +19,15 @@ import java.util.Map;
  * @Date 2022-03-21 23:09
  */
 public class RequestFacade implements ServletRequest {
+    protected ServletRequest request;
+
+    public RequestFacade() {
+    }
+
+    public RequestFacade(ServletRequest request) {
+        this.request = request;
+    }
+
     @Override
     public Object getAttribute(String s) {
         return null;

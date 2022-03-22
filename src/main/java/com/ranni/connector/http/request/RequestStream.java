@@ -12,6 +12,12 @@ import java.io.IOException;
  * @Date 2022-03-21 23:06
  */
 public class RequestStream extends ServletInputStream {
+    private Request request;
+
+    public RequestStream(Request request) {
+        this.request = request;
+    }
+
     @Override
     public int read() throws IOException {
         return 0;

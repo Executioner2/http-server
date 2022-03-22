@@ -1,10 +1,12 @@
 package com.ranni.connector.http.request;
 
+import javax.servlet.RequestDispatcher;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.security.Principal;
 import java.util.Enumeration;
+import java.util.Map;
 
 /**
  * Title: HttpServer
@@ -139,5 +141,30 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
     @Override
     public boolean isRequestedSessionIdFromUrl() {
         return false;
+    }
+
+    @Override
+    public String getParameter(String s) {
+        return null;
+    }
+
+    @Override
+    public Enumeration getParameterNames() {
+        return null;
+    }
+
+    @Override
+    public String[] getParameterValues(String s) {
+        return new String[0];
+    }
+
+    @Override
+    public Map getParameterMap() {
+        return null;
+    }
+
+    @Override
+    public RequestDispatcher getRequestDispatcher(String s) {
+        return null;
     }
 }
