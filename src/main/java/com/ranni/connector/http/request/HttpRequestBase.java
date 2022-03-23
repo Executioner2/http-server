@@ -49,6 +49,14 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
     protected String decodedRequestURI; // 解码后的uri
 
     /**
+     * TODO 置为初始值，便于下次使用
+     */
+    @Override
+    public void recycle() {
+        super.recycle();
+    }
+
+    /**
      * 返回认证类型
      * @return
      */

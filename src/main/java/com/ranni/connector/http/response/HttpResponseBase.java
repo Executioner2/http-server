@@ -3,6 +3,8 @@ package com.ranni.connector.http.response;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * Title: HttpServer
@@ -13,16 +15,38 @@ import java.io.IOException;
  * @Date 2022-03-22 18:27
  */
 public class HttpResponseBase extends ResponseBase implements HttpResponse, HttpServletResponse {
+    protected List<Cookie> cookies = new ArrayList<>();
+    protected Map<String, ArrayList<String>> headers = new HashMap<>();
+    protected final SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US); // 格式化日期格式
+
+    /**
+     * 添加cookie
+     * @param cookie
+     */
     @Override
     public void addCookie(Cookie cookie) {
-
+        synchronized (cookies) {
+            cookies.add(cookie);
+        }
     }
 
+    /**
+     * 响应头中是否包含指定key
+     * @param s
+     * @return
+     */
     @Override
     public boolean containsHeader(String s) {
-        return false;
+        synchronized (headers) {
+            return headers.containsKey(s);
+        }
     }
 
+    /**
+     * TODO 对URL进行编码
+     * @param s
+     * @return
+     */
     @Override
     public String encodeURL(String s) {
         return null;
