@@ -193,6 +193,32 @@ public class RequestUtil {
     }
 
     /**
+     * 解析响应类型
+     * @param contentType
+     * @return
+     */
+    public static String parseCharacterEncoding(String contentType) {
+        if (contentType == null) return null;
+        int start = contentType.indexOf("charset=");
+
+        if (start < 0) return null;
+
+        int offset = 8; // 字符串 "charset=" 的长度
+        String encoding = contentType.substring(start + offset);
+        int end = encoding.indexOf(";");
+
+        if (end >= 0)
+            encoding = encoding.substring(0, end);
+
+        encoding = encoding.trim();
+        if (encoding.length() > 2 && encoding.startsWith("\"") && encoding.startsWith("\"")) {
+            encoding = encoding.substring(1, encoding.length() - 1);
+        }
+
+        return encoding;
+    }
+
+    /**
      * TODO uri解码
      * @param requestURI
      * @return

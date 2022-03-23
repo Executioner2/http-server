@@ -97,4 +97,44 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
     public void setStatus(int i, String s) {
 
     }
+
+    @Override
+    public Cookie[] getCookies() {
+        return new Cookie[0];
+    }
+
+    @Override
+    public String getHeader(String name) {
+        return null;
+    }
+
+    @Override
+    public String[] getHeaderNames() {
+        return new String[0];
+    }
+
+    @Override
+    public String[] getHeaderValues(String name) {
+        return new String[0];
+    }
+
+    @Override
+    public String getMessage() {
+        return null;
+    }
+
+    @Override
+    public int getStatus() {
+        return 0;
+    }
+
+    @Override
+    public void reset(int status, String message) {
+
+    }
+
+    @Override
+    public void sendAcknowledgement() throws IOException {
+
+    }
 }

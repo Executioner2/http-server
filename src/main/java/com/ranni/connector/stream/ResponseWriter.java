@@ -14,6 +14,7 @@ import java.io.PrintWriter;
  * @Email 1205878539@qq.com
  * @Date 2022-03-17 23:32
  */
+@Deprecated
 public class ResponseWriter extends PrintWriter {
 
     public ResponseWriter(OutputStreamWriter osr) {

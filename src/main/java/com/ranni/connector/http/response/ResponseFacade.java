@@ -15,6 +15,12 @@ import java.util.Locale;
  * @Date 2022-03-22 18:28
  */
 public class ResponseFacade implements ServletResponse {
+    protected ServletResponse response; // 响应对象
+
+    public ResponseFacade(ServletResponse response) {
+        this.response = response;
+    }
+
     @Override
     public String getCharacterEncoding() {
         return null;

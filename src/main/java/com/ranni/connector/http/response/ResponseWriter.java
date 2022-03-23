@@ -5,13 +5,22 @@ import java.nio.charset.Charset;
 
 /**
  * Title: HttpServer
- * Description:
- *
+ * Description: TODO ResponseWriter
+ * 这个类只允许写入，且写入方法都仅仅是在写入后再调入父类的flush方法。
+ * 注意：这个类不允许关闭流，流应该让processor调用socket.close()来关闭
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022-03-22 18:31
  */
 public class ResponseWriter extends PrintWriter {
+    private ResponseStream stream;
+
+    public ResponseWriter(OutputStreamWriter osr, ResponseStream stream) {
+        super(osr);
+        this.stream = stream;
+        this.stream.setCommit(false);
+    }
+
     public ResponseWriter(Writer out) {
         super(out);
     }

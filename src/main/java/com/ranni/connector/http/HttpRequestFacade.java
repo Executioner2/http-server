@@ -21,6 +21,7 @@ import java.util.Map;
  * @Email 1205878539@qq.com
  * @Date 2022-03-02 20:38
  */
+@Deprecated
 public class HttpRequestFacade implements HttpServletRequest {
     private HttpRequest request;
 

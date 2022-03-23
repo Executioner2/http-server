@@ -1,5 +1,6 @@
 package com.ranni.connector.http.response;
 
+import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -13,6 +14,10 @@ import java.io.IOException;
  * @Date 2022-03-22 18:29
  */
 public class HttpResponseFacade extends ResponseFacade implements HttpServletResponse {
+    public HttpResponseFacade(ServletResponse response) {
+        super(response);
+    }
+
     @Override
     public void addCookie(Cookie cookie) {
 

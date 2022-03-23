@@ -25,6 +25,7 @@ import java.util.*;
  * @Email 1205878539@qq.com
  * @Date 2022-03-02 20:08
  */
+@Deprecated
 public class HttpRequest implements HttpServletRequest{
     protected static List<String> empty = new ArrayList(); // 统一返回的空数组
 

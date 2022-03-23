@@ -30,20 +30,20 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
     protected List<Cookie> cookies = new ArrayList<>();
     protected ParameterMap<String, String[]> parameters; // 参数
     protected boolean parsed; // 是否已经解析完成
-    protected String pathInfo = ""; // 路径信息
-    protected String authType = ""; // 认证类型
+    protected String pathInfo; // 路径信息
+    protected String authType; // 认证类型
     protected SimpleDateFormat formats[] = { // 日期解析格式
             new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US),
             new SimpleDateFormat("EEEEEE, dd-MMM-yy HH:mm:ss zzz", Locale.US),
             new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.US)
     };
-    protected String method = ""; // 请求方法
-    protected String contextPath = ""; // context路径
-    protected String queryString = ""; // 存放再请求行中的查询字符串
-    protected String requestedSessionId = ""; // 请求中的session id
-    protected String requestURI = ""; // 请求中的uri
-    protected String requestURL = ""; // 请求中的url
-    protected String servletPath = ""; // 此请求对应的servlet路径
+    protected String method; // 请求方法
+    protected String contextPath; // context路径
+    protected String queryString; // 存放再请求行中的查询字符串
+    protected String requestedSessionId; // 请求中的session id
+    protected String requestURI; // 请求中的uri
+    protected String requestURL; // 请求中的url
+    protected String servletPath; // 此请求对应的servlet路径
     protected boolean requestedSessionCookie; // session id是否来自于cookie
     protected boolean requestedSessionURL; // session id 是否来自于URL
     protected String decodedRequestURI; // 解码后的uri
@@ -321,7 +321,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
         ParameterMap result = new ParameterMap(); // 这里新建一个引用是为了保证中途的操作能够全部正常完成后再交给parameters引用，避免数据不一致。
         result.setLocked(false);
 
-        String encoding = getCharacterEncoding() == null ? "ISO-8859-1" : getCharacterEncoding(); // TODO getCharacterEncoding 待实现
+        String encoding = getCharacterEncoding() == null ? "ISO-8859-1" : getCharacterEncoding();
 
         if ("GET".equals(getMethod())) {
             RequestUtil.parseParameters(result, getQueryString(), encoding); // 这里是解析查询字符串的参数，但按规范只对GET请求生效

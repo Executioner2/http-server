@@ -1,5 +1,7 @@
 package com.ranni.connector.http;
 
+import com.ranni.util.CharsetMapper;
+
 import javax.servlet.ServletContext;
 
 /**
@@ -14,4 +16,7 @@ import javax.servlet.ServletContext;
 public interface Context extends Container {
     // 获取servlet context
     ServletContext getServletContext();
+
+    // 获取字符编码
+    CharsetMapper getCharsetMapper();
 }

@@ -28,7 +28,7 @@ public abstract class RequestBase implements Request, ServletRequest {
     protected Context context; // TODO 请求上下文，暂时无实现
     protected String info; // TODO 暂时无用
     protected ServletRequest request; // 请求对象
-    protected RequestFacade facade; // 请求对象对外的包装对象
+    protected RequestFacade facade = new RequestFacade(this); // 请求对象对外的包装对象
     protected Response response; // 响应对象
     protected Socket socket; // 本次请求的套接字
     protected InputStream input; // socket中的输入流
@@ -47,10 +47,6 @@ public abstract class RequestBase implements Request, ServletRequest {
     protected String characterEncoding; // 字符编码格式
     protected String remoteHost; // 远程主机完全限定名
     protected ArrayList<Locale> locales = new ArrayList(); // 与此请求相关联首选语言
-
-    public RequestBase() {
-        facade = new RequestFacade(this);
-    }
 
     @Override
     public String getAuthorization() {
@@ -150,9 +146,33 @@ public abstract class RequestBase implements Request, ServletRequest {
         }
     }
 
+    /**
+     * 置为初始值，便于下次使用
+     */
     @Override
     public void recycle() {
-        // TODO 置为初始值，便于下次使用
+        authorization = null;
+        connector = null;
+        context = null;
+        info = null;
+        request = null;
+        response = null;
+        input = null;
+        wrapper = null;
+        stream = null;
+        reader = null;
+        contentLength = -1;
+        contentType = null;
+        protocol = null;
+        remoteAddr = null;
+        scheme = null;
+        secure = false;
+        serverName = null;
+        serverPort = 0;
+        attributes.clear();
+        characterEncoding = null;
+        remoteHost = null;
+        locales.clear();
     }
 
     @Override
@@ -242,18 +262,6 @@ public abstract class RequestBase implements Request, ServletRequest {
 
         return this.stream;
     }
-
-    @Override
-    public abstract String getParameter(String s);
-
-    @Override
-    public abstract Enumeration getParameterNames();
-
-    @Override
-    public abstract String[] getParameterValues(String s);
-
-    @Override
-    public abstract Map getParameterMap();
 
     @Override
     public String getProtocol() {
