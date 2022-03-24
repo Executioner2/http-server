@@ -440,7 +440,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
      */
     @Override
     public boolean isCommitted() {
-        return this.committed || this.appCommitted;
+        return this.committed;
     }
 
     /**

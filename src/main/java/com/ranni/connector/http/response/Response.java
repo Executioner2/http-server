@@ -96,6 +96,6 @@ public interface Response {
     // 重置缓冲区
     void resetBuffer();
 
-    // 发送请求确认
+    // 发送响应确认
     void sendAcknowledgement() throws IOException;
 }

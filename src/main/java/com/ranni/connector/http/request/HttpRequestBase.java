@@ -1,5 +1,6 @@
 package com.ranni.connector.http.request;
 
+import com.ranni.session.Session;
 import com.ranni.connector.http.ParameterMap;
 import com.ranni.util.Enumerator;
 import com.ranni.util.RequestUtil;
@@ -47,6 +48,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
     protected boolean requestedSessionCookie; // session id是否来自于cookie
     protected boolean requestedSessionURL; // session id 是否来自于URL
     protected String decodedRequestURI; // 解码后的uri
+    protected Session session; // session
 
     /**
      * TODO 置为初始值，便于下次使用
@@ -266,11 +268,37 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
 
     /**
      * TODO 返回此请求的session，如有必要就创建一个
-     * @param b
+     * @param b 如果session不存在，是否创建
      * @return
      */
     @Override
     public HttpSession getSession(boolean b) {
+        // XXX Tomcat在此进行System.getSecurityManager调用
+
+        return doGetSession(b);
+    }
+
+    /**
+     * TODO 取得session，如果不存在，根据create来决定是否创建
+     * @param create
+     * @return
+     */
+    private HttpSession doGetSession(boolean create) {
+        if (context == null) return null;
+
+        // 如果session存在但失效了就返回null，否则返回session
+        if (session != null) {
+            if (!session.isValid()) {
+                session = null;
+            } else {
+                return session.getSession();
+            }
+        }
+
+//        if (create) {
+//
+//        }
+
         return null;
     }
 
