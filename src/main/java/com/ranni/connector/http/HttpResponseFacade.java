@@ -1,5 +1,7 @@
 package com.ranni.connector.http;
 
+import com.ranni.connector.http.response.ResponseFacade;
+
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
@@ -15,7 +17,8 @@ import java.util.Locale;
  * @Email 1205878539@qq.com
  * @Date 2022-03-02 20:38
  */
-public class HttpResponseFacade implements HttpServletResponse {
+@Deprecated
+public final class HttpResponseFacade implements HttpServletResponse {
     private HttpResponse response;
 
     public HttpResponseFacade() {}

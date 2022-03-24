@@ -20,6 +20,7 @@ import java.util.*;
  * @Email 1205878539@qq.com
  * @Date 2022-03-02 20:08
  */
+@Deprecated
 public class HttpResponse implements HttpServletResponse {
     private static final int BUFFER_SIZE = 1024;
     final static String errorMessage = "" +

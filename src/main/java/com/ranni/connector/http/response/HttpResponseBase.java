@@ -1,8 +1,13 @@
 package com.ranni.connector.http.response;
 
+import com.ranni.util.CookieTools;
+
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -21,6 +26,36 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
     protected String message = getStatusMessage(HttpServletResponse.SC_OK); // 状态信息
     protected int status; // 响应状态码
 
+    /**
+     * 调用此方法发送响应包
+     */
+    public void finishResponse() throws IOException {
+        // 如果响应未提交，且状态码为400及以上就返回错误页面
+        if (!isCommitted() && stream == null && writer == null
+                && status >= HttpServletResponse.SC_BAD_REQUEST
+                && contentType == null && contentCount == 0) {
+
+            setContentType("text/html");
+            PrintWriter writer = getWriter();
+            writer.println("<html>");
+            writer.println("<head>");
+            writer.println("<title>Tomcat Error Report</title>");
+            writer.println("<br><br>");
+            writer.println("<h1>HTTP Status ");
+            writer.print(status);
+            writer.print(" - ");
+            if (message != null)
+                writer.print(message);
+            else
+                writer.print(getStatusMessage(status));
+            writer.println("</h1>");
+            writer.println("</body>");
+            writer.println("</html>");
+        }
+
+        sendHeaders();
+        super.finishResponse();
+    }
 
     /**
      * 添加cookie
@@ -83,6 +118,79 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
     @Override
     public String encodeRedirectUrl(String s) {
         return encodeRedirectURL(s);
+    }
+
+    public String getProtocol() {
+        return request.getRequest().getProtocol();
+    }
+
+    /**
+     * 没有发送就发送请求头
+     */
+    protected void sendHeaders() {
+        if (isCommitted()) return;
+
+        OutputStreamWriter osw = null;
+        try {
+            osw = new OutputStreamWriter(getStream(), getCharacterEncoding());
+        } catch (UnsupportedEncodingException e) {
+            // 因为编码发生错误，那么就采用默认编码
+            osw = new OutputStreamWriter(getStream());
+        }
+
+        // 输出状态行
+        PrintWriter pw = new PrintWriter(osw);
+        pw.print(getProtocol());
+        pw.print(" "); // 分开写，减少拼串带来的性能损失
+        pw.print(status);
+        if (message != null) {
+            pw.print(" ");  // 分开写，减少拼串带来的性能损失
+            pw.print(message);
+        }
+        pw.print("\r\n");
+
+        // 输出content-type 和 content-count
+        if (contentType != null) {
+            pw.print("Content-Type: ");
+            pw.print(contentType);
+            pw.print("\r\n");
+        }
+        if (contentLength != -1) {
+            pw.print("Content-Length: ");
+            pw.print(contentLength);
+            pw.print("\r\n");
+        }
+
+        // 输出响应头
+        synchronized (headers) {
+            for (String key : headers.keySet()) {
+                List<String> values = headers.get(key);
+                for (String value : values) {
+                    // XXX 这段代码有问题，响应头会有多个相同name的不同value。Tomcat源码这样写的，不太理解
+                    pw.print(key);
+                    pw.print(": ");
+                    pw.print(value);
+                    pw.print("\r\n");
+                }
+            }
+        }
+
+        // TODO 添加session id
+
+        // 写入cookies信息
+        synchronized (cookies) {
+            for (Cookie cookie : cookies) {
+                // TODO 这里这个CookieTools懒得写了，后续再自己写
+                pw.print(CookieTools.getCookieHeaderName(cookie));
+                pw.print(": ");
+                pw.print(CookieTools.getCookieHeaderValue(cookie));
+                pw.print("\r\n");
+            }
+        }
+
+        pw.print("\r\n"); // 输出空白行分割响应实体段和响应头
+        pw.flush(); // 刷新流
+        committed = true; // 已经提交响应头
     }
 
     /**
@@ -420,5 +528,24 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
     @Override
     public void sendAcknowledgement() throws IOException {
 
+    }
+
+    /**
+     * 刷新缓冲区，如果第一次调用此方法，
+     * 则在用户数据之前发送响应头
+     * @throws IOException
+     */
+    @Override
+    public void flushBuffer() throws IOException {
+        // XXX Tomcat这里做了些安全工作
+        doFlushBuffer();
+    }
+
+    private void doFlushBuffer() throws IOException {
+        // 第一次提交
+        if (!isCommitted())
+            sendHeaders();
+
+        super.flushBuffer();
     }
 }

@@ -9,4 +9,6 @@ package com.ranni.connector.http.response;
  * @Date 2022-03-22 18:28
  */
 public final class HttpResponseImpl extends HttpResponseBase {
+    protected boolean allowChunking; // 是否允许分块
+    protected HttpResponseStream responseStream; // 响应流
 }

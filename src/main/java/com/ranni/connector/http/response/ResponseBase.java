@@ -28,7 +28,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
     protected int contentCount; // 输入到输出流中真实的数据长度
     protected Context context; // context类型的容器
     protected boolean appCommitted; // 应用程序是否提交响应
-    protected boolean committed; // 是否提交响应
+    protected boolean committed; // 是否提交响应头
     protected boolean included; // TODO 不知道干嘛的
     protected String info; // 描述信息和版本号
     protected Request request; // 请求
@@ -45,6 +45,50 @@ public abstract class ResponseBase implements ServletResponse, Response {
     protected Locale locale = Locale.getDefault(); // 本地化
     protected int bufferCount; // 当前在缓冲区中的数据数
     protected byte[] buffer = new byte[1024]; // 缓冲流
+
+    /**
+     * 就是先加入到buffer中，等buffer满了再发送出去
+     * @param b
+     */
+    public void write(int b) throws IOException {
+        if (bufferCount >= buffer.length) {
+            flushBuffer();
+        }
+        buffer[bufferCount++] = (byte)b;
+        contentCount++;
+    }
+
+    /**
+     * 把数据写入缓冲区(buffer)
+     * @param b
+     */
+    public void write(byte[] b) throws IOException {
+        write(b, 0, b.length);
+    }
+
+    /**
+     * 把数据写入缓冲区(buffer)
+     * 缓冲区满了就发送出去
+     * @param b
+     * @param off
+     * @param len
+     */
+    public void write(byte b[], int off, int len) throws IOException {
+        if (b == null) throw new NullPointerException("写入数据不能为空！");
+        if (len > b.length) throw new IllegalArgumentException("发送的长度不能超过要发送的数据长度！");
+
+        int pos = off;
+
+        // 循环发送完b[]中的数据
+        while (pos < len) {
+            int sendSize = Math.min(len - pos, buffer.length - bufferCount);
+            System.arraycopy(b, pos, buffer, bufferCount, sendSize);
+            bufferCount += sendSize;
+            contentCount += sendSize;
+            pos += sendSize;
+            if (bufferCount >= buffer.length) flushBuffer();
+        }
+    }
 
     /**
      * 返回与此请求关联的连接器
@@ -393,7 +437,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
      */
     @Override
     public void setBufferSize(int i) {
-        if (committed || bufferCount > 0) throw new IllegalStateException("响应已提交或缓存流中有数据！");
+        if (committed || bufferCount > 0) throw new IllegalStateException("响应头已提交或缓存流中有数据！");
         if (buffer.length >= i) return;
         this.buffer = new byte[i];
     }
@@ -408,12 +452,11 @@ public abstract class ResponseBase implements ServletResponse, Response {
     }
 
     /**
-     * 刷新缓冲区并且完成此响应的发送
+     * 刷新缓冲区并且完成此响应头的发送
      * @throws IOException
      */
     @Override
     public void flushBuffer() throws IOException {
-        if (isCommitted()) return;
         committed = true;
         if (bufferCount > 0) { // 缓冲区中有数据
             try {
@@ -429,7 +472,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
      */
     @Override
     public void resetBuffer() {
-        if (isCommitted()) throw new IllegalStateException("此响应已经完成提交！");
+        if (isCommitted()) throw new IllegalStateException("响应头已经完成提交！");
         this.bufferCount = 0;
     }
 
@@ -448,7 +491,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
      */
     @Override
     public void reset() {
-        if (isCommitted()) throw new IllegalStateException("此响应已经完成提交！");
+        if (isCommitted()) throw new IllegalStateException("响应头已经完成提交！");
 
         if (stream != null)
             ((ResponseStream)stream).reset();
@@ -464,7 +507,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
      */
     @Override
     public void setLocale(Locale locale) {
-        if (isCommitted()) throw new IllegalStateException("此响应已经完成提交！");
+        if (isCommitted()) throw new IllegalStateException("响应头已经完成提交！");
 
         this.locale = locale;
         if (this.context != null) {
