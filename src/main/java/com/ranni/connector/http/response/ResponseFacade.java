@@ -15,74 +15,86 @@ import java.util.Locale;
  * @Date 2022-03-22 18:28
  */
 public class ResponseFacade implements ServletResponse {
-    protected ServletResponse response; // 响应对象
+    protected Response response; // 响应对象
+    protected ServletResponse servletResponse; // servlet 响应对象
 
-    public ResponseFacade(ServletResponse response) {
+
+
+    public ResponseFacade(Response response) {
         this.response = response;
+        this.servletResponse = (ServletResponse)response;
     }
 
     @Override
     public String getCharacterEncoding() {
-        return null;
+        return servletResponse.getCharacterEncoding();
     }
 
     @Override
     public ServletOutputStream getOutputStream() throws IOException {
-        return null;
+        return servletResponse.getOutputStream();
     }
 
     @Override
     public PrintWriter getWriter() throws IOException {
-        return null;
+        return servletResponse.getWriter();
     }
 
     @Override
     public void setContentLength(int i) {
-
+        if (isCommitted()) return;
+        servletResponse.setContentLength(i);
     }
 
     @Override
     public void setContentType(String s) {
-
+        if (isCommitted()) return;
+        servletResponse.setContentType(s);
     }
 
     @Override
     public void setBufferSize(int i) {
-
+        if (isCommitted()) throw new IllegalStateException("响应头已提交！");
+        servletResponse.setBufferSize(i);
     }
 
     @Override
     public int getBufferSize() {
-        return 0;
+        return servletResponse.getBufferSize();
     }
 
     @Override
     public void flushBuffer() throws IOException {
-
+        if (response.isSuspended()) return;
+        response.setAppCommitted(true);
+        servletResponse.flushBuffer();
     }
 
     @Override
     public void resetBuffer() {
-
+        if (isCommitted()) throw new IllegalStateException("响应头已提交！");
+        servletResponse.resetBuffer();
     }
 
     @Override
     public boolean isCommitted() {
-        return false;
+        return servletResponse.isCommitted();
     }
 
     @Override
     public void reset() {
-
+        if (isCommitted()) throw new IllegalStateException("响应头已提交！");
+        servletResponse.reset();
     }
 
     @Override
     public void setLocale(Locale locale) {
-
+        if (isCommitted()) return;
+        servletResponse.setLocale(locale);
     }
 
     @Override
     public Locale getLocale() {
-        return null;
+        return servletResponse.getLocale();
     }
 }
