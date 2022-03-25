@@ -7,7 +7,7 @@ import java.io.PrintWriter;
  * Title: HttpServer
  * Description:
  * 这个类只允许写入，且写入方法都仅仅是在写入后再调入父类的flush方法。
- * 注意：这个类不允许关闭流，流应该让processor调用socket.close()来关闭
+ *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022-03-22 18:31

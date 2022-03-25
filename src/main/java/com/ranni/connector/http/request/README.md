@@ -2,7 +2,7 @@
 
 |类型|类名|说明|
 |---|---|---|
-|接口|Request|定义了一系列通用请求协议所需要的方法|
+|接口|Request|定义了一系列通用协议请求所需要的方法|
 |接口|HttpRequest|继承于Request接口，然后定义一些仅适用于HTTP协议的方法|
 |抽象类|RequestBase|实现了Request接口所有方法，实现了ServletRequest中除了操作parameters对象（该对象是在此抽象类的子类HttpRequestBase中定义的）的所有方法|
 |实现类|HttpRequestBase|实现了RequestBase中没实现的方法以及HttpRequest中所有方法，解析参数的行为在此类中进行|
