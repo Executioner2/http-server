@@ -97,7 +97,7 @@ public class HttpProcessor implements Processor {
                 if (header.valueEnd == 0) {
                     return;
                 } else {
-                    throw new ServletException("http请求头没有异常！");
+                    throw new ServletException("http请求头有异常！");
                 }
             }
 
