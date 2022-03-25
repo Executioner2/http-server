@@ -12,12 +12,8 @@
 
 #
 ### 版本说明：0.0.2
-**UML类图：**
-![img](uml/v0.0.2/connector.png)
-
-![img](uml/v0.0.2/request.png)
-
-![img](uml/v0.0.2/response.png)
++ [Request模块](./src/main/java/com/ranni/connector/http/request/README.md)
++ [Response模块](./src/main/java/com/ranni/connector/http/response/README.md)
 
 **更新：**
 - 新增HttpProcessorPool
