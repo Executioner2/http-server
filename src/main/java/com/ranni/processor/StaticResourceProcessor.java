@@ -1,7 +1,7 @@
 package com.ranni.processor;
 
-import com.ranni.connector.http.HttpRequest;
-import com.ranni.connector.http.HttpResponse;
+import com.ranni.connector.http.request.HttpRequest;
+import com.ranni.connector.http.response.HttpResponse;
 
 import java.io.IOException;
 

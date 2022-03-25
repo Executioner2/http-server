@@ -1,13 +1,12 @@
 package com.ranni.processor;
 
 import com.ranni.connector.Constants;
-import com.ranni.connector.http.HttpRequest;
-import com.ranni.connector.http.HttpRequestFacade;
-import com.ranni.connector.http.HttpResponse;
-import com.ranni.connector.http.HttpResponseFacade;
+import com.ranni.connector.http.request.HttpRequest;
+import com.ranni.connector.http.response.HttpResponse;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -37,7 +36,7 @@ public class ServletProcessor {
     public void process(HttpRequest request, HttpResponse response) {
         try {
             // 获取servlet的路径并创建url对象
-            StringBuffer requestURL = request.getRequestURL();
+            StringBuffer requestURL = ((HttpServletRequest)request).getRequestURL();
             String servletName = requestURL.substring(requestURL.lastIndexOf("/") + 1);
             URL[] urls = new URL[1];
 
@@ -52,7 +51,7 @@ public class ServletProcessor {
             URLClassLoader urlClassLoader = new URLClassLoader(urls);
             Class<?> aClass = urlClassLoader.loadClass(servletName); // XXX 被加载的类文件不能有package（即不能把自己打包）
             Servlet servlet = (Servlet) aClass.getConstructor().newInstance();
-            servlet.service(new HttpRequestFacade(request), new HttpResponseFacade(response));
+            servlet.service(request.getRequest(), response.getResponse());
             response.finishResponse(); // 释放资源
 
         } catch (MalformedURLException e) {

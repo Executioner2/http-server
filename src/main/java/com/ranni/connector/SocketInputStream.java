@@ -1,4 +1,4 @@
-package com.ranni.connector.stream;
+package com.ranni.connector;
 
 import com.ranni.connector.http.HttpHeader;
 import com.ranni.connector.http.HttpRequestLine;

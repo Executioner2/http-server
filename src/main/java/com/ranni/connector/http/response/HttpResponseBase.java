@@ -1,13 +1,13 @@
 package com.ranni.connector.http.response;
 
+import com.ranni.connector.Constants;
+import com.ranni.connector.http.request.HttpRequestBase;
 import com.ranni.util.CookieTools;
 
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -20,11 +20,28 @@ import java.util.*;
  * @Date 2022-03-22 18:27
  */
 public class HttpResponseBase extends ResponseBase implements HttpResponse, HttpServletResponse {
+    // TODO 暂时放在这里
+    private static final int BUFFER_SIZE = 1024;
+    final static byte[] fileNotFound = ("" +
+            "HTTP/1.1 404 File Not Found\r\n" +
+            "Content-Type: text/html\r\n" +
+            "Content-Length: 23\r\n" +
+            "\r\n" +
+            "<h1>File Not Found</h1>").getBytes();
+
     protected List<Cookie> cookies = new ArrayList<>();
     protected Map<String, List<String>> headers = new HashMap<>();
     protected final SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US); // 格式化日期格式
     protected String message = getStatusMessage(HttpServletResponse.SC_OK); // 状态信息
     protected int status; // 响应状态码
+
+    public HttpResponseBase() {
+
+    }
+
+    public HttpResponseBase(HttpRequestBase httpRequestBase) {
+        super(httpRequestBase);
+    }
 
     /**
      * 调用此方法发送响应包
@@ -547,5 +564,53 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
             sendHeaders();
 
         super.flushBuffer();
+    }
+
+    /**
+     * TODO 发送静态资源
+     */
+    @Override
+    public void sendStaticResource() throws IOException {
+        int status = 200;
+        String msg = "OK";
+
+        // 取得文件
+        File file = new File(Constants.WEB_ROOT, ((HttpServletRequest)request).getRequestURI());
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] bytes = new byte[BUFFER_SIZE];
+            int len = fis.read(bytes, 0, BUFFER_SIZE);
+
+            String head = String.format("" +
+                    "HTTP/1.1 %d %s\r\n" +
+                    "Content-Type: %s\r\n" +
+                    "Content-Length: %d\r\n" +
+                    "\r\n", status, msg, getStatusFileContentType(file), file.length());
+
+            output.write(head.getBytes());
+            while (len != -1) {
+                output.write(bytes, 0, len);
+                len = fis.read(bytes, 0, BUFFER_SIZE);
+            }
+        } catch (FileNotFoundException e) {
+            // 返回错误信息
+            output.write(fileNotFound);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * XXX 获取静态文件的文件类型 (写得还不完整)
+     * @param file
+     * @return
+     */
+    private String getStatusFileContentType(File file) {
+        String name = file.getAbsoluteFile().getName();
+        String suffix = name.substring(name.lastIndexOf(".") + 1);
+        if ("text".equals(suffix) || "html".equals(suffix)) {
+            return "text/html";
+        } else {
+            return suffix;
+        }
     }
 }

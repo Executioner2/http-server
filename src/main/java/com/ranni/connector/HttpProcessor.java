@@ -1,17 +1,17 @@
 package com.ranni.connector;
 
 import com.ranni.connector.http.HttpHeader;
-import com.ranni.connector.http.HttpRequest;
 import com.ranni.connector.http.HttpRequestLine;
-import com.ranni.connector.http.HttpResponse;
-import com.ranni.connector.stream.SocketInputStream;
+import com.ranni.connector.http.request.HttpRequestBase;
+import com.ranni.connector.http.response.HttpResponseBase;
 import com.ranni.processor.ServletProcessor;
 import com.ranni.processor.StaticResourceProcessor;
 import com.ranni.util.RequestUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.Socket;
 
 /**
@@ -24,8 +24,8 @@ import java.net.Socket;
  */
 public class HttpProcessor {
     private HttpConnector httpConnector;
-    private HttpRequest request = null;
-    private HttpResponse response = null;
+    private HttpRequestBase request = null;
+    private HttpResponseBase response = null;
     private boolean nullRequest;
 
     public HttpProcessor() {
@@ -47,11 +47,12 @@ public class HttpProcessor {
         OutputStream output = null;
 
         try {
-            input = new SocketInputStream(socket.getInputStream(), 2048); // 通过取得的通用输入流创建socket输入流，方便处理请求数据包的参数
-            output = socket.getOutputStream(); // 取得输出流
-
-            request = new HttpRequest(input); // 创建http请求对象
-            response = new HttpResponse(output); // 创建http响应对象
+            request = new HttpRequestBase(socket); // 创建http请求对象
+            response = new HttpResponseBase(request); // 创建http响应对象
+            request.setStream(socket.getInputStream());
+            response.setStream(socket.getOutputStream());
+            input = new SocketInputStream(request.getStream(), 2048); // 通过取得的通用输入流创建socket输入流，方便处理请求数据包的参数
+            output = response.getStream();
 
             response.setRequest(request); // 在响应对象中设置请求对象
             response.setHeader("Server", "Ranni Servlet Container"); // 设置响应头
@@ -151,9 +152,6 @@ public class HttpProcessor {
         if (protocol.length() < 1) throw new ServletException("缺少protocol");
         if (requestLine.uriEnd < 1) throw new ServletException("缺少uri信息");
 
-        request.setMethod(method);
-        request.setProtocol(protocol);
-
         // 解析存在于uri中的查询参数
         int question = requestLine.indexOf('?');
         if (question >= 0) {
@@ -205,6 +203,10 @@ public class HttpProcessor {
         } else {
             request.setRequestURI(uri);
         }
+
+        request.setScheme("http");
+        request.setMethod(method);
+        request.setProtocol(protocol);
 
         if (normalizedUri == null) throw new ServletException("未规范化 URI: " + uri);
     }

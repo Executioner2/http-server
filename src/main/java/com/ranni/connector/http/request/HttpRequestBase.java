@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.Socket;
 import java.security.Principal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -49,6 +50,13 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
     protected boolean requestedSessionURL; // session id 是否来自于URL
     protected String decodedRequestURI; // 解码后的uri
     protected Session session; // session
+
+    public HttpRequestBase() {
+    }
+
+    public HttpRequestBase(Socket socket) {
+        super(socket);
+    }
 
     /**
      * TODO 置为初始值，便于下次使用
@@ -249,12 +257,28 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
     }
 
     /**
-     * 返回此请求的uri
+     * 返回此请求的url
      * @return
      */
     @Override
     public StringBuffer getRequestURL() {
-        return new StringBuffer(this.requestURL);
+        StringBuffer url = new StringBuffer();
+        String scheme = getScheme();
+        int port = getServerPort();
+        if (port < 0)
+            port = 80;
+
+        url.append(scheme);
+        url.append("://");
+        url.append(getServerName());
+        if ((scheme.equals("http") && (port != 80))
+                || (scheme.equals("https") && (port != 443))) {
+            url.append(':');
+            url.append(port);
+        }
+        url.append(getRequestURI());
+
+        return url;
     }
 
     /**

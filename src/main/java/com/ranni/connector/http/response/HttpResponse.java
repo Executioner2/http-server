@@ -1,6 +1,7 @@
 package com.ranni.connector.http.response;
 
 import javax.servlet.http.Cookie;
+import java.io.IOException;
 
 /**
  * Title: HttpServer
@@ -31,4 +32,7 @@ public interface HttpResponse extends Response {
 
     // 重置此响应并指定响应状态和消息
     void reset(int status, String message);
+
+    // 发送静态资源
+    void sendStaticResource() throws IOException;
 }

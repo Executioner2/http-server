@@ -2,6 +2,7 @@ package com.ranni.connector.http.response;
 
 import com.ranni.connector.http.Connector;
 import com.ranni.connector.http.Context;
+import com.ranni.connector.http.request.HttpRequestBase;
 import com.ranni.connector.http.request.Request;
 import com.ranni.util.CharsetMapper;
 import com.ranni.util.RequestUtil;
@@ -45,6 +46,13 @@ public abstract class ResponseBase implements ServletResponse, Response {
     protected Locale locale = Locale.getDefault(); // 本地化
     protected int bufferCount; // 当前在缓冲区中的数据数
     protected byte[] buffer = new byte[1024]; // 缓冲流
+
+    public ResponseBase() {
+    }
+
+    public ResponseBase(HttpRequestBase httpRequestBase) {
+        setRequest(httpRequestBase);
+    }
 
     /**
      * 就是先加入到buffer中，等buffer满了再发送出去

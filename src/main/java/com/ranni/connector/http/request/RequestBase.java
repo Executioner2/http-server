@@ -48,6 +48,13 @@ public abstract class RequestBase implements Request, ServletRequest {
     protected String remoteHost; // 远程主机完全限定名
     protected ArrayList<Locale> locales = new ArrayList(); // 与此请求相关联首选语言
 
+    public RequestBase() {
+    }
+
+    public RequestBase(Socket socket) {
+        this.socket = socket;
+    }
+
     @Override
     public String getAuthorization() {
         return this.authorization;
