@@ -22,16 +22,17 @@ import java.net.Socket;
  * @Email 1205878539@qq.com
  * @Date 2022-03-02 19:55
  */
-public class HttpProcessor {
-    private HttpConnector httpConnector;
+@Deprecated
+public class OldHttpProcessor {
+    private OldHttpConnector httpConnector;
     private HttpRequestBase request = null;
     private HttpResponseBase response = null;
     private boolean nullRequest;
 
-    public HttpProcessor() {
+    public OldHttpProcessor() {
     }
 
-    public HttpProcessor(HttpConnector httpConnector) {
+    public OldHttpProcessor(OldHttpConnector httpConnector) {
         this.httpConnector = httpConnector;
     }
 

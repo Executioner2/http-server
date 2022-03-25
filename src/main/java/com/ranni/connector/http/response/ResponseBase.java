@@ -1,7 +1,7 @@
 package com.ranni.connector.http.response;
 
-import com.ranni.connector.http.Connector;
-import com.ranni.connector.http.Context;
+import com.ranni.connector.Connector;
+import com.ranni.connector.Context;
 import com.ranni.connector.http.request.HttpRequestBase;
 import com.ranni.connector.http.request.Request;
 import com.ranni.util.CharsetMapper;
@@ -176,7 +176,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
     }
 
     /**
-     * 返回描述信息和版本号
+     * 返回与此实现的描述信息与版本号
      * @return
      */
     @Override
@@ -281,7 +281,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
      */
     @Override
     public void finishResponse() throws IOException {
-        // XXX Tomcat在这里的做法是stream为空就获取一个然后关闭
+        // XXX Tomcat在这里的做法是stream为空就获取一个然后关闭（脱了裤儿来放P？）
         if (stream == null) return;
 
         if (((ResponseStream)stream).closed()) return;
@@ -485,8 +485,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
     }
 
     /**
-     * 是否已经提交响应
-     * TODO 和appCommitted好像没什么区别
+     * 是否已经提交响应头
      * @return
      */
     @Override

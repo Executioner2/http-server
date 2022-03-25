@@ -12,4 +12,6 @@ import java.io.File;
  */
 public final class Constants {
     public static final String WEB_ROOT = System.getProperty("user.dir") + File.separator + "webroot"; // WEB根目录
+    public static final String DEFAULT_SERVER_IPADDRESS = "127.0.0.1"; // 服务器默认IP
+    public static final int DEFAULT_BACKLOG = 8; // 服务器默认最大等待队列
 }

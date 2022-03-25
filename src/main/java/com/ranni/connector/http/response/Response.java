@@ -1,7 +1,7 @@
 package com.ranni.connector.http.response;
 
-import com.ranni.connector.http.Connector;
-import com.ranni.connector.http.Context;
+import com.ranni.connector.Connector;
+import com.ranni.connector.Context;
 import com.ranni.connector.http.request.Request;
 
 import javax.servlet.ServletOutputStream;
@@ -45,7 +45,7 @@ public interface Response {
 
     void setIncluded(boolean included);
 
-    // 返回与此响应相关的描述信息与版本号
+    // 返回与此实现的描述信息与版本号
     String getInfo();
 
     // 返回此响应相关连的请求

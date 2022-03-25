@@ -183,7 +183,6 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
             for (String key : headers.keySet()) {
                 List<String> values = headers.get(key);
                 for (String value : values) {
-                    // XXX 这段代码有问题，响应头会有多个相同name的不同value。Tomcat源码这样写的，不太理解
                     pw.print(key);
                     pw.print(": ");
                     pw.print(value);
@@ -197,7 +196,7 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
         // 写入cookies信息
         synchronized (cookies) {
             for (Cookie cookie : cookies) {
-                // TODO 这里这个CookieTools懒得写了，后续再自己写
+                // XXX 这里这个CookieTools懒得写了，后续再自己写
                 pw.print(CookieTools.getCookieHeaderName(cookie));
                 pw.print(": ");
                 pw.print(CookieTools.getCookieHeaderValue(cookie));
@@ -377,20 +376,18 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
     public void setHeader(String name, String value) {
         if (isCommitted()) return;
 
-//        // XXX 不合理的代码，注释部分是Tomcat的源码，感觉这样写List是多余的
-//        List<String> values = new ArrayList<>() {{
-//            add(value);
-//        }};
-//        synchronized (headers) {
-//            headers.put(name, values);
-//        }
-
-        // 自己的改动 start
+        List<String> values = new ArrayList<>();
+        values.add(value);
         synchronized (headers) {
-            List<String> values = headers.getOrDefault(name, new ArrayList<>());
-            values.add(value);
             headers.put(name, values);
-        } // 自己的改动 end
+        }
+
+//        // 自己的改动 start
+//        synchronized (headers) {
+//            List<String> values = headers.getOrDefault(name, new ArrayList<>());
+//            values.add(value);
+//            headers.put(name, values);
+//        } // 自己的改动 end
 
         String match = name.toLowerCase();
         if ("content-length".equals(match)) {
@@ -567,7 +564,7 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
     }
 
     /**
-     * TODO 发送静态资源
+     * XXX 发送静态资源
      */
     @Override
     public void sendStaticResource() throws IOException {

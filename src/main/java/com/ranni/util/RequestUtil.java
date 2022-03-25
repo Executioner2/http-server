@@ -57,7 +57,6 @@ public class RequestUtil {
 
     /**
      * 解析请求包中的参数
-     * XXX 以下代码未经测试，转码可能会有bug
      * @param map
      * @param data
      * @param encoding

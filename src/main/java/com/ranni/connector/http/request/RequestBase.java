@@ -1,8 +1,8 @@
 package com.ranni.connector.http.request;
 
-import com.ranni.connector.http.Connector;
-import com.ranni.connector.http.Context;
-import com.ranni.connector.http.Wrapper;
+import com.ranni.connector.Connector;
+import com.ranni.connector.Context;
+import com.ranni.container.Wrapper;
 import com.ranni.connector.http.response.Response;
 import com.ranni.util.Enumerator;
 
@@ -97,13 +97,11 @@ public abstract class RequestBase implements Request, ServletRequest {
 
     @Override
     public Response getResponse() {
-        // TODO 不存在就创建响应对象
         return this.response;
     }
 
     @Override
     public void setResponse(Response response) {
-        // TODO 响应对象设置
         this.response = response;
     }
 

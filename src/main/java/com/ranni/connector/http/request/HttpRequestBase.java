@@ -59,11 +59,31 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
     }
 
     /**
-     * TODO 置为初始值，便于下次使用
+     * 置为初始值，便于下次使用
      */
     @Override
     public void recycle() {
         super.recycle();
+        authType = null;
+        contextPath = "";
+        cookies.clear();
+        headers.clear();
+        method = null;
+        if (parameters != null) {
+            parameters.setLocked(false);
+            parameters.clear();
+        }
+        parsed = false;
+        pathInfo = null;
+        queryString = null;
+        requestedSessionCookie = false;
+        requestedSessionId = null;
+        requestedSessionURL = false;
+        requestURI = null;
+        decodedRequestURI = null;
+        secure = false;
+        servletPath = null;
+        session = null;
     }
 
     /**
@@ -291,7 +311,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
     }
 
     /**
-     * TODO 返回此请求的session，如有必要就创建一个
+     * 返回此请求的session，如有必要就创建一个
      * @param b 如果session不存在，是否创建
      * @return
      */

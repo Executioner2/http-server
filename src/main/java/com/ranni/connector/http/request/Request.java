@@ -1,8 +1,8 @@
 package com.ranni.connector.http.request;
 
-import com.ranni.connector.http.Connector;
-import com.ranni.connector.http.Context;
-import com.ranni.connector.http.Wrapper;
+import com.ranni.connector.Connector;
+import com.ranni.connector.Context;
+import com.ranni.container.Wrapper;
 import com.ranni.connector.http.response.Response;
 
 import javax.servlet.ServletInputStream;
@@ -39,7 +39,7 @@ public interface Request {
     // 设置此请求的上下文
     void setContext(Context context);
 
-    // 返回请求实现的描述信息
+    // 返回此请求实现的描述信息和版本信息
     String getInfo();
 
     // 返回请求对象，不存在就创建
