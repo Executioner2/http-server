@@ -38,9 +38,9 @@ public interface Lifecycle {
 //    void removeLifecycleListener(LifecycleListener listener);
 
     // 启动连接器
-    void start() throws RuntimeException;
+    void start() throws Exception;
 
 
     // 停止连接器
-    void stop() throws RuntimeException;
+    void stop() throws Exception;
 }

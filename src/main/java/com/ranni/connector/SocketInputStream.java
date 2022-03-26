@@ -33,7 +33,7 @@ public class SocketInputStream extends InputStream {
     }
 
     public SocketInputStream(InputStream is) {
-        this.is = is;
+        this(is, 1024);
     }
 
     public SocketInputStream(InputStream is, int bufferSize) {

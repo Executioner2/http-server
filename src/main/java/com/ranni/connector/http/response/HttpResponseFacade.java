@@ -1,6 +1,5 @@
 package com.ranni.connector.http.response;
 
-import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;

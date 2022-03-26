@@ -4,9 +4,13 @@ import com.ranni.connector.http.request.HttpRequestBase;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.HttpResponseBase;
 import com.ranni.connector.http.response.Response;
+import com.ranni.connector.processor.DefaultProcessorPool;
+import com.ranni.connector.processor.Processor;
+import com.ranni.connector.processor.ProcessorPool;
 import com.ranni.connector.socket.DefaultServerSocketFactory;
 import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
+import com.ranni.container.SimpleContainer;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -27,6 +31,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     protected String scheme; // 协议类型
     protected int redirectPort = 80; // 转发端口
     protected Container container; // 容器
+    protected ProcessorPool processorPool; // 处理器池
 
     private boolean stopped = false; // 连接器停止标签
 
@@ -174,7 +179,11 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      */
     private ServerSocket open() {
         ServerSocketFactory f = getFactory();
+
+        if (f == null) throw new IllegalStateException("获取server socket失败!");
+
         ServerSocket s = null;
+
         try {
             s = f.createSocket(8080);
         } catch (IOException e) {
@@ -186,15 +195,18 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
     /**
      * 启动前初始化
-     * @throws RuntimeException
+     * @throws Exception
      */
     @Override
-    public void initialize() throws RuntimeException {
+    public void initialize() throws Exception {
         serverSocket = open();
         if (serverSocket == null) throw new IllegalStateException("创建server socket失败！");
         setScheme("http");
 
-        // TODO 创建处理器线程池
+        // 创建处理器线程池
+        processorPool = DefaultProcessorPool.getProcessorPool();
+
+        if (processorPool == null) throw new IllegalStateException("创建processor pool失败！");
     }
 
     /**
@@ -207,7 +219,17 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
             try {
                 socket = serverSocket.accept();
-                // TODO 从处理池中拿到一个请求，如果处理池满了并且处理池的处理器数量达到了最大值就丢弃该请求
+                // 从处理池中拿到一个请求，如果处理池满了并且处理池的处理器数量达到了最大值就丢弃该请求
+                Processor processor = processorPool.getProcessor();
+
+                if (processor == null) {
+                    socket.close();
+                    break;
+                }
+
+                processor.setHttpConnector(this);
+                processor.setContainer(new SimpleContainer()); // XXX 这里容器也是每次都创建，后面得优化
+                processor.assign(socket);
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -226,20 +248,29 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     }
 
     /**
+     * 将用完的处理器压回栈
+     * @param processor
+     */
+    public void recycle(Processor processor) {
+        processorPool.giveBackProcessor(processor);
+    }
+
+    /**
      * 启动连接器
-     * @throws RuntimeException
+     * @throws Exception
      */
     @Override
-    public void start() throws RuntimeException {
-
+    public void start() throws Exception {
+        Thread thread = new Thread(this);
+        thread.start();
     }
 
     /**
      * 停止连接器
-     * @throws RuntimeException
+     * @throws Exception
      */
     @Override
-    public void stop() throws RuntimeException {
+    public void stop() throws Exception {
 
     }
 }

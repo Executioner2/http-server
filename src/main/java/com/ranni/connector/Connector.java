@@ -70,5 +70,5 @@ public interface Connector {
     Response createResponse();
 
     // 初始化连接器
-    void initialize() throws RuntimeException;
+    void initialize() throws Exception;
 }

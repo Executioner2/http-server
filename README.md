@@ -23,7 +23,15 @@
 - 采用单例模式获取ServerSocket对象  
   
 **已知问题：**
-- Request部分接口未能实现（因为暂时还用不上）
+- 服务器不能停下来（服务器没有实现应有的停止功能）
+- 连接器线程只有一个
+- Request部分方法未能实现（因为暂时还用不上）
+- Response部分方法未能实现
+- Session没做
+- Context没做
+- Container每次都得重新创建
+- servlet实现类加载功能没有独立出来做个模块
+- Wrapper是个空有其表的接口
 - CookieTools和DateTool为Tomcat源码文件  
 
 # 

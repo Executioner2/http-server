@@ -23,6 +23,7 @@ import java.net.URLStreamHandler;
  * @Email 1205878539@qq.com
  * @Date 2022-03-02 20:52
  */
+@Deprecated
 public class ServletProcessor {
     public ServletProcessor() {
 

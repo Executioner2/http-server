@@ -1,8 +1,6 @@
 package com.ranni.startup;
 
-import com.ranni.connector.Connector;
 import com.ranni.connector.HttpConnector;
-import com.ranni.connector.OldHttpConnector;
 
 /**
  * Title: HttpServer
@@ -15,7 +13,12 @@ import com.ranni.connector.OldHttpConnector;
 public class Bootstrap {
     public static void main(String[] args) {
         HttpConnector connector = new HttpConnector();
-        connector.initialize();
-        connector.start();
+        try {
+            connector.initialize();
+            connector.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(0);
+        }
     }
 }

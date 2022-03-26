@@ -18,29 +18,170 @@ import java.net.Socket;
 /**
  * Title: HttpServer
  * Description:
- * TODO 先看这儿
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022-03-25 23:04
  */
 public class HttpProcessor implements Processor {
+    private boolean nullRequest; // 是否是空包请求
+    private boolean available = false; // 是否阻塞线程等待接收socket请求
+    private Socket socket;
+
+    protected boolean stopped; // 停止状态标志位
+    protected boolean working; // 工作状态标志位
     protected HttpRequestBase request;
     protected HttpResponseBase response;
     protected HttpConnector connector;
     protected Container container;
-    private boolean nullRequest; // 是否是空包请求
 
-    public HttpProcessor(HttpConnector connector, Container container) {
+
+    /**
+     * TODO 处理器执行线程
+     */
+    @Override
+    public void run() {
+        while (!stopped) {
+            await(); // 阻塞等待socket
+
+            // 执行到这儿说明此处理器线程被唤醒了
+            if (socket == null) continue;
+
+            // 处理任务
+            process();
+
+            // 归还当前处理器
+            connector.recycle(this);
+        }
+    }
+
+    /**
+     * XXX 等待socket
+     * 需要注意的是，该方法在HowTomcatWorks中返回一个局部变量
+     * 笔者解释为：使用局部变量可以在当前Socket对象处理完之前继续接收下一个Socket对象
+     * <strong>但是</strong>，根据本人设计的处理器池，只有当处理器执行完一次socket的
+     * 任务才会被压回处理器池的栈中，所以connector是获取不了正在处理任务的处理器对象/线程，
+     * 所以在本人这个代码中用局部变量没有意义
+     *
+     * @return
+     */
+    private synchronized void await() {
+        while (!available) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        available = false;
+        notifyAll();
+    }
+
+    /**
+     * connector分配过来socket
+     * 然后该方法唤醒处理器线程
+     * @param socket
+     */
+    @Override
+    public synchronized void assign(Socket socket) {
+        while (available) {
+            // XXX 由于连接线程只有一个，所以一般情况不会进入到这儿
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        this.socket = socket;
+        available = true;
+        notifyAll();
+    }
+
+    /**
+     * 设置停止标志位
+     * @param stopped
+     */
+    @Override
+    public void setStopped(boolean stopped) {
+        this.stopped = stopped;
+    }
+
+    /**
+     * 返回停止标志
+     * @return
+     */
+    @Override
+    public boolean isStooped() {
+        return this.stopped;
+    }
+
+    /**
+     * 启动处理器线程
+     */
+    @Override
+    public void start() {
+        Thread thread = new Thread(this);
+        thread.start();
+    }
+
+    /**
+     * 设置当前处理器工作状态
+     * @param working
+     */
+    @Override
+    public void setWorking(boolean working) {
+        this.working = working;
+    }
+
+    /**
+     * 当前处理器是否正在工作
+     * @return
+     */
+    @Override
+    public boolean isWorking() {
+        return this.working;
+    }
+
+    /**
+     * 设置连接器
+     * @param connector
+     */
+    @Override
+    public void setHttpConnector(HttpConnector connector) {
         this.connector = connector;
+    }
+
+    /**
+     * 设置容器
+     * @param container
+     */
+    @Override
+    public void setContainer(Container container) {
         this.container = container;
+    }
+
+    /**
+     * 初始化部分值，便于重复使用
+     */
+    @Override
+    public void recycle() {
+        request = null;
+        response = null;
+        connector = null;
+        container = null;
+        nullRequest = false;
+        stopped = false;
+        available = false;
+        socket = null;
     }
 
     /**
      * 主要就是处理请求行和请求头，然后再交给容器做下一步处理
      */
     @Override
-    public void process(Socket socket) {
+    public void process() {
         SocketInputStream input = null;
         OutputStream output = null;
 
@@ -62,15 +203,13 @@ public class HttpProcessor implements Processor {
             if (nullRequest) return; // XXX request空包，抽空找下原因（通过排查input流，并未发现是因为流没关闭的原因）
             parseHeaders(input); // 对请求头进行解析
 
-//            if (request.getRequestURI().startsWith("/servlet/")) {
-//                ServletProcessor processor = new ServletProcessor();
-//                processor.process(request, response);
-//            } else {
-//                StaticResourceProcessor processor = new StaticResourceProcessor();
-//                processor.process(request, response);
-//            }
+            if (request.getRequestURI().startsWith("/servlet/")) {
+                container.invoke(request, response);
+            } else {
+                // XXX 静态文件请求
+                response.sendStaticResource();
+            }
 
-            container.invoke(request, response);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ServletException e) {

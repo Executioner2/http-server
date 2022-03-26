@@ -29,7 +29,7 @@ public class DefaultServerSocketFactory implements ServerSocketFactory {
      */
     public static DefaultServerSocketFactory getServerSocketFactory() {
         if (factory == null) {
-            synchronized (factory) {
+            synchronized (DefaultServerSocketFactory.class) {
                 if (factory == null) {
                     factory = new DefaultServerSocketFactory();
                 }
@@ -80,7 +80,7 @@ public class DefaultServerSocketFactory implements ServerSocketFactory {
         if (socket != null) throw new IllegalStateException("不能重复创建server socket！");
 
         if (socket == null) {
-            synchronized (socket) {
+            synchronized (DefaultServerSocketFactory.class) {
                 if (socket == null) {
                     socket = new ServerSocket(port, backlog, ip);
                 }
