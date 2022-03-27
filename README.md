@@ -1,26 +1,28 @@
 一个仿制Tomcat的HTTP服务器  
 ---
----
+--- 
 
-### 目录结构
+#
+### 版本说明：0.0.2
+##### 目录结构
 |包|作用|
 |----|----|
 |com.ranni.util|此目录为工具模块|
 |com.ranni.processor|此目录为核心模块|
 |com.ranni.connector|此目录为连接器模块|  
-|com.ranni.startup|此目录为HTTP服务器启动模块|  
+|com.ranni.startup|此目录为HTTP服务器启动模块| 
 
-#
-### 版本说明：0.0.2
 + [Request模块](./src/main/java/com/ranni/connector/http/request/README.md)
 + [Response模块](./src/main/java/com/ranni/connector/http/response/README.md)
++ [Container模块](./src/main/java/com/ranni/container/README.md)
 
 **更新：**
 - 新增HttpProcessorPool
-- 采用异步处理Http请求
+- 新增Container模块结构
+- 新增管道和阀机制
 - 更新Request类关系
 - 更新Response类关系
-- 采用单例模式获取ServerSocket对象  
+- 采用异步处理Http请求
   
 **已知问题：**
 - 服务器不能停下来（服务器没有实现应有的停止功能）
@@ -37,6 +39,14 @@
 
 # 
 ### 版本说明：0.0.1
+#####目录结构： 
+|包|作用|
+|----|----|
+|com.ranni.util|此目录为工具模块|
+|com.ranni.processor|此目录为核心模块|
+|com.ranni.connector|此目录为连接器模块|  
+|com.ranni.startup|此目录为HTTP服务器启动模块|  
+
 **更新：**
 - 实现简单的启动器模块
 - 实现简单的连接器模块

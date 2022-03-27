@@ -29,22 +29,22 @@ public interface Container {
     // 返回此Container的描述信息和版本信息
     String getInfo();
 
-    // 返回与此Container关联的Loader，如果没有就返回父Container的，都没有就返回null
+    // 返回与此Container关联的载入器，如果没有就返回父Container的，都没有就返回null
     Loader getLoader();
 
-    // 设置此Container的Loader
+    // 设置此Container的载入器
     void setLoader(Loader loader);
 
-    // 返回Logger，此Container没有就返回父Container的，都没有就返回null
+    // 返回记录器，此Container没有就返回父Container的，都没有就返回null
 //    Logger getLogger();
 
-    // 设置Logger
+    // 设置记录器
 //    void setLogger(Logger logger);
 
-    // 返回Manager，此Container没有就返回父Container的，都没有就返回null
+    // 返回管理器，此Container没有就返回父Container的，都没有就返回null
 //    Manager getManager();
 
-    // 设置Manager
+    // 设置管理器
 //    void setManager(Manager manager);
 
     // 返回Cluster，如果此Container没有就返回父Container的，都没有就返回null
@@ -71,10 +71,10 @@ public interface Container {
     // 设置web应用程序的父类加载器
     void setParentClassLoader(ClassLoader parent);
 
-    // 返回Realm，如果没有就返回父Container的，都没有就返回null
+    // 返回领域，如果没有就返回父Container的，都没有就返回null
 //    Realm getRealm();
 
-    // 设置Realm
+    // 设置领域
 //    void setRealm(Realm realm);
 
     // 返回资源，如果没有就返回父Container的，都没有就返回null
@@ -113,7 +113,7 @@ public interface Container {
     // 执行servlet的service方法
     void invoke(Request request, Response response) throws IOException, ServletException;
 
-    // 取得处理这种请求的容器
+    // XXX 取得处理这种请求的容器，这个方法在Tomcat5中被弃用
     Container map(Request request, boolean update);
 
     // 删除子容器

@@ -1,0 +1,29 @@
+@startuml
+title v0.0.2 容器UML图
+
+interface Container
+interface Engine
+interface Host
+interface Context
+interface Wrapper
+abstract class ContainerBase
+class StandardEngine
+class StandardHost
+class StandardContext
+class StandardWrapper
+
+Container <|-- Engine
+Container <|-- Host
+Container <|-- Context
+Container <|-- Wrapper
+Container <|.. ContainerBase
+Engine <|.. StandardEngine
+Host <|.. StandardHost
+Context <|.. StandardContext
+Wrapper <|.. StandardWrapper
+ContainerBase <|-- StandardWrapper
+StandardEngine "1" o-- "n" StandardHost : 包含
+StandardHost "1" o-- "n" StandardContext : 包含
+StandardContext "1" o-- "n" StandardWrapper : 包含
+
+@enduml
