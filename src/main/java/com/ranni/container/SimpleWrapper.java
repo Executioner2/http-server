@@ -1,5 +1,6 @@
 package com.ranni.container;
 
+import com.ranni.connector.http.request.HttpRequestBase;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.pip.Pipeline;
@@ -35,7 +36,7 @@ public class SimpleWrapper implements Wrapper, Pipeline {
 
 
     public SimpleWrapper() {
-        pipeline.setBasic(new SimpleWrapperValve());
+        pipeline.setBasic(new SimpleWrapperValve(this));
     }
 
 
@@ -80,7 +81,7 @@ public class SimpleWrapper implements Wrapper, Pipeline {
     }
 
     /**
-     * 返回servlet全限定类名
+     * 返回servlet类名
      * @return
      */
     @Override
@@ -89,7 +90,7 @@ public class SimpleWrapper implements Wrapper, Pipeline {
     }
 
     /**
-     * 设置servlet全限定类名
+     * 设置servlet类名
      * @param servletClass
      */
     @Override
@@ -139,7 +140,7 @@ public class SimpleWrapper implements Wrapper, Pipeline {
         }
 
         try {
-            servlet.init(null);
+            servlet.init(null); // TODO 暂时传入个null
         } catch (Throwable t) {
             throw new ServletException("servlet初始化失败！");
         }
@@ -328,6 +329,9 @@ public class SimpleWrapper implements Wrapper, Pipeline {
      */
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
+        StringBuffer url = ((HttpRequestBase) request).getRequestURL();
+        String servletName = url.substring(url.lastIndexOf("/") + 1);
+        setServletClass(servletName);
         pipeline.invoke(request, response);
     }
 

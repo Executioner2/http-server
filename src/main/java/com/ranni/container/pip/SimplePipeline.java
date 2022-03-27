@@ -18,7 +18,7 @@ import java.io.IOException;
  */
 public class SimplePipeline implements Pipeline, Contained {
     private Container container;
-    private Valve[] valves; // 阀
+    private Valve[] valves = new Valve[0]; // 阀
     private Valve basic; // 基础阀
     private final ValveContext valveContext = new StandardValveContext();
 

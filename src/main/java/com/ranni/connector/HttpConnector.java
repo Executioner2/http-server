@@ -10,8 +10,8 @@ import com.ranni.connector.processor.ProcessorPool;
 import com.ranni.connector.socket.DefaultServerSocketFactory;
 import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
-import com.ranni.container.SimpleContainer;
 
+import javax.servlet.ServletException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -227,11 +227,16 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
                     break;
                 }
 
+                Container container = getContainer();
+                if (container == null) throw new ServletException("没有容器！！！！");
+
                 processor.setHttpConnector(this);
-                processor.setContainer(new SimpleContainer()); // XXX 这里容器也是每次都创建，后面得优化
+                processor.setContainer(container); // XXX 这里容器也是每次都创建，后面得优化
                 processor.assign(socket);
 
             } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ServletException e) {
                 e.printStackTrace();
             }
         }

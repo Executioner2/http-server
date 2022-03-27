@@ -23,6 +23,10 @@ import java.io.IOException;
 public class SimpleWrapperValve implements Valve, Contained {
     private Container container;
 
+    public SimpleWrapperValve(Container container) {
+        setContainer(container);
+    }
+
     @Override
     public String getInfo() {
         return null;
@@ -42,7 +46,9 @@ public class SimpleWrapperValve implements Valve, Contained {
         ServletRequest servletRequest = request.getRequest();
         ServletResponse servletResponse = response.getResponse();
         Servlet servlet = wrapper.allocate();
+        System.out.println("在处理servlet方法前进入了SimpleWrapperValve的invoke方法"); // TODO sout
         servlet.service(servletRequest, servletResponse);
+        response.finishResponse();
     }
 
     /**

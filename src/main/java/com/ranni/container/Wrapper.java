@@ -75,14 +75,14 @@ public interface Wrapper extends Container {
 
 
     /**
-     * 返回servlet类的完全限定名
+     * 返回servlet类名
      * @return
      */
     String getServletClass();
 
 
     /**
-     * 设置servlet类的完全限定名
+     * 设置servlet类名
      * @param servletClass
      */
     void setServletClass(String servletClass);
