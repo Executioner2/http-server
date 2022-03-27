@@ -2,6 +2,10 @@ package com.ranni.container;
 
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
+import com.ranni.container.pip.Pipeline;
+import com.ranni.container.pip.SimplePipeline;
+import com.ranni.container.pip.SimpleWrapperValve;
+import com.ranni.container.pip.Valve;
 import com.ranni.loader.Loader;
 
 import javax.naming.directory.DirContext;
@@ -15,14 +19,26 @@ import java.io.IOException;
 /**
  * Title: HttpServer
  * Description:
- * 标准Wrapper实现类
- * TODO StandardWrapper
+ * 简单的wrapper接口实现类，待该类足够完整时再晋升为标准的wrapper实现类
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
- * @Date 2022-03-27 14:59
+ * @Date 2022-03-27 21:44
  */
-public class StandardWrapper implements Wrapper {
+public class SimpleWrapper implements Wrapper, Pipeline {
+    private Loader loader; // 类加载器
+    private Servlet servlet; // servlet
+    private String servletClass; // servlet类全限定类名
+
+    protected Container parent; // 父容器
+    protected Pipeline pipeline = new SimplePipeline(this); // 管道，wrapper有各自的管道
+
+
+    public SimpleWrapper() {
+        pipeline.setBasic(new SimpleWrapperValve());
+    }
+
+
     @Override
     public long getAvailable() {
         return 0;
@@ -63,14 +79,22 @@ public class StandardWrapper implements Wrapper {
 
     }
 
+    /**
+     * 返回servlet全限定类名
+     * @return
+     */
     @Override
     public String getServletClass() {
-        return null;
+        return this.servletClass;
     }
 
+    /**
+     * 设置servlet全限定类名
+     * @param servletClass
+     */
     @Override
     public void setServletClass(String servletClass) {
-
+        this.servletClass = servletClass;
     }
 
     @Override
@@ -83,9 +107,44 @@ public class StandardWrapper implements Wrapper {
 
     }
 
+    /**
+     * 返回一个servlet
+     * @return
+     * @throws ServletException
+     */
     @Override
     public Servlet allocate() throws ServletException {
-        return null;
+        if (servlet != null) return servlet;
+
+        Loader loader = getLoader();
+
+        if (loader == null) throw new ServletException("没有类加载器！");
+
+        ClassLoader classLoader = loader.getClassLoader();
+
+        if (classLoader == null) throw new ServletException("没有找到类加载器！");
+
+        Class clazz = null;
+        try {
+            clazz = classLoader.loadClass(servletClass);
+        } catch (ClassNotFoundException e) {
+            throw new ServletException("servlet类未找到！");
+        }
+
+        Servlet servlet = null;
+        try {
+            servlet = (Servlet) clazz.getConstructor().newInstance();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+
+        try {
+            servlet.init(null);
+        } catch (Throwable t) {
+            throw new ServletException("servlet初始化失败！");
+        }
+
+        return servlet;
     }
 
     @Override
@@ -123,14 +182,27 @@ public class StandardWrapper implements Wrapper {
         return null;
     }
 
+    /**
+     * 获取类加载器
+     * @return
+     */
     @Override
     public Loader getLoader() {
+        if (loader != null) {
+            return loader;
+        } else if (parent != null) {
+            return parent.getLoader();
+        }
         return null;
     }
 
+    /**
+     * 设置类加载器
+     * @param loader
+     */
     @Override
     public void setLoader(Loader loader) {
-
+        this.loader = loader;
     }
 
     @Override
@@ -143,14 +215,22 @@ public class StandardWrapper implements Wrapper {
 
     }
 
+    /**
+     * 返回父容器
+     * @return
+     */
     @Override
     public Container getParent() {
-        return null;
+        return this.parent;
     }
 
+    /**
+     * 设置父容器
+     * @param container
+     */
     @Override
     public void setParent(Container container) {
-
+        this.parent = parent;
     }
 
     @Override
@@ -203,9 +283,61 @@ public class StandardWrapper implements Wrapper {
         return new ContainerListener[0];
     }
 
+    /**
+     * 返回基础阀
+     * @return
+     */
+    @Override
+    public Valve getBasic() {
+        return pipeline.getBasic();
+    }
+
+    /**
+     * 设置基础阀
+     * @param valve
+     */
+    @Override
+    public void setBasic(Valve valve) {
+        pipeline.setBasic(valve);
+    }
+
+    /**
+     * 添加阀
+     * @param valve
+     */
+    @Override
+    public void addValve(Valve valve) {
+        pipeline.addValve(valve);
+    }
+
+    /**
+     * 返回所有非基础阀
+     * @return
+     */
+    @Override
+    public Valve[] getValves() {
+        return pipeline.getValves();
+    }
+
+    /**
+     * 进入管道依次执行阀
+     * @param request
+     * @param response
+     * @throws IOException
+     * @throws ServletException
+     */
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
+        pipeline.invoke(request, response);
+    }
 
+    /**
+     * 移除指定阀
+     * @param valve
+     */
+    @Override
+    public void removeValve(Valve valve) {
+        pipeline.removeValve(valve);
     }
 
     @Override

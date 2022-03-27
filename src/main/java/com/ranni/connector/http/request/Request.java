@@ -46,7 +46,6 @@ public interface Request {
     // 实际上创建了RequestBase对象
     ServletRequest getRequest();
 
-
     // 返回响应对象，不存在就创建
     Response getResponse();
 
