@@ -1,26 +1,31 @@
 package com.ranni.container;
 
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
-import com.ranni.loader.Loader;
+import com.ranni.container.pip.SimpleContextValve;
 import com.ranni.util.CharsetMapper;
 
-import javax.naming.directory.DirContext;
 import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import java.awt.event.ContainerListener;
-import java.beans.PropertyChangeListener;
-import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Title: HttpServer
  * Description:
- * TODO StandardContext
+ * 简单context容器实现类，等该实现类足够完整再晋升为标准实现
+ *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
- * @Date 2022-03-27 15:02
+ * @Date 2022-03-28 17:29
  */
-public class StandardContext implements Context {
+public class StandardContext extends ContainerBase implements Context {
+
+    protected String servletClass; // 要加载的servlet类全限定名
+    protected Map<String, String> servletMappings = new HashMap<>(); // 请求servlet与wrapper容器的映射
+
+    public StandardContext() {
+        pipeline.setBasic(new SimpleContextValve(this));
+    }
+
     @Override
     public ServletContext getServletContext() {
         return null;
@@ -196,6 +201,23 @@ public class StandardContext implements Context {
 
     }
 
+    /**
+     * Context的实现类会有个名为servletMappings的map数据结构
+     * key存放的是servlet的uri，即你在浏览器上输入正确的url地址
+     * http://127.0.0.1/servlet/testServlet，那么/testServlet将是联系具体的wrapper对象的key
+     * 所以可知，value存放的就是具体的wrapper名字
+     * 添加pattern与wrapper对象的映射关系
+     *
+     * @param pattern
+     * @param name
+     */
+    @Override
+    public void addServletMapping(String pattern, String name) {
+        synchronized (servletMappings) {
+            servletMappings.put(pattern, name);
+        }
+    }
+
     @Override
     public Wrapper createWrapper() {
         return null;
@@ -221,6 +243,32 @@ public class StandardContext implements Context {
         return new String[0];
     }
 
+    /**
+     * 返回servletMapping中指定pattern对应的wrapper名
+     *
+     * @param pattern
+     * @return
+     */
+    @Override
+    public String findServletMapping(String pattern) {
+        synchronized (servletMappings) {
+            return servletMappings.get(pattern);
+        }
+    }
+
+    /**
+     * 返回servletMapping所有的key
+     *
+     * @return
+     */
+    @Override
+    public String[] findServletMappings() {
+        synchronized (servletMappings) {
+            Set<String> keys = servletMappings.keySet();
+            return keys.toArray(new String[keys.size()]);
+        }
+    }
+
     @Override
     public void reload() {
 
@@ -231,113 +279,20 @@ public class StandardContext implements Context {
 
     }
 
+    /**
+     * 移除servletMapping中指定pattern对应的wrapper
+     *
+     * @param pattern
+     */
+    @Override
+    public void removeServletMapping(String pattern) {
+        synchronized (servletMappings) {
+            servletMappings.remove(pattern);
+        }
+    }
+
     @Override
     public String getInfo() {
         return null;
-    }
-
-    @Override
-    public Loader getLoader() {
-        return null;
-    }
-
-    @Override
-    public void setLoader(Loader loader) {
-
-    }
-
-    @Override
-    public String getName() {
-        return null;
-    }
-
-    @Override
-    public void setName(String name) {
-
-    }
-
-    @Override
-    public Container getParent() {
-        return null;
-    }
-
-    @Override
-    public void setParent(Container container) {
-
-    }
-
-    @Override
-    public ClassLoader getParentClassLoader() {
-        return null;
-    }
-
-    @Override
-    public void setParentClassLoader(ClassLoader parent) {
-
-    }
-
-    @Override
-    public DirContext getResources() {
-        return null;
-    }
-
-    @Override
-    public void setResources(DirContext resources) {
-
-    }
-
-    @Override
-    public void addChild(Container child) {
-
-    }
-
-    @Override
-    public void addContainerListener(ContainerListener listener) {
-
-    }
-
-    @Override
-    public void addPropertyChangeListener(PropertyChangeListener listener) {
-
-    }
-
-    @Override
-    public Container findChild(String name) {
-        return null;
-    }
-
-    @Override
-    public Container[] findChildren() {
-        return new Container[0];
-    }
-
-    @Override
-    public ContainerListener[] findContainerListeners() {
-        return new ContainerListener[0];
-    }
-
-    @Override
-    public void invoke(Request request, Response response) throws IOException, ServletException {
-
-    }
-
-    @Override
-    public Container map(Request request, boolean update) {
-        return null;
-    }
-
-    @Override
-    public void removeChild(Container child) {
-
-    }
-
-    @Override
-    public void removeContainerListener(ContainerListener listener) {
-
-    }
-
-    @Override
-    public void removePropertyChangeListener(PropertyChangeListener listener) {
-
     }
 }

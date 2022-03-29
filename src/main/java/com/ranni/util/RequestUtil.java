@@ -18,7 +18,9 @@ import java.util.List;
 public class RequestUtil {
     /**
      * 从字符串中解析cookie
+     *
      * @param cookieStr 格式为：userName=zs; password=123; 这种
+     *
      * @return
      */
     public static Cookie[] parseCookieHeader(String cookieStr) {
@@ -45,6 +47,7 @@ public class RequestUtil {
     /**
      * 解析查询字符串中的key和value
      * 其实也就是解析GET请求包中的参数
+     *
      * @param map
      * @param queryString 在uri中的查询字符串。格式为 username=zs&userid=1&sex=m  这种
      * @param encoding 编码方式
@@ -57,6 +60,7 @@ public class RequestUtil {
 
     /**
      * 解析请求包中的参数
+     *
      * @param map
      * @param data
      * @param encoding
@@ -102,6 +106,7 @@ public class RequestUtil {
 
     /**
      * 转16进制
+     *
      * @param b
      * @return
      */
@@ -114,6 +119,7 @@ public class RequestUtil {
 
     /**
      * 放入到map中，以数组作为map的value
+     *
      * @param map
      * @param name
      * @param value
@@ -136,7 +142,9 @@ public class RequestUtil {
 
     /**
      * 对uri进行修正（规范化），如 '\' 会被替换为 '/'
+     *
      * @param uri
+     *
      * @return normalized 规范化后的uri
      */
     public static String normalize(String uri) {
@@ -193,7 +201,9 @@ public class RequestUtil {
 
     /**
      * 解析响应类型
+     *
      * @param contentType
+     *
      * @return
      */
     public static String parseCharacterEncoding(String contentType) {
@@ -218,11 +228,87 @@ public class RequestUtil {
     }
 
     /**
-     * TODO uri解码
+     * 按默认编码格式对uri解码
+     *
      * @param requestURI
+     *
      * @return
      */
     public static String URLDecode(String requestURI) {
-        return "";
+        return URLDecode(requestURI, null);
+    }
+
+    /**
+     * 对输入的字符串转byte后再调用该方法的重载方法进行解码
+     *
+     * @param str
+     * @param enc
+     *
+     * @return
+     */
+    public static String URLDecode(String str, String enc) {
+        if (str == null) return null;
+
+        byte[] bytes = null;
+
+        try {
+            bytes = str.getBytes();
+
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+
+        return URLDecode(bytes, enc);
+    }
+
+    /**
+     * 对传入的字节数组按默认编码格式解码
+     *
+     * @param bytes
+     *
+     * @return
+     */
+    public static String URLDecode(byte[] bytes) {
+        return URLDecode(bytes, null);
+    }
+
+    /**
+     * 对传入的字节数组按指定编码格式解码
+     *
+     * @param bytes
+     * @param enc 如果传入null，则按默认编码格式解码
+     *
+     * @return
+     */
+    public static String URLDecode(byte[] bytes, String enc) {
+        if (bytes == null) return null;
+
+        int len = bytes.length;
+        int ix = 0;
+        int ox = 0;
+
+        // 对转义字符进行转义
+        while (ix < len) {
+            byte b = bytes[ix++];
+            if (b == '+') {
+                // +号变空格
+                b = ' ';
+            } else if (b == '%') {
+                b = (byte) ((convertHexDigit(bytes[ix++]) << 4) + convertHexDigit(bytes[ix++]));
+            }
+
+            bytes[ox++] = b;
+        }
+
+        if (enc != null) {
+            // 指定了编码方式的
+            try {
+                return new String(bytes, 0, ox, enc);
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return new String(bytes, 0, ox);
     }
 }

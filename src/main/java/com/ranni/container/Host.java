@@ -8,7 +8,7 @@ package com.ranni.container;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 14:58
  */
-public interface Host {
+public interface Host extends Container {
     // 添加别名时发送的事件名
     String ADD_ALIAS_EVENT = "addAlias";
 

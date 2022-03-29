@@ -8,7 +8,7 @@ package com.ranni.container;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 14:58
  */
-public interface Engine {
+public interface Engine extends Container {
 
     // 返回这个引擎容器的默认主机名
     String getDefaultHost();

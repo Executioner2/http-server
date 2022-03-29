@@ -89,8 +89,8 @@ public interface Container {
     // 给此容器添加容器事件监听器
     void addContainerListener(ContainerListener listener);
 
-    // 添加与此Container关联的mapper
-//    void addMapper(Mapper mapper);
+    // 添加与此Container关联的映射器
+    void addMapper(Mapper mapper);
 
     // 添加属性改变监听器
     void addPropertyChangeListener(PropertyChangeListener listener);
@@ -104,16 +104,16 @@ public interface Container {
     // 返回此容器的所有容器事件监听器
     ContainerListener[] findContainerListeners();
 
-    // 根据协议类型找出与此容器关联的mapper
-//    Mapper findMapper(String protocol);
+    // 根据协议类型找出与此容器关联的映射器
+    Mapper findMapper(String protocol);
 
-    // 返回此容器所有mapper
-//    Mapper[] findMappers();
+    // 返回此容器所有映射器
+    Mapper[] findMappers();
 
     // 执行servlet的service方法
     void invoke(Request request, Response response) throws IOException, ServletException;
 
-    // XXX 取得处理这种请求的容器，这个方法在Tomcat5中被弃用
+    // 取得处理这种请求的容器，这个方法在Tomcat5中被弃用
     Container map(Request request, boolean update);
 
     // 删除子容器
@@ -122,8 +122,8 @@ public interface Container {
     // 删除容器事件监听器
     void removeContainerListener(ContainerListener listener);
 
-    // 删除mapper
-//    void removeMapper(Mapper mapper);
+    // 删除映射器
+    void removeMapper(Mapper mapper);
 
     // 删除属性改变事件监听器
     void removePropertyChangeListener(PropertyChangeListener listener);

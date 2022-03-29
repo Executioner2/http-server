@@ -1,7 +1,7 @@
 package com.ranni.startup;
 
 import com.ranni.connector.HttpConnector;
-import com.ranni.container.SimpleWrapper;
+import com.ranni.container.StandardWrapper;
 import com.ranni.loader.SimpleLoader;
 
 /**
@@ -12,12 +12,12 @@ import com.ranni.loader.SimpleLoader;
  * @Email 1205878539@qq.com
  * @Date 2022-03-02 19:37
  */
-public class Bootstrap {
+public class Bootstrap1 {
     public static void main(String[] args) {
         HttpConnector connector = new HttpConnector();
         try {
             connector.initialize();
-            SimpleWrapper simpleWrapper = new SimpleWrapper();
+            StandardWrapper simpleWrapper = new StandardWrapper();
             simpleWrapper.setLoader(new SimpleLoader());
             connector.setContainer(simpleWrapper);
             connector.start();

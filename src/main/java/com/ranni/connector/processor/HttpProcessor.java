@@ -203,12 +203,15 @@ public class HttpProcessor implements Processor {
             if (nullRequest) return; // XXX request空包，抽空找下原因（通过排查input流，并未发现是因为流没关闭的原因）
             parseHeaders(input); // 对请求头进行解析
 
-            if (request.getRequestURI().startsWith("/servlet/")) {
-                container.invoke(request, response);
-            } else {
-                // XXX 静态文件请求
-                response.sendStaticResource();
-            }
+            // 进入容器
+            container.invoke(request, response);
+
+//            if (request.getRequestURI().startsWith("/servlet/")) {
+//
+//            } else {
+//                // XXX 静态文件请求
+//                response.sendStaticResource();
+//            }
 
         } catch (IOException e) {
             e.printStackTrace();

@@ -14,28 +14,58 @@ import javax.servlet.ServletContext;
  * @Date 2022-03-22 18:50
  */
 public interface Context extends Container {
-    // 加载事件
+    /**
+     * 加载事件
+     */
     String RELOAD_EVENT = "reload";
 
-    // 获取servlet context
+
+    /**
+     * 获取servlet context
+     * @return
+     */
     ServletContext getServletContext();
 
-    // 获取字符编码
+
+    /**
+     * 获取字符编码
+     * @return
+     */
     CharsetMapper getCharsetMapper();
 
-    // 返回已初始化的应用程序事件监听器
+
+    /**
+     * 返回已初始化的应用程序事件监听器
+     * @return
+     */
     Object[] getApplicationListeners();
 
-    // 设置应用程序事件监听器
+
+    /**
+     * 设置应用程序事件监听器
+     * @param listeners
+     */
     void setApplicationListeners(Object listeners[]);
 
-    // 返回此context容器可用标志
+
+    /**
+     * 返回此context容器可用标志
+     * @return
+     */
     boolean getAvailable();
 
-    // 设置此context容器可以标志
+
+    /**
+     * 设置此context容器可以标志
+     * @param available
+     */
     void setAvailable(boolean available);
 
-    // 设置本地字符编码
+
+    /**
+     * 设置本地字符编码
+     * @param mapper
+     */
     void setCharsetMapper(CharsetMapper mapper);
 
 
@@ -54,28 +84,60 @@ public interface Context extends Container {
      */
     public void setConfigured(boolean configured);
 
-    // 返回将cookies用于session id的标志
+
+    /**
+     * 返回将cookies用于session id的标志
+     * @return
+     */
     boolean getCookies();
 
-    // 设置是否将cookies用于session id
+
+    /**
+     * 设置是否将cookies用于session id
+     * @param cookies
+     */
     void setCookies(boolean cookies);
 
-    // 返回是否允许跨域的标志
+
+    /**
+     * 返回是否允许跨域的标志
+     * @return
+     */
     boolean getCrossContext();
 
-    // 设置跨域标志
+
+    /**
+     * 设置跨域标志
+     * @param crossContext
+     */
     void setCrossContext(boolean crossContext);
 
-    // 返回此应用程序显示的名字
+
+    /**
+     * 返回此应用程序显示的名字
+     * @return
+     */
     String getDisplayName();
 
-    // 设置此应用程序显示的名字
+
+    /**
+     * 设置此应用程序显示的名字
+     * @param displayName
+     */
     void setDisplayName(String displayName);
 
-    // 返回此web应用程序是否允许分发的标志
+
+    /**
+     * 返回此web应用程序是否允许分发的标志
+     * @return
+     */
     boolean getDistributable();
 
-    // 设置分发标志
+
+    /**
+     * 设置分发标志
+     * @param distributable
+     */
     void setDistributable(boolean distributable);
 
 
@@ -122,10 +184,18 @@ public interface Context extends Container {
      */
 //    public void setNamingResources(NamingResources namingResources);
 
-    // 返回此web应用程序的上下文路径
+
+    /**
+     * 返回此web应用程序的上下文路径
+     * @return
+     */
     String getPath();
 
-    // 设置此web应用程序的上下文路径
+
+    /**
+     * 设置此web应用程序的上下文路径
+     * @param path
+     */
     void setPath(String path);
 
 
@@ -144,16 +214,31 @@ public interface Context extends Container {
      */
     public void setPublicId(String publicId);
 
-    // 返回可重载标志
+
+    /**
+     * 返回可重载标志
+     * @return
+     */
     boolean getReloadable();
 
-    // 设置可重载标志
+
+    /**
+     * 设置可重载标志
+     * @param reloadable
+     */
     void setReloadable(boolean reloadable);
 
-    // 返回重写标志
+    /**
+     * 返回重写标志
+     * @return
+     */
     boolean getOverride();
 
-    // 设置重写标志
+
+    /**
+     * 设置重写标志
+     * @param override
+     */
     void setOverride(boolean override);
 
 
@@ -170,19 +255,39 @@ public interface Context extends Container {
      */
     public void setPrivileged(boolean privileged);
 
-    // 返回session超时时限，默认以分钟为单位
+
+    /**
+     * 返回session超时时限，默认以分钟为单位
+     * @return
+     */
     int getSessionTimeout();
 
-    // 设置session超时时限，默认以分钟为单位
+
+    /**
+     * 设置session超时时限，默认以分钟为单位
+     * @param timeout
+     */
     void setSessionTimeout(int timeout);
 
-    // 返回在此context注册的wrapper实现类类名
+
+    /**
+     * 返回在此context注册的wrapper实现类类名
+     * @return
+     */
     String getWrapperClass();
 
-    // 设置在此context注册的wrapper实现类类名
+
+    /**
+     * 设置在此context注册的wrapper实现类类名
+     * @param wrapperClass
+     */
     void setWrapperClass(String wrapperClass);
 
-    // 添加应用程序监听器的类名
+
+    /**
+     * 添加应用程序监听器的类名
+     * @param listener
+     */
     void addApplicationListener(String listener);
 
 
@@ -267,7 +372,11 @@ public interface Context extends Container {
 //    public void addMimeMapping(String extension, String mimeType);
 
 
-    // 添加新的上下文参数，新的值将替换旧的值
+    /**
+     * 添加新的上下文参数，新的值将替换旧的值
+     * @param name
+     * @param value
+     */
     void addParameter(String name, String value);
 
 
@@ -314,13 +423,15 @@ public interface Context extends Container {
 
 
     /**
-     * Add a new servlet mapping, replacing any existing mapping for
-     * the specified pattern.
-     *
-     * @param pattern URL pattern to be mapped
-     * @param name Name of the corresponding servlet to execute
+     * Context的实现类会有个名为servletMappings的map数据结构
+     * key存放的是servlet的uri，即你在浏览器上输入正确的url地址
+     * http://127.0.0.1/servlet/testServlet，那么/testServlet将是联系具体的wrapper对象的key
+     * 所以可知，value存放的就是具体的wrapper名字
+     * 添加pattern与wrapper对象的映射关系
+     * @param pattern
+     * @param name
      */
-//    public void addServletMapping(String pattern, String name);
+    void addServletMapping(String pattern, String name);
 
 
     /**
@@ -358,7 +469,10 @@ public interface Context extends Container {
 //    void addWrapperListener(String listener);
 
 
-    // 工厂方法，创建并返回Wrapper容器
+    /**
+     * 工厂方法，创建并返回Wrapper容器
+     * @return
+     */
     Wrapper createWrapper();
 
 
@@ -500,11 +614,20 @@ public interface Context extends Container {
      */
     public String[] findMimeMappings();
 
-    // 返回指定name对应的参数value
-    public String findParameter(String name);
 
-    // 返回所有参数
-    public String[] findParameters();
+    /**
+     * 返回指定name对应的参数value
+     * @param name
+     * @return
+     */
+    String findParameter(String name);
+
+
+    /**
+     * 返回所有参数
+     * @return
+     */
+    String[] findParameters();
 
 
     /**
@@ -583,19 +706,26 @@ public interface Context extends Container {
 
 
     /**
-     * Return the servlet name mapped by the specified pattern (if any);
-     * otherwise return <code>null</code>.
-     *
-     * @param pattern Pattern for which a mapping is requested
+     * Context的实现类会有个名为servletMappings的map数据结构
+     * key存放的是servlet的uri，即你在浏览器上输入正确的url地址
+     * http://127.0.0.1/servlet/testServlet，那么/testServlet将是联系具体的wrapper对象的key
+     * 所以可知，value存放的就是具体的wrapper名字
+     * 根据pattern找到具体的wrapper对象
+     * @param pattern
+     * @return
      */
-//    public String findServletMapping(String pattern);
+    String findServletMapping(String pattern);
 
 
     /**
-     * Return the patterns of all defined servlet mappings for this
-     * Context.  If no mappings are defined, a zero-length array is returned.
+     * Context的实现类会有个名为servletMappings的map数据结构
+     * key存放的是servlet的uri，即你在浏览器上输入正确的url地址
+     * http://127.0.0.1/servlet/testServlet，那么/testServlet将是联系具体的wrapper对象的key
+     * 所以可知，value存放的就是具体的wrapper名字
+     * 所以这个方法就是返回所有的key
+     * @return
      */
-//    public String[] findServletMappings();
+    String[] findServletMappings();
 
 
     /**
@@ -661,8 +791,12 @@ public interface Context extends Container {
      */
 //    public String[] findWrapperListeners();
 
-    // 如果支持重新载入，则重新载入此web应用程序
+
+    /**
+     * 如果支持重新载入，则重新载入此web应用程序
+     */
     void reload();
+
 
     // 移除应用程序监听器
 //    void removeApplicationListener(String listener);
@@ -752,7 +886,11 @@ public interface Context extends Container {
      */
 //    public void removeMimeMapping(String extension);
 
-    // 删除指定name的参数
+
+    /**
+     * 删除指定name的参数
+     * @param name
+     */
     void removeParameter(String name);
 
 
@@ -797,12 +935,14 @@ public interface Context extends Container {
 
 
     /**
-     * Remove any servlet mapping for the specified pattern, if it exists;
-     * otherwise, no action is taken.
-     *
-     * @param pattern URL pattern of the mapping to remove
+     * Context的实现类会有个名为servletMappings的map数据结构
+     * key存放的是servlet的uri，即你在浏览器上输入正确的url地址
+     * http://127.0.0.1/servlet/testServlet，那么/testServlet将是联系具体的wrapper对象的key
+     * 所以可知，value存放的就是具体的wrapper名字
+     * 移除pattern与指定指定的wrapper映射
+     * @param pattern
      */
-//    public void removeServletMapping(String pattern);
+    void removeServletMapping(String pattern);
 
 
     /**

@@ -40,7 +40,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
             new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.US)
     };
     protected String method; // 请求方法
-    protected String contextPath; // context路径
+    protected String contextPath = ""; // context路径
     protected String queryString; // 存放再请求行中的查询字符串
     protected String requestedSessionId; // 请求中的session id
     protected String requestURI; // 请求中的uri
@@ -598,6 +598,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
 
     /**
      * 设置认证类型
+     *
      * @param type
      */
     @Override
@@ -607,15 +608,21 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
 
     /**
      * 设置context路径
+     *
      * @param path
      */
     @Override
     public void setContextPath(String path) {
-        this.contextPath = path;
+        if (path == null) {
+            this.contextPath = "";
+        } else {
+            this.contextPath = path;
+        }
     }
 
     /**
      * 设置方法
+     *
      * @param method
      */
     @Override
@@ -692,8 +699,12 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
      */
     @Override
     public String getDecodedRequestURI() {
-        if (decodedRequestURI == null)
+        if (decodedRequestURI == null) {
             decodedRequestURI = RequestUtil.URLDecode(getRequestURI());
+            if (decodedRequestURI == null) {
+                decodedRequestURI = "";
+            }
+        }
         return this.decodedRequestURI;
     }
 

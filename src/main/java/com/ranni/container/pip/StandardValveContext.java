@@ -23,6 +23,7 @@ public final class StandardValveContext implements ValveContext {
 
     /**
      * 返回该类的信息
+     *
      * @return
      */
     @Override
@@ -33,6 +34,7 @@ public final class StandardValveContext implements ValveContext {
     /**
      * 设置基础阀和非基础阀
      * 并且将阀执行计数清0
+     *
      * @param basic
      * @param valves
      */
@@ -45,6 +47,7 @@ public final class StandardValveContext implements ValveContext {
 
     /**
      * 该方法实现执行下一个阀
+     *
      * @param request
      * @param response
      * @throws IOException
@@ -52,15 +55,18 @@ public final class StandardValveContext implements ValveContext {
      */
     @Override
     public void invokeNext(Request request, Response response) throws IOException, ServletException {
-        if (stage < valves.length) {
+        // 在这里就要开始计数+1，因为有可能在阀中调用此方法
+        int count = stage;
+        stage++;
+
+        if (count < valves.length) {
             // 执行非基础阀
-            valves[stage].invoke(request, response, this);
-        } else if (stage == valves.length && basic != null) {
+            valves[count].invoke(request, response, this);
+        } else if (count == valves.length && basic != null) {
             // 执行基础阀
             basic.invoke(request, response, this);
         } else {
             throw new ServletException("没有阀可以执行了！");
         }
-        stage++;
     }
 }

@@ -46,6 +46,7 @@ public class SimplePipeline implements Pipeline, Contained {
 
     /**
      * 添加阀
+     *
      * @param valve
      */
     @Override
@@ -55,7 +56,7 @@ public class SimplePipeline implements Pipeline, Contained {
         }
         synchronized (valves) {
             Valve[] newValues = new Valve[valves.length + 1];
-            System.arraycopy(valve, 0, newValues, 0, valves.length);
+            System.arraycopy(valves, 0, newValues, 0, valves.length);
             newValues[valves.length] = valve;
             valves = newValues;
         }
