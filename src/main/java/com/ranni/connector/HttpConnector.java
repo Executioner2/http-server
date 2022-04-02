@@ -10,6 +10,8 @@ import com.ranni.connector.processor.ProcessorPool;
 import com.ranni.connector.socket.DefaultServerSocketFactory;
 import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
+import com.ranni.lifecycle.Lifecycle;
+import com.ranni.lifecycle.LifecycleListener;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
@@ -258,6 +260,21 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      */
     public void recycle(Processor processor) {
         processorPool.giveBackProcessor(processor);
+    }
+
+    @Override
+    public void addLifecycleListener(LifecycleListener listener) {
+
+    }
+
+    @Override
+    public LifecycleListener[] findLifecycleListeners() {
+        return new LifecycleListener[0];
+    }
+
+    @Override
+    public void removeLifecycleListener(LifecycleListener listener) {
+
     }
 
     /**
