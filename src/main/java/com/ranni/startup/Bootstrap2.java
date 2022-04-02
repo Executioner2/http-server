@@ -4,7 +4,7 @@ import com.ranni.connector.HttpConnector;
 import com.ranni.container.StandardContext;
 import com.ranni.container.DefaultContextMapper;
 import com.ranni.container.StandardWrapper;
-import com.ranni.loader.SimpleLoader;
+import com.ranni.container.loader.SimpleLoader;
 import com.ranni.test.valves.ClientIPLoggerValve;
 import com.ranni.test.valves.HeaderLoggerValve;
 

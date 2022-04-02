@@ -1,6 +1,8 @@
-package com.ranni.loader;
+package com.ranni.container.loader;
 
 import com.ranni.container.Container;
+import com.ranni.lifecycle.Lifecycle;
+import com.ranni.lifecycle.LifecycleListener;
 
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -18,7 +20,7 @@ import java.net.URLStreamHandler;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 21:34
  */
-public class SimpleLoader implements Loader {
+public class SimpleLoader implements Loader, Lifecycle {
     public static final String WEB_ROOT = System.getProperty("user.dir") + File.separator + "webroot"; // WEB根目录
     private ClassLoader classLoader;
     private Container container;
@@ -113,6 +115,31 @@ public class SimpleLoader implements Loader {
 
     @Override
     public void removePropertyChangeListener(PropertyChangeListener listener) {
+
+    }
+
+    @Override
+    public void addLifecycleListener(LifecycleListener listener) {
+
+    }
+
+    @Override
+    public LifecycleListener[] findLifecycleListeners() {
+        return new LifecycleListener[0];
+    }
+
+    @Override
+    public void removeLifecycleListener(LifecycleListener listener) {
+
+    }
+
+    @Override
+    public void start() throws Exception {
+
+    }
+
+    @Override
+    public void stop() throws Exception {
 
     }
 }

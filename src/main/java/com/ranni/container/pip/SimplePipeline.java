@@ -3,6 +3,8 @@ package com.ranni.container.pip;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.Container;
+import com.ranni.lifecycle.Lifecycle;
+import com.ranni.lifecycle.LifecycleListener;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
@@ -16,7 +18,7 @@ import java.io.IOException;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 21:45
  */
-public class SimplePipeline implements Pipeline, Contained {
+public class SimplePipeline implements Pipeline, Contained, Lifecycle {
     private Container container;
     private Valve[] valves = new Valve[0]; // 阀
     private Valve basic; // 基础阀
@@ -105,5 +107,30 @@ public class SimplePipeline implements Pipeline, Contained {
     @Override
     public void setContainer(Container container) {
         this.container = container;
+    }
+
+    @Override
+    public void addLifecycleListener(LifecycleListener listener) {
+
+    }
+
+    @Override
+    public LifecycleListener[] findLifecycleListeners() {
+        return new LifecycleListener[0];
+    }
+
+    @Override
+    public void removeLifecycleListener(LifecycleListener listener) {
+
+    }
+
+    @Override
+    public void start() throws Exception {
+
+    }
+
+    @Override
+    public void stop() throws Exception {
+
     }
 }

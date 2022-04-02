@@ -3,7 +3,9 @@ package com.ranni.container;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.pip.SimpleWrapperValve;
-import com.ranni.loader.Loader;
+import com.ranni.lifecycle.Lifecycle;
+import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.container.loader.Loader;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -19,7 +21,7 @@ import java.io.IOException;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 21:44
  */
-public class StandardWrapper extends ContainerBase implements Wrapper {
+public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle {
     protected Servlet servlet; // servlet
     protected String servletClass; // servlet类全限定类名
 
@@ -240,5 +242,30 @@ public class StandardWrapper extends ContainerBase implements Wrapper {
     @Override
     public void removeChild(Container child) {
         throw new IllegalStateException ("标准wrapper没有child");
+    }
+
+    @Override
+    public void addLifecycleListener(LifecycleListener listener) {
+
+    }
+
+    @Override
+    public LifecycleListener[] findLifecycleListeners() {
+        return new LifecycleListener[0];
+    }
+
+    @Override
+    public void removeLifecycleListener(LifecycleListener listener) {
+
+    }
+
+    @Override
+    public void start() throws Exception {
+
+    }
+
+    @Override
+    public void stop() throws Exception {
+
     }
 }

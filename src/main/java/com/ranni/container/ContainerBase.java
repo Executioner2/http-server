@@ -5,7 +5,7 @@ import com.ranni.connector.http.response.Response;
 import com.ranni.container.pip.Pipeline;
 import com.ranni.container.pip.SimplePipeline;
 import com.ranni.container.pip.Valve;
-import com.ranni.loader.Loader;
+import com.ranni.container.loader.Loader;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletException;
