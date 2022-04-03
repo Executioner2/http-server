@@ -1,9 +1,9 @@
 package com.ranni.startup;
 
 import com.ranni.connector.HttpConnector;
-import com.ranni.container.StandardContext;
-import com.ranni.container.DefaultContextMapper;
-import com.ranni.container.StandardWrapper;
+import com.ranni.container.context.StandardContext;
+import com.ranni.container.context.DefaultContextMapper;
+import com.ranni.container.wrapper.StandardWrapper;
 import com.ranni.container.loader.SimpleLoader;
 import com.ranni.test.valves.ClientIPLoggerValve;
 import com.ranni.test.valves.HeaderLoggerValve;

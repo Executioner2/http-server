@@ -3,7 +3,6 @@ package com.ranni.container;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.pip.Pipeline;
-import com.ranni.container.pip.SimplePipeline;
 import com.ranni.container.pip.Valve;
 import com.ranni.container.loader.Loader;
 

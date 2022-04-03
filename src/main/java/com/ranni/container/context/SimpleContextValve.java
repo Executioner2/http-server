@@ -1,4 +1,4 @@
-package com.ranni.container.pip;
+package com.ranni.container.context;
 
 import com.ranni.connector.http.request.HttpRequest;
 import com.ranni.connector.http.request.Request;
@@ -6,6 +6,9 @@ import com.ranni.connector.http.response.Response;
 import com.ranni.container.Container;
 import com.ranni.container.Context;
 import com.ranni.container.Wrapper;
+import com.ranni.container.pip.Contained;
+import com.ranni.container.pip.Valve;
+import com.ranni.container.pip.ValveContext;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
