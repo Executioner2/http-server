@@ -352,7 +352,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
      * @throws Exception
      */
     @Override
-    public void start() throws Exception {
+    public synchronized void start() throws Exception {
         if (stared) throw new LifecycleException("此context容器实例已经启动！");
 
         // 容器启动前
@@ -396,7 +396,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
      * @throws Exception
      */
     @Override
-    public void stop() throws Exception {
+    public synchronized void stop() throws Exception {
         if (!stared) throw new LifecycleException("此context容器已处于关闭状态！");
 
         // 关闭context容器之前

@@ -3,6 +3,7 @@ package com.ranni.container.loader;
 import com.ranni.container.Container;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.util.LifecycleSupport;
 
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -22,8 +23,11 @@ import java.net.URLStreamHandler;
  */
 public class SimpleLoader implements Loader, Lifecycle {
     public static final String WEB_ROOT = System.getProperty("user.dir") + File.separator + "webroot"; // WEB根目录
-    private ClassLoader classLoader;
-    private Container container;
+    private ClassLoader classLoader; // 类加载器
+    private Container container; // 与此加载器关联的容器
+    private boolean stared; // 容器是否启动
+
+    protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
 
     /**
      * 构造对象的时候就创建类加载器
@@ -43,6 +47,7 @@ public class SimpleLoader implements Loader, Lifecycle {
 
     /**
      * 返回类加载器
+     *
      * @return
      */
     @Override
@@ -52,6 +57,7 @@ public class SimpleLoader implements Loader, Lifecycle {
 
     /**
      * 返回与该类加载器关联的容器
+     *
      * @return
      */
     @Override
@@ -61,6 +67,7 @@ public class SimpleLoader implements Loader, Lifecycle {
 
     /**
      * 设置与该类加载器关联的容器
+     *
      * @param container
      */
     @Override
@@ -113,33 +120,65 @@ public class SimpleLoader implements Loader, Lifecycle {
         return false;
     }
 
+
     @Override
     public void removePropertyChangeListener(PropertyChangeListener listener) {
 
     }
 
+    /**
+     * 添加生命周期监听器
+     *
+     * @see {@link LifecycleSupport#addLifecycleListener(LifecycleListener)} 该方法是线程安全的方法
+     *
+     * @param listener
+     */
     @Override
     public void addLifecycleListener(LifecycleListener listener) {
-
+        lifecycle.addLifecycleListener(listener);
     }
 
+    /**
+     * 返回所有生命周期监听器
+     *
+     * @see {@link LifecycleSupport#findLifecycleListeners()} 该方法是线程安全的方法
+     *
+     * @return
+     */
     @Override
     public LifecycleListener[] findLifecycleListeners() {
-        return new LifecycleListener[0];
+        return lifecycle.findLifecycleListeners();
     }
 
+    /**
+     * 移除生命周期监听器
+     *
+     * @see {@link LifecycleSupport#removeLifecycleListener(LifecycleListener)} 该方法是线程安全的方法
+     *
+     * @param listener
+     */
     @Override
     public void removeLifecycleListener(LifecycleListener listener) {
-
+        lifecycle.removeLifecycleListener(listener);
     }
 
+    /**
+     * 加载器启动事件
+     *
+     * @throws Exception
+     */
     @Override
-    public void start() throws Exception {
-
+    public synchronized void start() throws Exception {
+        System.out.println("启动SimpleLoader"); // TODO sout
     }
 
+    /**
+     * 加载器停止事件
+     *
+     * @throws Exception
+     */
     @Override
-    public void stop() throws Exception {
-
+    public synchronized void stop() throws Exception {
+        System.out.println("停止SimpleLoader"); // TODO sout
     }
 }

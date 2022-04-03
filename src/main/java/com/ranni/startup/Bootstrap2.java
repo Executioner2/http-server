@@ -1,6 +1,7 @@
 package com.ranni.startup;
 
 import com.ranni.connector.HttpConnector;
+import com.ranni.container.context.SimpleContextLifecycleListener;
 import com.ranni.container.context.StandardContext;
 import com.ranni.container.context.DefaultContextMapper;
 import com.ranni.container.wrapper.StandardWrapper;
@@ -50,12 +51,17 @@ public class Bootstrap2 {
         context.addMapper(contextMapper);
         context.addServletMapping("/TestServlet", "TestServlet");
 
+        // 添加监听器
+        SimpleContextLifecycleListener simpleContextLifecycleListener = new SimpleContextLifecycleListener();
+        context.addLifecycleListener(simpleContextLifecycleListener);
+
         // 设置连接器的容器
         connector.setContainer(context);
 
         try {
             connector.initialize();
             connector.start();
+            context.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
