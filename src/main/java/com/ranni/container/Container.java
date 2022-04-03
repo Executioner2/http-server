@@ -1,8 +1,9 @@
 package com.ranni.container;
 
-import com.ranni.container.loader.Loader;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
+import com.ranni.container.loader.Loader;
+import com.ranni.logger.Logger;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletException;
@@ -36,10 +37,10 @@ public interface Container {
     void setLoader(Loader loader);
 
     // 返回记录器，此Container没有就返回父Container的，都没有就返回null
-//    Logger getLogger();
+    Logger getLogger();
 
     // 设置记录器
-//    void setLogger(Logger logger);
+    void setLogger(Logger logger);
 
     // 返回管理器，此Container没有就返回父Container的，都没有就返回null
 //    Manager getManager();

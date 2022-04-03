@@ -26,7 +26,6 @@ import java.io.IOException;
  * @Date 2022-03-27 21:44
  */
 public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle {
-    private boolean stared; // 容器是否启动
     private Servlet servlet; // servlet
 
     protected String servletClass; // servlet类全限定类名
@@ -298,12 +297,12 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
      */
     @Override
     public synchronized void start() throws Exception {
-        if (stared) throw new LifecycleException("此wrapper容器实例已经启动！");
+        if (started) throw new LifecycleException("此wrapper容器实例已经启动！");
         System.out.println("启动wrapper容器：" + this); // TODO sout
 
         // 此wrapper容器启动之前
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, null);
-        stared = true;
+        started = true;
 
         // 启动加载器
         if (loader != null && loader instanceof Lifecycle)
@@ -331,7 +330,7 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
      */
     @Override
     public synchronized void stop() throws Exception {
-        if (!stared) throw new LifecycleException("此wrapper容器实例已经停止！");
+        if (!started) throw new LifecycleException("此wrapper容器实例已经停止！");
         System.out.println("停止wrapper容器：" + this); // TODO sout
         try {
             // 执行servlet的destroy()
@@ -347,7 +346,7 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
 
         // 关闭此wrapper容器
         lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
-        stared = false;
+        started = false;
 
         // 关闭管道
         if (pipeline instanceof Lifecycle) {

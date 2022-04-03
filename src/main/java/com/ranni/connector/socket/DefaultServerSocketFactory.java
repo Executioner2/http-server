@@ -21,6 +21,9 @@ public class DefaultServerSocketFactory implements ServerSocketFactory {
     private static volatile ServerSocket socket;
     private static volatile DefaultServerSocketFactory factory;
 
+    public static int port;
+    public static String ipaddress;
+
     private DefaultServerSocketFactory() {}
 
     /**
@@ -82,6 +85,8 @@ public class DefaultServerSocketFactory implements ServerSocketFactory {
         if (socket == null) {
             synchronized (DefaultServerSocketFactory.class) {
                 if (socket == null) {
+                    this.port = port;
+                    this.ipaddress = ip.getHostAddress();
                     socket = new ServerSocket(port, backlog, ip);
                 }
             }

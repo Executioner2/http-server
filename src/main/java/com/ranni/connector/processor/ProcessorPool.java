@@ -31,15 +31,12 @@ public interface ProcessorPool {
     // 返回最小处理器数量
     int getMinProcessors();
 
-    // 设置已创建的处理器数量
-    void setCurProcessors(int cur);
-
-    // 已创建的处理器数量自增一
-    void incCurProcessors();
-
     // 返回已创建的处理器数量
     int getCurProcessors();
 
     // 返回正在工作的处理器数量
     int getWorkingProcessors();
+
+    // 线程池是否启动了
+    boolean isStarted();
 }

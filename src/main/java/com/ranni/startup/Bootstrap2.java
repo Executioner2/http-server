@@ -61,7 +61,24 @@ public class Bootstrap2 {
         try {
             connector.initialize();
             connector.start();
-            context.start();
+
+            Thread.sleep(2000);
+
+            connector.stop();
+
+            // 获得还存活的线程
+//            ThreadGroup threadGroup = Thread.currentThread().getThreadGroup();
+//            int i = threadGroup.activeCount();
+//            Thread[] threads = new Thread[i];
+//            threadGroup.enumerate(threads);
+//            System.out.println("HTTP服务器关闭！");
+//
+//            for (Thread thread : threads) {
+//                System.out.println("存活的线程：" + thread + "   " + thread.isAlive());
+//            }
+
+
+//            System.exit(0);
         } catch (Exception e) {
             e.printStackTrace();
         }

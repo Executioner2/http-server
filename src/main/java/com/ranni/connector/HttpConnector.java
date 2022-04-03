@@ -10,13 +10,14 @@ import com.ranni.connector.processor.ProcessorPool;
 import com.ranni.connector.socket.DefaultServerSocketFactory;
 import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
+import com.ranni.exception.LifecycleException;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.util.LifecycleSupport;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 
 /**
  * Title: HttpServer
@@ -30,12 +31,15 @@ import java.net.Socket;
 public class HttpConnector implements Connector, Runnable, Lifecycle {
     private ServerSocketFactory factory; // 获取服务器socket的工厂
     private ServerSocket serverSocket; // 服务器socket
+    private boolean stopped = false; // 连接器线程停止标签
+
+    protected boolean started; // 连接器启动标志
+    protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具类实例
     protected String scheme; // 协议类型
     protected int redirectPort = 80; // 转发端口
     protected Container container; // 容器
     protected ProcessorPool processorPool; // 处理器池
 
-    private boolean stopped = false; // 连接器停止标签
 
     /**
      * 返回容器
@@ -197,6 +201,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
     /**
      * 启动前初始化
+     *
      * @throws Exception
      */
     @Override
@@ -205,7 +210,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         if (serverSocket == null) throw new IllegalStateException("创建server socket失败！");
         setScheme("http");
 
-        // 创建处理器线程池
+        // 创建处理器线程池，此时还不是启动状态
         processorPool = DefaultProcessorPool.getProcessorPool();
 
         if (processorPool == null) throw new IllegalStateException("创建processor pool失败！");
@@ -252,6 +257,8 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
                 e.printStackTrace();
             }
         }
+
+        System.out.println("连接器线程"+ Thread.currentThread().getName() +"关闭！"); // TODO sout
     }
 
     /**
@@ -262,37 +269,110 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         processorPool.giveBackProcessor(processor);
     }
 
+    /**
+     * 添加监听器
+     *
+     * @see {@link LifecycleSupport#addLifecycleListener(LifecycleListener)} 该方法是线程安全方法
+     *
+     * @param listener
+     */
     @Override
     public void addLifecycleListener(LifecycleListener listener) {
-
+        lifecycle.addLifecycleListener(listener);
     }
 
+    /**
+     * 返回所有监听器
+     *
+     * @see {@link LifecycleSupport#findLifecycleListeners()}
+     *
+     * @return
+     */
     @Override
     public LifecycleListener[] findLifecycleListeners() {
-        return new LifecycleListener[0];
+        return lifecycle.findLifecycleListeners();
     }
 
+    /**
+     * 移除指定监听器
+     *
+     * @see {@link LifecycleSupport#removeLifecycleListener(LifecycleListener)} 该方法是线程安全的方法
+     *
+     * @param listener
+     */
     @Override
     public void removeLifecycleListener(LifecycleListener listener) {
-
+        lifecycle.removeLifecycleListener(listener);
     }
 
     /**
      * 启动连接器
+     * 启动顺序
+     *  1、启动容器
+     *  2、启动处理器池
+     *  3、启动此连接器线程
+     *
      * @throws Exception
      */
     @Override
-    public void start() throws Exception {
+    public synchronized void start() throws Exception {
+        if (started) throw new LifecycleException("此connector连接器实例已经启动！");
+
+        // 连接器启动前
+        lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, null);
+
+        started = true;
+
+        if (container instanceof Lifecycle)
+            ((Lifecycle) container).start();
+
+        if (processorPool instanceof Lifecycle)
+            ((Lifecycle) processorPool).start();
+
         Thread thread = new Thread(this);
+        // 连接器启动
+        lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
+        thread.setName("HttpConnector@"+this.hashCode());
         thread.start();
+
+        // 连接器启动后
+        lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
     }
 
     /**
      * 停止连接器
+     * 停止顺序
+     *  1、停止此连接器线程
+     *  2、停止处理器池
+     *  3、停止容器
+     *
      * @throws Exception
      */
     @Override
-    public void stop() throws Exception {
+    public synchronized void stop() throws Exception {
+        if (!started) throw new LifecycleException("此connector连接器实例已经停止！");
 
+        // 连接器停止前
+        lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_STOP_EVENT, null);
+        // 连接器停止
+        lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
+
+        stopped = true;
+
+        if (processorPool instanceof Lifecycle)
+            ((Lifecycle) processorPool).stop();
+
+        if (container instanceof Lifecycle)
+            ((Lifecycle) container).stop();
+
+        // 向本机的serverSocket发送一条空请求，由于已经关闭了处理器池
+        // 此请求不会被处理，但会使得serverSocket的accept()暂时接触阻塞
+        // 到while的循环中会得知stooped为true，便可以跳出循环，无异常结束关闭serverSocket
+        Socket socket = new Socket();
+        socket.connect(new InetSocketAddress(DefaultServerSocketFactory.ipaddress, DefaultServerSocketFactory.port));
+
+        // 连接器停止后
+        lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
     }
+
 }

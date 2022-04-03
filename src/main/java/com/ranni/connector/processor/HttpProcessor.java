@@ -27,6 +27,7 @@ public class HttpProcessor implements Processor {
     private boolean nullRequest; // 是否是空包请求
     private boolean available = false; // 是否阻塞线程等待接收socket请求
     private Socket socket;
+    private Thread thread;
 
     protected boolean stopped; // 停止状态标志位
     protected boolean working; // 工作状态标志位
@@ -53,6 +54,8 @@ public class HttpProcessor implements Processor {
             // 归还当前处理器
             connector.recycle(this);
         }
+
+        System.out.println("处理器线程："+ Thread.currentThread().getName() +"  已关闭！"); // TODO sout
     }
 
     /**
@@ -121,9 +124,21 @@ public class HttpProcessor implements Processor {
      * 启动处理器线程
      */
     @Override
-    public void start() {
-        Thread thread = new Thread(this);
+    public synchronized void start() {
+        thread = new Thread(this);
+        thread.setName("HttProcessor@"+this.hashCode());
         thread.start();
+    }
+
+    /**
+     * 停止当前线程
+     *
+     * @throws Exception
+     */
+    @Override
+    public synchronized void stop() throws Exception {
+        stopped = true;
+        assign(null); // 直接来个空的socket就行了
     }
 
     /**

@@ -25,8 +25,6 @@ import java.util.Set;
  * @Date 2022-03-28 17:29
  */
 public class StandardContext extends ContainerBase implements Context, Lifecycle {
-    private boolean stared; // 容器是否启动
-
     protected String servletClass; // 要加载的servlet类全限定名
     protected Map<String, String> servletMappings = new HashMap<>(); // 请求servlet与wrapper容器的映射
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
@@ -353,11 +351,11 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
      */
     @Override
     public synchronized void start() throws Exception {
-        if (stared) throw new LifecycleException("此context容器实例已经启动！");
+        if (started) throw new LifecycleException("此context容器实例已经启动！");
 
         // 容器启动前
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
-        stared = true;
+        started = true;
 
         try {
             // 启动加载器
@@ -397,13 +395,14 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
      */
     @Override
     public synchronized void stop() throws Exception {
-        if (!stared) throw new LifecycleException("此context容器已处于关闭状态！");
+
+        if (!started) throw new LifecycleException("此context容器已处于关闭状态！");
 
         // 关闭context容器之前
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_STOP_EVENT, null);
         // 关闭context容器
         lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
-        stared = false;
+        started = false;
 
         try {
             // 关闭管道

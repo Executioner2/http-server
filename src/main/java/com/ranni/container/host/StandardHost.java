@@ -2,10 +2,7 @@ package com.ranni.container.host;
 
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
-import com.ranni.container.Container;
-import com.ranni.container.Host;
-import com.ranni.container.Mapper;
-import com.ranni.container.Context;
+import com.ranni.container.*;
 import com.ranni.container.loader.Loader;
 
 import javax.naming.directory.DirContext;
@@ -23,7 +20,7 @@ import java.io.IOException;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 15:01
  */
-public class StandardHost implements Host {
+public class StandardHost extends ContainerBase implements Host {
     @Override
     public String getAppBase() {
         return null;

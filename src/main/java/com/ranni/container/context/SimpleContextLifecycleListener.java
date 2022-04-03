@@ -21,6 +21,6 @@ public class SimpleContextLifecycleListener implements LifecycleListener {
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
         // TODO 这里仅仅打印事件类型
-        System.out.println("SimpleContextLifecycleListener: " + event.getType());
+//        System.out.println("SimpleContextLifecycleListener: " + event.getType());
     }
 }

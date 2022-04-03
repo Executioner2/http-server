@@ -1,5 +1,9 @@
 package com.ranni.connector.processor;
 
+import com.ranni.lifecycle.Lifecycle;
+import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.util.LifecycleSupport;
+
 import java.util.Stack;
 
 /**
@@ -12,13 +16,15 @@ import java.util.Stack;
  * @Email 1205878539@qq.com
  * @Date 2022-03-25 23:03
  */
-public class DefaultProcessorPool implements ProcessorPool {
+public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
     private final static Stack<Processor> pool = new Stack<>(); // 处理器池
     private static volatile DefaultProcessorPool processorPool; // 处理器池对象
+    private Boolean stared = false; // 线程池是否启动
 
+    protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具类实例
     protected static int minProcessors; // 最小处理器数量
     protected static int maxProcessors; // 最大处理器数量
-    protected int curProcessors; // 当前处理器数量
+    protected static int curProcessors; // 当前处理器数量
     protected int workingProcessors; // 当前正在工作的处理器数量
 
     private DefaultProcessorPool() {}
@@ -26,6 +32,7 @@ public class DefaultProcessorPool implements ProcessorPool {
 
     /**
      * 归还处理器
+     *
      * @param processor
      */
     @Override
@@ -40,6 +47,7 @@ public class DefaultProcessorPool implements ProcessorPool {
     /**
      * 获取处理池对象
      * 如果没有创建就创建单例的处理器池对象
+     *
      * @return
      */
     public static ProcessorPool getProcessorPool() {
@@ -66,6 +74,8 @@ public class DefaultProcessorPool implements ProcessorPool {
                     maxProcessors = max;
                     processorPool = new DefaultProcessorPool();
 
+                    curProcessors = min;
+
                     // 初始化处理器池
                     for (int i = 0; i < min; i++) {
                         Processor processor = new HttpProcessor();
@@ -81,17 +91,22 @@ public class DefaultProcessorPool implements ProcessorPool {
 
     /**
      * 从处理器池中取得空闲的处理器
+     *
      * @return
      */
     @Override
     public Processor getProcessor() {
+        synchronized (stared) {
+            if (!stared) return null; // 处理器池逻辑上未启动将不处理请求
+        }
+
         synchronized (pool) {
             if (pool.isEmpty()) {
                 if (getCurProcessors() >= maxProcessors && maxProcessors > 0) return null;
 
                 Processor processor = new HttpProcessor();
                 processor.setWorking(true);
-                incCurProcessors();
+                curProcessors++;
                 processor.start();
 
                 return processor;
@@ -106,7 +121,18 @@ public class DefaultProcessorPool implements ProcessorPool {
     }
 
     /**
+     * 返回当前线程池启动状态
+     *
+     * @return
+     */
+    @Override
+    public boolean isStarted() {
+        return this.stared;
+    }
+
+    /**
      * 返回设置的最大处理器数
+     *
      * @return
      */
     @Override
@@ -116,6 +142,7 @@ public class DefaultProcessorPool implements ProcessorPool {
 
     /**
      * 返回设置的最小处理器数
+     *
      * @return
      */
     @Override
@@ -124,37 +151,110 @@ public class DefaultProcessorPool implements ProcessorPool {
     }
 
     /**
-     * 设置已创建的处理器数量
-     * @param cur
-     */
-    @Override
-    public synchronized void setCurProcessors(int cur) {
-        this.curProcessors = cur;
-    }
-
-    /**
-     * 已创建的处理器数量自增一
-     */
-    @Override
-    public synchronized void incCurProcessors() {
-        this.curProcessors++;
-    }
-
-    /**
      * 返回已创建的处理器数
+     *
      * @return
      */
     @Override
-    public synchronized int getCurProcessors() {
-        return this.curProcessors;
+    public int getCurProcessors() {
+        synchronized (pool) {
+            return curProcessors;
+        }
     }
 
     /**
      * 返回当前正在工作的处理器数
+     *
      * @return
      */
     @Override
     public synchronized int getWorkingProcessors() {
         return this.workingProcessors;
+    }
+
+    /**
+     * 添加监听器
+     *
+     * @see {@link LifecycleSupport#addLifecycleListener(LifecycleListener)} 该方法是线程安全方法
+     *
+     * @param listener
+     */
+    @Override
+    public void addLifecycleListener(LifecycleListener listener) {
+        lifecycle.addLifecycleListener(listener);
+    }
+
+    /**
+     * 返回所有监听器
+     *
+     * @see {@link LifecycleSupport#findLifecycleListeners()}
+     *
+     * @return
+     */
+    @Override
+    public LifecycleListener[] findLifecycleListeners() {
+        return lifecycle.findLifecycleListeners();
+    }
+
+    /**
+     * 移除指定监听器
+     *
+     * @see {@link LifecycleSupport#removeLifecycleListener(LifecycleListener)} 该方法是线程安全的方法
+     *
+     * @param listener
+     */
+    @Override
+    public void removeLifecycleListener(LifecycleListener listener) {
+        lifecycle.removeLifecycleListener(listener);
+    }
+
+    /**
+     * 处理器池启动
+     *
+     * @throws Exception
+     */
+    @Override
+    public synchronized void start() throws Exception {
+        lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, this); // 处理器池启动前
+
+        // 设置处理器池可用
+        stared = true;
+
+        lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, this); //  处理器池启动
+
+        lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, this); // 处理器池启动后
+    }
+
+    /**
+     * 处理器线程关闭
+     * 关闭处理器池中所有的处理器线程
+     * 先将stared标志设为false，避免传入新的请求
+     * 关闭时此线程将进入阻塞，直到所有处理器都不再工作了再往下执行
+     * XXX 注意：这个方法会阻塞到所有处理器线程关闭，如果出现服务器一直关不掉优先从此方法往下检查
+     *
+     * @throws Exception
+     */
+    @Override
+    public synchronized void stop() throws Exception {
+        System.out.println("处理器池开始关闭！");
+        lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_STOP_EVENT, this); // 处理器池关闭前
+        lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, this); // 处理器池关闭
+
+        stared = false;
+        int stopped = 0; // 已经停止了的处理器线程数
+
+        // 等待所有处理器都完成任务
+        while (stopped < curProcessors) {
+//            System.out.println("1");
+            while (!pool.isEmpty()) {
+                // 将所有空闲的处理器线程弹出栈然后关闭
+                Processor processor = pool.pop();
+                processor.stop();
+                stopped++;
+            }
+            Thread.sleep(2000); // 每间隔两秒扫描一次
+        }
+
+        lifecycle.fireLifecycleEvent(Lifecycle.AFTER_STOP_EVENT, this); // 处理器池关闭后
     }
 }

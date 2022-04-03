@@ -3,6 +3,7 @@ package com.ranni.container.engine;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.Container;
+import com.ranni.container.ContainerBase;
 import com.ranni.container.Engine;
 import com.ranni.container.Mapper;
 import com.ranni.container.loader.Loader;
@@ -22,7 +23,7 @@ import java.io.IOException;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 15:01
  */
-public class StandardEngine implements Engine {
+public class StandardEngine extends ContainerBase implements Engine {
     @Override
     public String getDefaultHost() {
         return null;

@@ -2,9 +2,11 @@ package com.ranni.container;
 
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
+import com.ranni.container.loader.Loader;
 import com.ranni.container.pip.Pipeline;
 import com.ranni.container.pip.Valve;
-import com.ranni.container.loader.Loader;
+import com.ranni.lifecycle.Lifecycle;
+import com.ranni.logger.Logger;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletException;
@@ -25,13 +27,14 @@ import java.util.Map;
  */
 public abstract class ContainerBase implements Container, Pipeline {
     protected Loader loader; // 加载器
+    protected Logger logger; // 日志记录器
     protected Pipeline pipeline = new SimplePipeline(this); // 管道
     protected Mapper mapper; // 默认关联mapper，即mappers中只有一个mapper，那么就会将此mapper设置为默认关联mapper
     protected Map<String, Mapper> mappers = new HashMap<>(); // 协议与mapper的映射集
     protected Container parent; // 父容器
     protected String name; // 容器名字
     protected Map<String, Container> children = new HashMap<>(); // 子容器
-
+    protected boolean started; // 启动标志
 
     /**
      * 返回类加载器
@@ -145,6 +148,55 @@ public abstract class ContainerBase implements Container, Pipeline {
 
     }
 
+
+    /**
+     * 设置日志监听器
+     *
+     * @return
+     */
+    @Override
+    public Logger getLogger() {
+        if (logger != null)
+            return logger;
+        else if (parent != null)
+            return parent.getLogger();
+        return null;
+    }
+
+    /**
+     * 设置日志记录器
+     *
+     * @param logger
+     */
+    @Override
+    public synchronized void setLogger(Logger logger) {
+        Logger oldLogger = this.logger; // 旧的日志记录器
+        this.logger = logger;
+
+        if (started && oldLogger != null
+            && oldLogger instanceof Lifecycle) {
+            try {
+                ((Lifecycle) oldLogger).stop();
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+        }
+
+        if (logger != null) {
+            logger.setContainer(this);
+        }
+
+        // 容器已经启动了，但是又变更了日志记录器且日志记录器实现了生命周期管理接口
+        // 那么就要调用该日志记录中的start()
+        if (started && logger != null
+            && logger instanceof Lifecycle) {
+            try {
+                ((Lifecycle) logger).start();
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+        }
+    }
 
     /**
      * 添加mapper到mappers中
@@ -385,5 +437,33 @@ public abstract class ContainerBase implements Container, Pipeline {
     @Override
     public Valve[] getValves() {
         return pipeline.getValves();
+    }
+
+    /**
+     * 写入日志文件
+     *
+     * @param message
+     */
+    protected void log(String message) {
+
+        Logger logger = getLogger();
+        if (logger != null)
+            logger.log(logName() + ": " + message);
+        else
+            System.out.println(logName() + ": " + message);
+
+    }
+
+    /**
+     * 取得简短类名
+     *
+     * @return
+     */
+    protected String logName() {
+        String className = this.getClass().getName();
+        int period = className.lastIndexOf(".");
+        if (period >= 0)
+            className = className.substring(period + 1);
+        return (className + "[" + getName() + "]");
     }
 }
