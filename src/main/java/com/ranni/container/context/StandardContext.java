@@ -1,9 +1,7 @@
 package com.ranni.container.context;
 
-import com.ranni.container.Container;
-import com.ranni.container.ContainerBase;
-import com.ranni.container.Context;
-import com.ranni.container.Wrapper;
+import com.ranni.container.*;
+import com.ranni.container.scope.ApplicationContext;
 import com.ranni.exception.LifecycleException;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
@@ -11,6 +9,7 @@ import com.ranni.util.CharsetMapper;
 import com.ranni.util.LifecycleSupport;
 
 import javax.servlet.ServletContext;
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +24,9 @@ import java.util.Set;
  * @Date 2022-03-28 17:29
  */
 public class StandardContext extends ContainerBase implements Context, Lifecycle {
+    private ApplicationContext context; // servlet的全局作用域
+    private String docBase; // web应用程序文档根目录
+
     protected String servletClass; // 要加载的servlet类全限定名
     protected Map<String, String> servletMappings = new HashMap<>(); // 请求servlet与wrapper容器的映射
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
@@ -33,9 +35,60 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         pipeline.setBasic(new SimpleContextValve(this));
     }
 
+    /**
+     * 返回servlet context（全局作用域）
+     *
+     * @return
+     */
     @Override
     public ServletContext getServletContext() {
-        return null;
+        if (context == null)
+            context = new ApplicationContext(getBasePath(), this);
+        return context;
+    }
+
+    /**
+     * 取得基本路径
+     *
+     * @return
+     */
+    private String getBasePath() {
+        String docBase = null;
+        Container container = this;
+
+        // 向上查询Host容器
+        while (container != null) {
+            if (container instanceof Host)
+                break;
+            container = container.getParent();
+        }
+
+        if (container == null) {
+            docBase = (new File(engineBase(), getDocBase())).getPath();
+        } else {
+            File file = new File(getDocBase());
+            if (!file.isAbsolute()) {
+                String appBase = ((Host) container).getAppBase();
+                file = new File(appBase);
+                if (!file.isAbsolute()) {
+                    file = new File(engineBase(), appBase);
+                }
+                docBase = (new File(file, getDocBase())).getPath();
+            } else {
+                docBase = file.getPath();
+            }
+        }
+
+        return docBase;
+    }
+
+    /**
+     * 返回服务器的文件根目录
+     *
+     * @return
+     */
+    private File engineBase() {
+        return new File(System.getProperty("ranni.base"));
     }
 
     @Override
@@ -118,14 +171,24 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
     }
 
+    /**
+     * 返回此web应用程序的文档根目录
+     *
+     * @return
+     */
     @Override
     public String getDocBase() {
-        return null;
+        return this.docBase;
     }
 
+    /**
+     * 设置这个web应用程序的文档路径
+     *
+     * @param docBase
+     */
     @Override
     public void setDocBase(String docBase) {
-
+        this.docBase = docBase;
     }
 
     @Override

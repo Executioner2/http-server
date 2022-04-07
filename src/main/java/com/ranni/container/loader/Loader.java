@@ -15,13 +15,27 @@ import java.beans.PropertyChangeListener;
  */
 public interface Loader {
 
-    // 返回类加载器
+    /**
+     * 返回类加载器
+     *
+     * @return
+     */
     ClassLoader getClassLoader();
 
-    // 返回与此Loader关联的Container
+
+    /**
+     * 返回与此Loader关联的Container
+     *
+     * @return
+     */
     Container getContainer();
 
-    // 设置容器
+
+    /**
+     * 设置容器
+     *
+     * @param container
+     */
     void setContainer(Container container);
 
     // 返回默认的Context
@@ -30,33 +44,82 @@ public interface Loader {
     // 设置默认的Context
 //    void setDefaultContext(DefaultContext defaultContext);
 
-    // 返回委托标志
+    /**
+     * 是否委托给父类加载器
+     *
+     * @return 返回委托标志
+     */
     boolean getDelegate();
 
-    // 设置委托标志
+
+    /**
+     * 是否委托给父类加载器
+     *
+     * @param delegate 委托标志
+     */
     void setDelegate(boolean delegate);
 
-    // 返回Loader的描述信息和版本号
+
+    /**
+     * 返回Loader的描述信息和版本号
+     *
+     * @return
+     */
     String getInfo();
 
-    // 返回是否可重新载入标志
+
+    /**
+     * 返回是否可重新载入标志
+     *
+     * @return
+     */
     boolean getReloadable();
 
-    // 设置重新载入标志
+
+    /**
+     * 设置重新载入标志
+     *
+     * @param reloadable
+     */
     void setReloadable(boolean reloadable);
 
-    // 添加属性更改监听器
+
+    /**
+     * 添加属性更改监听器
+     *
+     * @param listener
+     */
     void addPropertyChangeListener(PropertyChangeListener listener);
 
-    // 将此存储库添加到存储库集合中
+
+    /**
+     * 将此库添加到库集合中
+     *
+     * @param repository
+     */
     void addRepository(String repository);
 
-    // 返回存储库集合
+
+    /**
+     * 返回所有的库
+     *
+     * @return
+     */
     String[] findRepositories();
 
-    // 是否修改内部存储库，用于重新加载类
+
+    /**
+     * 是否修改了servlet类，用于重新加载类
+     *
+     * @return
+     */
     boolean modified();
 
-    // 移除属性更改监听器
+
+    /**
+     * 移除属性更改监听器
+     *
+     * @param listener
+     */
     void removePropertyChangeListener(PropertyChangeListener listener);
 }

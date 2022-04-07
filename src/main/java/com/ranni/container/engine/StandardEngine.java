@@ -8,7 +8,6 @@ import com.ranni.container.Engine;
 import com.ranni.container.Mapper;
 import com.ranni.container.loader.Loader;
 
-import javax.naming.directory.DirContext;
 import javax.servlet.ServletException;
 import java.awt.event.ContainerListener;
 import java.beans.PropertyChangeListener;
@@ -86,16 +85,6 @@ public class StandardEngine extends ContainerBase implements Engine {
 
     @Override
     public void setParentClassLoader(ClassLoader parent) {
-
-    }
-
-    @Override
-    public DirContext getResources() {
-        return null;
-    }
-
-    @Override
-    public void setResources(DirContext resources) {
 
     }
 

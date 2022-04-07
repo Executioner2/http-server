@@ -22,6 +22,7 @@ public interface Context extends Container {
 
     /**
      * 获取servlet context
+     *
      * @return
      */
     ServletContext getServletContext();
@@ -29,6 +30,7 @@ public interface Context extends Container {
 
     /**
      * 获取字符编码
+     *
      * @return
      */
     CharsetMapper getCharsetMapper();
@@ -36,6 +38,7 @@ public interface Context extends Container {
 
     /**
      * 返回已初始化的应用程序事件监听器
+     *
      * @return
      */
     Object[] getApplicationListeners();
@@ -43,6 +46,7 @@ public interface Context extends Container {
 
     /**
      * 设置应用程序事件监听器
+     *
      * @param listeners
      */
     void setApplicationListeners(Object listeners[]);
@@ -50,6 +54,7 @@ public interface Context extends Container {
 
     /**
      * 返回此context容器可用标志
+     *
      * @return
      */
     boolean getAvailable();
@@ -57,6 +62,7 @@ public interface Context extends Container {
 
     /**
      * 设置此context容器可以标志
+     *
      * @param available
      */
     void setAvailable(boolean available);
@@ -64,6 +70,7 @@ public interface Context extends Container {
 
     /**
      * 设置本地字符编码
+     *
      * @param mapper
      */
     void setCharsetMapper(CharsetMapper mapper);
@@ -87,6 +94,7 @@ public interface Context extends Container {
 
     /**
      * 返回将cookies用于session id的标志
+     *
      * @return
      */
     boolean getCookies();
@@ -94,6 +102,7 @@ public interface Context extends Container {
 
     /**
      * 设置是否将cookies用于session id
+     *
      * @param cookies
      */
     void setCookies(boolean cookies);
@@ -101,6 +110,7 @@ public interface Context extends Container {
 
     /**
      * 返回是否允许跨域的标志
+     *
      * @return
      */
     boolean getCrossContext();
@@ -108,6 +118,7 @@ public interface Context extends Container {
 
     /**
      * 设置跨域标志
+     *
      * @param crossContext
      */
     void setCrossContext(boolean crossContext);
@@ -115,6 +126,7 @@ public interface Context extends Container {
 
     /**
      * 返回此应用程序显示的名字
+     *
      * @return
      */
     String getDisplayName();
@@ -122,6 +134,7 @@ public interface Context extends Container {
 
     /**
      * 设置此应用程序显示的名字
+     *
      * @param displayName
      */
     void setDisplayName(String displayName);
@@ -129,6 +142,7 @@ public interface Context extends Container {
 
     /**
      * 返回此web应用程序是否允许分发的标志
+     *
      * @return
      */
     boolean getDistributable();
@@ -136,23 +150,24 @@ public interface Context extends Container {
 
     /**
      * 设置分发标志
+     *
      * @param distributable
      */
     void setDistributable(boolean distributable);
 
 
     /**
-     * Return the document root for this Context.  This can be an absolute
-     * pathname, a relative pathname, or a URL.
+     * 返回这个web应用程序的文档路径
+     *
+     * @return
      */
     String getDocBase();
 
 
     /**
-     * Set the document root for this Context.  This can be an absolute
-     * pathname, a relative pathname, or a URL.
+     * 设置这个web应用程序的文档路径
      *
-     * @param docBase The new document root
+     * @param docBase
      */
     void setDocBase(String docBase);
 

@@ -1,5 +1,6 @@
 package com.ranni.connector.processor;
 
+import com.ranni.connector.Connector;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.util.LifecycleSupport;
@@ -26,6 +27,7 @@ public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
     protected static int maxProcessors; // 最大处理器数量
     protected static int curProcessors; // 当前处理器数量
     protected int workingProcessors; // 当前正在工作的处理器数量
+    protected Connector connector; // 连接器
 
     private DefaultProcessorPool() {}
 
@@ -131,6 +133,16 @@ public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
     }
 
     /**
+     * 设置连接器
+     *
+     * @param connector
+     */
+    @Override
+    public void setConnector(Connector connector) {
+        this.connector = connector;
+    }
+
+    /**
      * 返回设置的最大处理器数
      *
      * @return
@@ -215,6 +227,7 @@ public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
      */
     @Override
     public synchronized void start() throws Exception {
+
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, this); // 处理器池启动前
 
         // 设置处理器池可用

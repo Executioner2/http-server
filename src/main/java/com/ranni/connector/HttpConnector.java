@@ -13,11 +13,14 @@ import com.ranni.container.Container;
 import com.ranni.exception.LifecycleException;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.logger.Logger;
 import com.ranni.util.LifecycleSupport;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 /**
  * Title: HttpServer
@@ -32,6 +35,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     private ServerSocketFactory factory; // 获取服务器socket的工厂
     private ServerSocket serverSocket; // 服务器socket
     private boolean stopped = false; // 连接器线程停止标签
+    private String threadName; // 线程名
 
     protected boolean started; // 连接器启动标志
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具类实例
@@ -206,14 +210,18 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      */
     @Override
     public void initialize() throws Exception {
+        log("连接器初始化");
         serverSocket = open();
-        if (serverSocket == null) throw new IllegalStateException("创建server socket失败！");
+        if (serverSocket == null)
+            throw new IllegalStateException("创建server socket失败！");
         setScheme("http");
 
         // 创建处理器线程池，此时还不是启动状态
         processorPool = DefaultProcessorPool.getProcessorPool();
 
         if (processorPool == null) throw new IllegalStateException("创建processor pool失败！");
+
+        processorPool.setConnector(this);
     }
 
     /**
@@ -221,6 +229,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      */
     @Override
     public void run() {
+        log("连接器线程启动！");
         while (!stopped) {
             Socket socket = null;
 
@@ -242,8 +251,10 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
                 processor.assign(socket);
 
             } catch (IOException e) {
+                log(e.getMessage());
                 e.printStackTrace();
             } catch (ServletException e) {
+                log(e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -253,12 +264,14 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         } finally {
             try {
                 serverSocket.close();
+                log("服务器socket关闭");
             } catch (IOException e) {
+                log(e.getMessage());
                 e.printStackTrace();
             }
         }
 
-        System.out.println("连接器线程"+ Thread.currentThread().getName() +"关闭！"); // TODO sout
+        log("连接器线程"+ Thread.currentThread().getName() +"关闭！");
     }
 
     /**
@@ -317,6 +330,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     @Override
     public synchronized void start() throws Exception {
         if (started) throw new LifecycleException("此connector连接器实例已经启动！");
+        log("启动连接器！");
 
         // 连接器启动前
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, null);
@@ -337,6 +351,8 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
         // 连接器启动后
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
+
+        log("连接器启动完成！");
     }
 
     /**
@@ -373,6 +389,42 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
         // 连接器停止后
         lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
+    }
+
+    /**
+     * 记录信息到日志文件
+     *
+     * @param msg
+     */
+    private void log(String msg) {
+        Logger logger = container.getLogger();
+        String localName = threadName;
+        if (localName == null)
+            localName = "HttpConnector";
+        if (logger == null)
+            logger.log(localName + " " + msg);
+        else
+            System.out.println(localName + " " + msg);
+    }
+
+    /**
+     * 记录信息到日志文件
+     *
+     * @param msg
+     * @param throwable
+     */
+    private void log(String msg, Throwable throwable) {
+        Logger logger = container.getLogger();
+        String localName = threadName;
+        if (localName == null)
+            localName = "HttpConnector";
+        if (logger == null)
+            logger.log(localName + " " + msg, throwable);
+        else {
+            System.out.println(localName + " " + msg);
+            throwable.printStackTrace(System.out);
+        }
+
     }
 
 }

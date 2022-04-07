@@ -27,19 +27,43 @@ public interface Container {
     String REMOVE_MAPPER_EVENT = "removeMapper"; // 移除mapper
     String REMOVE_VALVE_EVENT = "removeValve"; // 移除valve
 
-    // 返回此Container的描述信息和版本信息
+    /**
+     * 返回此Container的描述信息和版本信息
+     *
+     * @return
+     */
     String getInfo();
 
-    // 返回与此Container关联的载入器，如果没有就返回父Container的，都没有就返回null
+
+    /**
+     * 返回与此Container关联的载入器，如果没有就返回父Container的，都没有就返回null
+     *
+     * @return
+     */
     Loader getLoader();
 
-    // 设置此Container的载入器
+
+    /**
+     * 设置此Container的载入器
+     *
+     * @param loader
+     */
     void setLoader(Loader loader);
 
-    // 返回记录器，此Container没有就返回父Container的，都没有就返回null
+
+    /**
+     * 返回记录器，此Container没有就返回父Container的，都没有就返回null
+     *
+     * @return
+     */
     Logger getLogger();
 
-    // 设置记录器
+
+    /**
+     * 设置记录器
+     *
+     * @param logger
+     */
     void setLogger(Logger logger);
 
     // 返回管理器，此Container没有就返回父Container的，都没有就返回null
@@ -54,22 +78,52 @@ public interface Container {
     // 设置Cluster
 //    void setCluster(Cluster cluster);
 
-    // 返回此Container的名字（方便人用），该名字必须唯一
+
+    /**
+     * 返回此Container的名字（方便人用），该名字必须唯一
+     *
+     * @return
+     */
     String getName();
 
-    // 设置此Container的名字
+
+    /**
+     * 设置此Container的名字
+     *
+     * @param name
+     */
     void setName(String name);
 
-    // 返回父Container，没有就返回null
+
+    /**
+     * 返回父Container，没有就返回null
+     *
+     * @return
+     */
     Container getParent();
 
-    // 设置父container
+
+    /**
+     * 设置父container
+     *
+     * @param container
+     */
     void setParent(Container container);
 
-    // 返回web应用程序的父类加载器
+
+    /**
+     * 返回web应用程序的父类加载器
+     *
+     * @return
+     */
     ClassLoader getParentClassLoader();
 
-    // 设置web应用程序的父类加载器
+
+    /**
+     * 设置web应用程序的父类加载器
+     *
+     * @param parent
+     */
     void setParentClassLoader(ClassLoader parent);
 
     // 返回领域，如果没有就返回父Container的，都没有就返回null
@@ -78,54 +132,150 @@ public interface Container {
     // 设置领域
 //    void setRealm(Realm realm);
 
-    // 返回资源，如果没有就返回父Container的，都没有就返回null
+
+    /**
+     * 返回资源，如果没有就返回父Container的，都没有就返回null
+     *
+     * @return
+     */
     DirContext getResources();
 
-    // 设置resource
+
+    /**
+     * 设置resource
+     *
+     * @param resources
+     */
     void setResources(DirContext resources);
 
-    // 给此Container添加孩子
+
+    /**
+     * 给此Container添加孩子
+     *
+     * @param child
+     */
     void addChild(Container child);
 
-    // 给此容器添加容器事件监听器
+
+    /**
+     * 给此容器添加容器事件监听器
+     *
+     * @param listener
+     */
     void addContainerListener(ContainerListener listener);
 
-    // 添加与此Container关联的映射器
+
+    /**
+     * 添加与此Container关联的映射器
+     *
+     * @param mapper
+     */
     void addMapper(Mapper mapper);
 
-    // 添加属性改变监听器
+
+    /**
+     * 添加属性改变监听器
+     *
+     * @param listener
+     */
     void addPropertyChangeListener(PropertyChangeListener listener);
 
-    // 根据name查询子容器，没有就返回null
+
+    /**
+     * 根据name查询子容器，没有就返回null
+     *
+     * @param name
+     *
+     * @return
+     */
     Container findChild(String name);
 
-    // 返回所有子容器
+
+    /**
+     * 返回所有子容器
+     *
+     * @return
+     */
     Container[] findChildren();
 
-    // 返回此容器的所有容器事件监听器
+
+    /**
+     * 返回此容器的所有容器事件监听器
+     *
+     * @return
+     */
     ContainerListener[] findContainerListeners();
 
-    // 根据协议类型找出与此容器关联的映射器
+
+    /**
+     * 根据协议类型找出与此容器关联的映射器
+     *
+     * @param protocol
+     *
+     * @return
+     */
     Mapper findMapper(String protocol);
 
-    // 返回此容器所有映射器
+
+    /**
+     * 返回此容器所有映射器
+     *
+     * @return
+     */
     Mapper[] findMappers();
 
-    // 执行servlet的service方法
+
+    /**
+     * 执行servlet的service方法
+     *
+     * @param request
+     * @param response
+     *
+     * @throws IOException
+     * @throws ServletException
+     */
     void invoke(Request request, Response response) throws IOException, ServletException;
 
-    // 取得处理这种请求的容器，这个方法在Tomcat5中被弃用
+
+    /**
+     * 取得处理这种请求的容器，这个方法在Tomcat5中被弃用
+     *
+     * @param request
+     * @param update
+     *
+     * @return
+     */
     Container map(Request request, boolean update);
 
-    // 删除子容器
+
+    /**
+     * 删除子容器
+     *
+     * @param child
+     */
     void removeChild(Container child);
 
-    // 删除容器事件监听器
+
+    /**
+     * 删除容器事件监听器
+     *
+     * @param listener
+     */
     void removeContainerListener(ContainerListener listener);
 
-    // 删除映射器
+
+    /**
+     * 删除映射器
+     *
+     * @param mapper
+     */
     void removeMapper(Mapper mapper);
 
-    // 删除属性改变事件监听器
+
+    /**
+     * 删除属性改变事件监听器
+     *
+     * @param listener
+     */
     void removePropertyChangeListener(PropertyChangeListener listener);
 }

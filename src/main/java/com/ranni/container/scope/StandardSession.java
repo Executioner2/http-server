@@ -1,4 +1,4 @@
-package com.ranni.session;
+package com.ranni.container.scope;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpSession;

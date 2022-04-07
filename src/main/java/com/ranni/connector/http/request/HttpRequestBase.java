@@ -1,6 +1,6 @@
 package com.ranni.connector.http.request;
 
-import com.ranni.session.Session;
+import com.ranni.container.scope.Session;
 import com.ranni.connector.http.ParameterMap;
 import com.ranni.util.Enumerator;
 import com.ranni.util.RequestUtil;

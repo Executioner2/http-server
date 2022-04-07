@@ -35,6 +35,7 @@ public abstract class ContainerBase implements Container, Pipeline {
     protected String name; // 容器名字
     protected Map<String, Container> children = new HashMap<>(); // 子容器
     protected boolean started; // 启动标志
+    protected DirContext resource; // 资源文件
 
     /**
      * 返回类加载器
@@ -118,14 +119,31 @@ public abstract class ContainerBase implements Container, Pipeline {
     }
 
 
+    /**
+     * 返回资源文件，如果没有就返回父Container的，都没有就返回null
+     *
+     * @return
+     */
     @Override
     public DirContext getResources() {
+        if (resource != null)
+            return resource;
+        else if (parent != null)
+            return parent.getResources();
         return null;
     }
 
 
+    /**
+     * 设置资源文件
+     *
+     * @param resources
+     */
     @Override
     public void setResources(DirContext resources) {
+        DirContext oldResource = this.resource;
+
+        if (oldResource == resource) return;
 
     }
 

@@ -112,16 +112,6 @@ public class StandardHost extends ContainerBase implements Host {
     }
 
     @Override
-    public DirContext getResources() {
-        return null;
-    }
-
-    @Override
-    public void setResources(DirContext resources) {
-
-    }
-
-    @Override
     public void addChild(Container child) {
 
     }
