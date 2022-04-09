@@ -2,6 +2,7 @@ package com.ranni.resource;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -41,7 +42,78 @@ public class WARDirContext extends BaseDirContext {
      */
     @Override
     public void setDocBase(String docBase) {
+        if (docBase == null)
+            throw new IllegalArgumentException("资源不能为空！");
+        if (docBase.endsWith(".war"))
+            throw new IllegalArgumentException("资源文件不是WAR包！");
+
+        File base = new File(docBase);
+        if (!base.exists() || !base.canRead() || base.isDirectory())
+            throw new IllegalArgumentException("资源文件不是WAR包或资源不可读！");
+
         super.setDocBase(docBase);
+        loadEntries();
+    }
+
+    /**
+     * 加载WAR包中的所有条目
+     */
+    protected void loadEntries() {
+        try {
+            Enumeration<? extends ZipEntry> entryList = base.entries();
+            entries = new Entry<Entry>("/", new ZipEntry("/")); // 创建一个根目录
+
+            while (entryList.hasMoreElements()) {
+                ZipEntry zipEntry = entryList.nextElement();
+                String name = normalize(zipEntry);
+                int pos = name.lastIndexOf('/');
+                int currentPos = -1;
+                int lastPos = 0;
+
+                // 加载子条目
+                // 按"/"分隔复合名
+                while ((currentPos = name.indexOf('/', lastPos)) != -1) {
+                    Name parentName = new CompositeName(name.substring(0, lastPos));
+                    Name childName = new CompositeName(name.substring(0, currentPos));
+                    String entryName = name.substring(lastPos, currentPos); // 当前条目的名字
+
+                    Entry<Entry> parent = treeLookup(parentName);
+                    Entry<Entry> child = treeLookup(childName);
+
+                    if (child == null) {
+                        // 当前条目就是文件
+                        // 文件路径
+                        String zipName = name.substring(1, currentPos + 1);
+                        child = new Entry<>(entryName, new ZipEntry(zipName));
+                        if (parent != null) parent.addChild(child);
+                    }
+
+                    lastPos = currentPos + 1;
+                }
+                String entryName = name.substring(pos + 1);
+                Name compositeName = new CompositeName(entryName);
+                Entry<Entry> parent = treeLookup(compositeName);
+                Entry<Entry> child = new Entry<>(entryName, zipEntry);
+                if (parent != null) parent.addChild(child);
+            }
+        } catch (Exception e) {
+            ;
+        }
+    }
+
+    /**
+     * 取得资源名，并在资源名前加上"/"
+     * 如果资源是文件夹，那么把后面的"/"去掉
+     *
+     * @param entry
+     * @return
+     */
+    protected String normalize(ZipEntry entry) {
+        String s = "/" + entry.getName();
+        if (entry.isDirectory())
+            s = s.substring(0, s.length() - 1);
+
+        return s;
     }
 
     /**
@@ -504,6 +576,11 @@ public class WARDirContext extends BaseDirContext {
         protected String name; // 资源名称
         protected ZipEntry entry;
         protected List<Entry> children = Collections.synchronizedList(new ArrayList<>()); // 子文件可能超过1000，用List
+
+        public Entry(String name, ZipEntry entry) {
+            this.name = name;
+            this.entry = entry;
+        }
 
         /**
          * 按名字排序
