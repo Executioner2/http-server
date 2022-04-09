@@ -1,6 +1,7 @@
 package com.ranni.resource;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 /**
@@ -17,6 +18,8 @@ public class Resource {
     protected InputStream inputStream;
     protected byte[] binaryContent;
 
+    public Resource() {
+    }
 
     /**
      * 资源文件是流的形式
@@ -34,7 +37,7 @@ public class Resource {
      *
      * @return
      */
-    public InputStream streamContent() {
+    public InputStream streamContent() throws FileNotFoundException {
         if (binaryContent != null)
             return new ByteArrayInputStream(binaryContent);
 

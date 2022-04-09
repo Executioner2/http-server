@@ -12,7 +12,7 @@ import java.util.Locale;
 /**
  * Title: HttpServer
  * Description:
- * 资源属性
+ * 资源文件的属性
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -41,6 +41,8 @@ public class ResourceAttributes implements Attributes {
     protected Date lastModifiedDate; // 最后修改的日期
     protected long creation = -1L; // 创建时间
     protected Date creationDate; // 创建日期
+    protected boolean collection; // 集合标志位
+    protected String name;
 
     // 要转换的日期格式
     protected static final SimpleDateFormat formats[] = {
@@ -49,6 +51,7 @@ public class ResourceAttributes implements Attributes {
             new SimpleDateFormat("EEEEEE, dd-MMM-yy HH:mm:ss zzz", Locale.US),
             new SimpleDateFormat("EEE MMMM d HH:mm:ss yyyy", Locale.US)
     };
+
 
     public ResourceAttributes() {
     }
@@ -61,6 +64,45 @@ public class ResourceAttributes implements Attributes {
      */
     public ResourceAttributes(Attributes attributes) {
         this.attributes = attributes;
+    }
+
+    /**
+     * 是否是集合
+     * 
+     * @return
+     */
+    public boolean isCollection() {
+       if (attributes != null) 
+           return getResourceType().equals(COLLECTION_TYPE);
+       return collection;
+    }
+
+    /**
+     * 返回资源类型
+     *
+     * @return
+     */
+    public String getResourceType() {
+        String result = null;
+        if (attributes != null) {
+            Attribute attribute = attributes.get(TYPE);
+            if (attribute != null) {
+                try {
+                    result = attribute.get().toString();
+                } catch (NamingException e) {
+                    ;
+                }
+            }
+        }
+
+        if (result == null) {
+            if (collection)
+                result = COLLECTION_TYPE;
+            else
+                result = "";
+        }
+
+        return result;
     }
 
 
@@ -110,7 +152,104 @@ public class ResourceAttributes implements Attributes {
     }
 
     /**
-     * 返回属性内容长度
+     * 返回文件创建时间
+     *
+     * @return
+     */
+    public long getCreation() {
+        if (creation != -1L)
+            return creation;
+        if (creationDate != null)
+            return creationDate.getTime();
+        if (attributes != null) {
+            Attribute attribute = attributes.get(CREATION_DATE);
+            if (attribute != null) {
+                try {
+                    Object o = attribute.get();
+                    if (o instanceof Long) {
+                        creation = ((Long) o).longValue();
+                    } else if (o instanceof Date) {
+                        creationDate = (Date) o;
+                        creation = creationDate.getTime();
+                    } else {
+                        String createDateValue = o.toString();
+                        Date result = null;
+                        // 依次尝试能够转化为日期的格式
+                        for (int i = 0; i < formats.length
+                                && result == null; i++) {
+                            try {
+                                result = formats[i].parse(createDateValue);
+                            } catch (ParseException e) {
+                                ;
+                            }
+                        }
+
+                        if (result != null) {
+                            creationDate = result;
+                            creation = creationDate.getTime();
+                        }
+                    }
+                } catch (NamingException e) {
+                    ;
+                }
+            }
+        }
+
+        return creation;
+    }
+
+    /**
+     * 返回文件创建日期
+     *
+     * @return
+     */
+    public Date getCreationDate() {
+        if (creationDate != null)
+            return creationDate;
+        if (creation != -1L) {
+            creationDate = new Date(creation);
+            return creationDate;
+        }
+
+        if (attributes != null) {
+            Attribute attribute = attributes.get(CREATION_DATE);
+            if (attribute != null) {
+                try {
+                    Object o = attribute.get();
+                    if (o instanceof Long) {
+                        creation = ((Long) o).longValue();
+                    } else if (o instanceof Date) {
+                        creationDate = (Date) o;
+                        creation = creationDate.getTime();
+                    } else {
+                        String createDateValue = o.toString();
+                        Date result = null;
+                        // 依次尝试能够转化为日期的格式
+                        for (int i = 0; i < formats.length
+                                && result == null; i++) {
+                            try {
+                                result = formats[i].parse(createDateValue);
+                            } catch (ParseException e) {
+                                ;
+                            }
+                        }
+
+                        if (result != null) {
+                            creationDate = result;
+                            creation = creationDate.getTime();
+                        }
+                    }
+                } catch (NamingException e) {
+                    ;
+                }
+            }
+        }
+
+        return creationDate;
+    }
+
+    /**
+     * 返回资源文件长度
      *
      * @return
      */
@@ -149,6 +288,80 @@ public class ResourceAttributes implements Attributes {
         this.contentLength = length;
         if (attributes != null)
             attributes.put(CONTENT_LENGTH, length);
+    }
+
+    /**
+     * 取得名字
+     *
+     * @return
+     */
+    public String getName() {
+        if (name != null)
+            return name;
+
+        if (attributes != null) {
+            Attribute attribute = attributes.get(NAME);
+            if (attribute != null) {
+                try {
+                    name = attribute.get().toString();
+                } catch (NamingException e) {
+                    ;
+                }
+            }
+        }
+
+        return name;
+    }
+
+    /**
+     * 取得最后一次修改的日期
+     *
+     * @return
+     */
+    public Date getLastModifiedDate() {
+        if (lastModifiedDate != null)
+            return lastModifiedDate;
+        else if (lastModified != -1L) {
+            lastModifiedDate = new Date(lastModified);
+            return lastModifiedDate;
+        }
+
+        if (attributes != null) {
+            Attribute attribute = attributes.get(LAST_MODIFIED);
+            if (attribute != null) {
+                try {
+                    Object o = attribute.get();
+
+                    if (o instanceof Long)
+                        lastModified = ((Long) o).longValue();
+                    else if (o instanceof Date) {
+                        lastModifiedDate = (Date)o;
+                        lastModified = lastModifiedDate.getTime();
+                    } else {
+                        String lastModifiedDateValue = o.toString();
+                        Date result = null;
+
+                        for (int i = 0; i < formats.length
+                                && result == null; i++) {
+                            try {
+                                 result = formats[i].parse(lastModifiedDateValue);
+                            } catch (ParseException e) {
+                                ;
+                            }
+                        }
+
+                        if (result != null) {
+                            lastModifiedDate = result;
+                            lastModified = lastModifiedDate.getTime();
+                        }
+                    }
+                } catch (NamingException e) {
+                    ;
+                }
+            }
+        }
+
+        return lastModifiedDate;
     }
 
     /**

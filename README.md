@@ -17,10 +17,11 @@
 + [Container模块](./src/main/java/com/ranni/container/README.md)
 
 **说明：**
-在此服务器demo中，有使用大量的数组而非ArrayList，而且在删除和增加元素时也使用了大量的
+1. 在此服务器demo中，有使用大量的数组而非ArrayList，而且在删除和增加元素时也使用了大量的
 System.arraycopy()。至于为什么不用ArrayList，是因为数组和ArrayList在数据量不超过
 1000时，两者的效率差不太多，但是数组却比ArrayList有更少的内存占用。此服务器中如果有数
-据量超过1000的集合将会使用ArrayList。  
+据量超过1000的集合将会使用ArrayList。 
+1. 注意，注释中“资源”指文件夹或文件，而“文件”就是文件，“文件夹”就是文件夹
 
 **更新：**
 - 新增HttpProcessorPool
