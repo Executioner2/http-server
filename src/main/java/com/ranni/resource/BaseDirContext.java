@@ -508,4 +508,9 @@ public abstract class BaseDirContext implements DirContext {
     public int getCacheObjectMaxSize() {
         return this.cacheObjectMaxSize;
     }
+
+    /**
+     * 释放资源
+     */
+    public abstract void release();
 }

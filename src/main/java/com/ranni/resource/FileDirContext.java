@@ -31,6 +31,17 @@ public class FileDirContext extends BaseDirContext {
         super(env);
     }
 
+
+    /**
+     * 释放资源
+     */
+    public void release() {
+        caseSensitive = true;
+        allowLinking = false;
+        absoluteBase = null;
+        base = null;
+    }
+
     /**
      * 设置文档根目录
      *
@@ -201,14 +212,29 @@ public class FileDirContext extends BaseDirContext {
         return sb.toString();
     }
 
+    /**
+     * 暂不支持该操作
+     *
+     * @param name
+     * @param mod_op
+     * @param attrs
+     * @throws NamingException
+     */
     @Override
     public void modifyAttributes(String name, int mod_op, Attributes attrs) throws NamingException {
-
+        throw new OperationNotSupportedException();
     }
 
+    /**
+     * 暂不支持该操作
+     *
+     * @param name
+     * @param mods
+     * @throws NamingException
+     */
     @Override
     public void modifyAttributes(String name, ModificationItem[] mods) throws NamingException {
-
+        throw new OperationNotSupportedException();
     }
 
     /**
@@ -246,7 +272,7 @@ public class FileDirContext extends BaseDirContext {
         if (obj instanceof Resource) {
             try {
                 is = ((Resource) obj).streamContent();
-            } catch (FileNotFoundException e) {
+            } catch (IOException e) {
                 ;
             }
         } else if (obj instanceof InputStream) {
@@ -304,34 +330,84 @@ public class FileDirContext extends BaseDirContext {
         return (DirContext) lookup(name);
     }
 
+    /**
+     * 暂不支持该操作
+     *
+     * @param name
+     * @return
+     * @throws NamingException
+     */
     @Override
     public DirContext getSchema(String name) throws NamingException {
-        return null;
+        throw new OperationNotSupportedException();
     }
 
+    /**
+     * 暂不支持该操作
+     *
+     * @param name
+     * @return
+     * @throws NamingException
+     */
     @Override
     public DirContext getSchemaClassDefinition(String name) throws NamingException {
-        return null;
+        throw new OperationNotSupportedException();
     }
 
+    /**
+     * 暂不支持该操作
+     *
+     * @param name
+     * @param matchingAttributes
+     * @param attributesToReturn
+     * @return
+     * @throws NamingException
+     */
     @Override
     public NamingEnumeration<SearchResult> search(String name, Attributes matchingAttributes, String[] attributesToReturn) throws NamingException {
-        return null;
+        throw new OperationNotSupportedException();
     }
 
+    /**
+     * 暂不支持该操作
+     *
+     * @param name
+     * @param matchingAttributes
+     * @return
+     * @throws NamingException
+     */
     @Override
     public NamingEnumeration<SearchResult> search(String name, Attributes matchingAttributes) throws NamingException {
-        return null;
+        throw new OperationNotSupportedException();
     }
 
+    /**
+     * 暂不支持该操作
+     *
+     * @param name
+     * @param filter
+     * @param cons
+     * @return
+     * @throws NamingException
+     */
     @Override
     public NamingEnumeration<SearchResult> search(String name, String filter, SearchControls cons) throws NamingException {
-        return null;
+        throw new OperationNotSupportedException();
     }
 
+    /**
+     * 暂不支持该操作
+     *
+     * @param name
+     * @param filterExpr
+     * @param filterArgs
+     * @param cons
+     * @return
+     * @throws NamingException
+     */
     @Override
     public NamingEnumeration<SearchResult> search(String name, String filterExpr, Object[] filterArgs, SearchControls cons) throws NamingException {
-        return null;
+        throw new OperationNotSupportedException();
     }
 
     /**
@@ -660,9 +736,10 @@ public class FileDirContext extends BaseDirContext {
          * @return
          */
         @Override
-        public InputStream streamContent() throws FileNotFoundException {
+        public InputStream streamContent() throws IOException {
             if (binaryContent == null)
                 inputStream = new FileInputStream(file);
+
             return super.streamContent();
         }
     }

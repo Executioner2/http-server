@@ -409,4 +409,50 @@ public class ResourceAttributes implements Attributes {
 
         return lastModified;
     }
+
+    /**
+     * 资源创建日期
+     *
+     * @param date
+     */
+    public void setCreationDate(Date date) {
+        this.creation = date.getTime();
+        this.creationDate = date;
+        if (attributes != null)
+            attributes.put(CREATION_DATE, date);
+    }
+
+    /**
+     * 设置资源名
+     *
+     * @param name
+     */
+    public void setName(String name) {
+        this.name = name;
+        if (attributes != null)
+            attributes.put(NAME, name);
+    }
+
+    /**
+     * 设置资源类型
+     *
+     * @param s
+     */
+    public void setResourceType(String s) {
+        collection = COLLECTION_TYPE.equals(s);
+        if (attributes != null)
+            attributes.put(TYPE, s);
+    }
+
+    /**
+     * 设置上次修改日期
+     *
+     * @param date
+     */
+    public void setLastModifiedDate(Date date) {
+        this.lastModifiedDate = date;
+        this.lastModified = date.getTime();
+        if (attributes == null)
+            attributes.put(LAST_MODIFIED, date);
+    }
 }
