@@ -22,9 +22,6 @@ import java.util.zip.ZipFile;
 public class WARDirContext extends BaseDirContext {
     protected ZipFile base; // 与此WARDirContext关联的压缩文件
     protected Entry<Entry> entries; // WAR的条目
-    protected byte[] binaryContent; // 内容二进制形式
-    protected InputStream inputStream; // WAR里面的文件的输入流
-
 
     public WARDirContext() {
 
