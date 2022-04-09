@@ -57,6 +57,7 @@ public class WARDirContext extends BaseDirContext {
 
     /**
      * 加载WAR包中的所有条目
+     * 条目的路径是以WAR包为根目录的相对路径
      */
     protected void loadEntries() {
         try {
@@ -67,21 +68,20 @@ public class WARDirContext extends BaseDirContext {
                 ZipEntry zipEntry = entryList.nextElement();
                 String name = normalize(zipEntry);
                 int pos = name.lastIndexOf('/');
-                int currentPos = -1;
+                int currentPos;
                 int lastPos = 0;
 
-                // 加载子条目
+                // 加载子文件夹
                 // 按"/"分隔复合名
                 while ((currentPos = name.indexOf('/', lastPos)) != -1) {
                     Name parentName = new CompositeName(name.substring(0, lastPos));
                     Name childName = new CompositeName(name.substring(0, currentPos));
                     String entryName = name.substring(lastPos, currentPos); // 当前条目的名字
 
-                    Entry<Entry> parent = treeLookup(parentName);
-                    Entry<Entry> child = treeLookup(childName);
+                    Entry<Entry> parent = treeLookup(parentName); // 父文件夹
+                    Entry<Entry> child = treeLookup(childName); // 子文件夹
 
                     if (child == null) {
-                        // 当前条目就是文件
                         // 文件路径
                         String zipName = name.substring(1, currentPos + 1);
                         child = new Entry<>(entryName, new ZipEntry(zipName));
@@ -90,8 +90,13 @@ public class WARDirContext extends BaseDirContext {
 
                     lastPos = currentPos + 1;
                 }
+
+                // 将复合名称最后一个名称对应的资源文件载入到属于它的目录下
+                // 如 zip条目的名称为 "zip/a/" 调用了normalize()后 规范化为 "/zip/a"
+                // 即使当前条目是文件夹，也把最后复合名称最后一个名称（这里是a）当作文件载入到目录 "/zip"下
+                // 之所以可以这样做是因为文件和文件夹的视图对象都是一样的（这里为此类的内部类Entry）
                 String entryName = name.substring(pos + 1);
-                Name compositeName = new CompositeName(entryName);
+                Name compositeName = new CompositeName(name.substring(0, pos));
                 Entry<Entry> parent = treeLookup(compositeName);
                 Entry<Entry> child = new Entry<>(entryName, zipEntry);
                 if (parent != null) parent.addChild(child);
@@ -175,7 +180,7 @@ public class WARDirContext extends BaseDirContext {
 
         // 复合名称，一层一层的往下找，当中间某层缺失直接返回null
         for (int i = 0; i < name.size(); i++) {
-            if (name.get(i).isBlank()) continue;
+            if (name.get(i).isEmpty()) continue;
             currentEntry = currentEntry.getChild(name.get(i));
             if (currentEntry == null) return null;
         }
