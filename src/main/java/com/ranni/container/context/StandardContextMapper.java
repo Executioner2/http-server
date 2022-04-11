@@ -12,13 +12,13 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * Title: HttpServer
  * Description:
- * 这个是针对默认context而实现的默认映射器
+ * 这个是针对标准context而实现的标准映射器
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022-03-28 17:13
  */
-public class DefaultContextMapper implements Mapper {
+public class StandardContextMapper implements Mapper {
     protected Container container; // 此映射器关联的servlet容器（wrapper）
     protected String protocol; // 该映射器负责处理的协议
 
@@ -72,7 +72,6 @@ public class DefaultContextMapper implements Mapper {
      *
      * @param request
      * @param update
-     *
      * @return
      */
     @Override

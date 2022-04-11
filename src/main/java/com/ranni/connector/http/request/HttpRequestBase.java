@@ -686,6 +686,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
 
     /**
      * 设置解码后的uri
+     *
      * @param uri
      */
     @Override
@@ -695,6 +696,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
 
     /**
      * 返回解码后的uri
+     *
      * @return
      */
     @Override

@@ -1,10 +1,5 @@
 package com.ranni.container.scope;
 
-import com.ranni.connector.Constants;
-import com.ranni.container.Context;
-import com.ranni.container.Host;
-import com.ranni.container.context.StandardContext;
-
 import javax.servlet.RequestDispatcher;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
@@ -12,78 +7,32 @@ import javax.servlet.ServletException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.Set;
 
 /**
  * Title: HttpServer
  * Description:
- * servlet的全局作用域
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
- * @Date 2022-04-06 18:03
+ * @Date 2022-04-10 14:53
  */
-public class ApplicationContext implements ServletContext {
-    private static final List empty = new ArrayList(); // 统一空集合
+public class ApplicationContextFacade implements ServletContext {
+    private ServletContext context;
 
-    private StandardContext context;
-    private String basePath;
-    private Map attributes = new HashMap(); // 属性
-    private Map readOnlyAttributes = new HashMap(); // 只读属性
-    private ServletContext facade = new ApplicationContextFacade(this); // 外观类
-    private Map<String, String> parameters = null; // 参数
-
-
-    public ApplicationContext(String basePath, StandardContext context) {
-        super();
-        this.context = context;
-        this.basePath = basePath;
+    public ApplicationContextFacade(ApplicationContext applicationContext) {
+        this.context = applicationContext;
     }
 
-    /**
-     * 取得ServletContext容器
-     * 0、返回null
-     * 1、如果请求的是当前全局作用域则直接返回this
-     * 2、如果允许跨servlet访问转到3，否则转到0
-     * 3、如果能从与当前全局作用域绑定的context容器的父容器找到其请求的子容器则返回该子容器的全局作用域，否则转到0
-     *
-     * @param uri
-     * @return
-     */
     @Override
-    public ServletContext getContext(String uri) {
-        if (uri == null || !uri.startsWith("/"))
-            return null;
-
-        // 如果请求的是当前全局作用域
-        String contextPath = context.getPath();
-        if (!contextPath.endsWith("/"))
-            contextPath = contextPath + "/";
-        if (uri.startsWith(contextPath))
-            return this;
-
-        // 如果不允许跨servlet则返回null
-        if (!context.getCrossContext())
-            return null;
-
-        // 从父容器（Host）中找到uri对应的子容器
-        // 如果子容器不为空则返回对应的全局作用域
-        Host parent = (Host) context.getParent();
-        Context child = parent.map(uri);
-        if (child != null)
-            return child.getServletContext();
-        else
-            return null;
+    public ServletContext getContext(String s) {
+        return null;
     }
 
-    /**
-     * 取得主要版本号
-     *
-     * @return
-     */
     @Override
     public int getMajorVersion() {
-        return Constants.MAJOR_VERSION;
+        return 0;
     }
 
     @Override

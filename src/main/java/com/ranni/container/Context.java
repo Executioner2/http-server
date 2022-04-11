@@ -1,5 +1,9 @@
 package com.ranni.container;
 
+import com.ranni.deploy.ApplicationParameter;
+import com.ranni.deploy.ContextEnvironment;
+import com.ranni.deploy.ContextResource;
+import com.ranni.deploy.ContextResourceLink;
 import com.ranni.util.CharsetMapper;
 
 import javax.servlet.ServletContext;
@@ -268,11 +272,12 @@ public interface Context extends Container {
      *
      * @param privileged The new privileged flag
      */
-    public void setPrivileged(boolean privileged);
+    void setPrivileged(boolean privileged);
 
 
     /**
      * 返回session超时时限，默认以分钟为单位
+     *
      * @return
      */
     int getSessionTimeout();
@@ -280,6 +285,7 @@ public interface Context extends Container {
 
     /**
      * 设置session超时时限，默认以分钟为单位
+     *
      * @param timeout
      */
     void setSessionTimeout(int timeout);
@@ -287,6 +293,7 @@ public interface Context extends Container {
 
     /**
      * 返回在此context注册的wrapper实现类类名
+     *
      * @return
      */
     String getWrapperClass();
@@ -294,6 +301,7 @@ public interface Context extends Container {
 
     /**
      * 设置在此context注册的wrapper实现类类名
+     *
      * @param wrapperClass
      */
     void setWrapperClass(String wrapperClass);
@@ -301,17 +309,33 @@ public interface Context extends Container {
 
     /**
      * 添加应用程序监听器的类名
+     *
      * @param listener
      */
     void addApplicationListener(String listener);
 
+    /**
+     * 添加应用程序监听器的类名
+     *
+     * @param listeners
+     */
+    void addApplicationListener(String[] listeners);
+
 
     /**
-     * Add a new application parameter for this application.
+     * 添加应用程序参数
      *
-     * @param parameter The new application parameter
+     * @param parameter
      */
-//    public void addApplicationParameter(ApplicationParameter parameter);
+    void addApplicationParameter(ApplicationParameter parameter);
+
+
+    /**
+     * 添加应用程序参数
+     *
+     * @param parameters
+     */
+    void addApplicationParameter(ApplicationParameter[] parameters);
 
 
     /**
@@ -329,11 +353,19 @@ public interface Context extends Container {
 
 
     /**
-     * Add an environment entry for this web application.
+     * 添加容器环境
      *
-     * @param environment New environment entry
+     * @param environment
      */
-//    public void addEnvironment(ContextEnvironment environment);
+    void addEnvironment(ContextEnvironment environment);
+
+
+    /**
+     * 批量添加容器环境
+     *
+     * @param environments
+     */
+    void addEnvironment(ContextEnvironment[] environments);
 
 
     /**
@@ -361,12 +393,19 @@ public interface Context extends Container {
 
 
     /**
-     * Add the classname of an InstanceListener to be added to each
-     * Wrapper appended to this Context.
+     * 添加wrapper的实例监听器
      *
-     * @param listener Java class name of an InstanceListener class
+     * @param listener
      */
-//    public void addInstanceListener(String listener);
+    void addInstanceListener(String listener);
+
+
+    /**
+     * 添加wrapper的实例监听器
+     *
+     * @param listeners
+     */
+    void addInstanceListener(String[] listeners);
 
 
     /**
@@ -389,6 +428,7 @@ public interface Context extends Container {
 
     /**
      * 添加新的上下文参数，新的值将替换旧的值
+     *
      * @param name
      * @param value
      */
@@ -396,28 +436,36 @@ public interface Context extends Container {
 
 
     /**
-     * Add a resource reference for this web application.
+     * 添加资源
      *
-     * @param resource New resource reference
+     * @param resource
      */
-//    public void addResource(ContextResource resource);
+    void addResource(ContextResource resource);
 
 
     /**
-     * Add a resource environment reference for this web application.
+     * 批量添加资源
      *
-     * @param name The resource environment reference name
-     * @param type The resource environment reference type
+     * @param resources
      */
-//    public void addResourceEnvRef(String name, String type);
+    void addResource(ContextResource[] resources);
 
 
     /**
-     * Add a resource link for this web application.
+     * 添加资源环境类型
      *
-//     * @param resource New resource link
+     * @param name
+     * @param type
      */
-//    public void addResourceLink(ContextResourceLink resourceLink);
+    void addResourceEnvRef(String name, String type);
+
+
+    /**
+     * 添加资源连接
+     *
+     * @param resourceLink
+     */
+    void addResourceLink(ContextResourceLink resourceLink);
 
 
     /**
@@ -467,21 +515,34 @@ public interface Context extends Container {
 
 
     /**
-     * Add the classname of a LifecycleListener to be added to each
-     * Wrapper appended to this Context.
+     * 添加wrapper的生命周期管理器
      *
-     * @param listener Java class name of a LifecycleListener class
+     * @param listener
      */
-//    public void addWrapperLifecycle(String listener);
+    void addWrapperLifecycle(String listener);
+
+    /**
+     * 添加wrapper的生命周期管理器
+     *
+     * @param listeners
+     */
+    void addWrapperLifecycle(String[] listeners);
 
 
     /**
-     * Add the classname of a ContainerListener to be added to each
-     * Wrapper appended to this Context.
+     * 添加wrapper监听器
      *
-//     * @param listener Java class name of a ContainerListener class
+     * @param listener
      */
-//    void addWrapperListener(String listener);
+    void addWrapperListener(String listener);
+
+
+    /**
+     * 添加wrapper监听器
+     *
+     * @param listeners
+     */
+    void addWrapperListener(String[] listeners);
 
 
     /**
@@ -492,16 +553,19 @@ public interface Context extends Container {
 
 
     /**
-     * Return the set of application listener class names configured
-     * for this application.
+     * 返回所有应用程序监听器
+     *
+     * @return
      */
-//    public String[] findApplicationListeners();
+    String[] findApplicationListeners();
 
 
     /**
-     * Return the set of application parameters for this application.
+     * 返回所有应用程序参数
+     *
+     * @return
      */
-//    public ApplicationParameter[] findApplicationParameters();
+    ApplicationParameter[] findApplicationParameters();
 
 
     /**
@@ -528,20 +592,20 @@ public interface Context extends Container {
 
 
     /**
-     * Return the environment entry with the specified name, if any;
-     * otherwise, return <code>null</code>.
+     * 返回指定的环境
      *
-     * @param name Name of the desired environment entry
+     * @param name
+     * @return
      */
-//    public ContextEnvironment findEnvironment(String name);
+    ContextEnvironment findEnvironment(String name);
 
 
     /**
-     * Return the set of defined environment entries for this web
-     * application.  If none have been defined, a zero-length array
-     * is returned.
+     * 返回所有环境
+     *
+     * @return
      */
-//    public ContextEnvironment[] findEnvironments();
+    ContextEnvironment[] findEnvironments();
 
 
     /**
@@ -592,10 +656,11 @@ public interface Context extends Container {
 
 
     /**
-     * Return the set of InstanceListener classes that will be added to
-     * newly created Wrappers automatically.
+     * 返回所有wrapper实例监听器
+     *
+     * @return
      */
-//    public String[] findInstanceListeners();
+    String[] findInstanceListeners();
 
 
     /**
@@ -620,14 +685,14 @@ public interface Context extends Container {
      *
      * @param extension Extension to map to a MIME type
      */
-    public String findMimeMapping(String extension);
+    String findMimeMapping(String extension);
 
 
     /**
      * Return the extensions for which MIME mappings are defined.  If there
      * are none, a zero-length array is returned.
      */
-    public String[] findMimeMappings();
+    String[] findMimeMappings();
 
 
     /**
@@ -646,52 +711,54 @@ public interface Context extends Container {
 
 
     /**
-     * Return the resource reference with the specified name, if any;
-     * otherwise return <code>null</code>.
+     * 返回指定的资源
      *
-     * @param name Name of the desired resource reference
+     * @param name
+     * @return
      */
-//    public ContextResource findResource(String name);
+    ContextResource findResource(String name);
 
 
     /**
-     * Return the resource environment reference type for the specified
-     * name, if any; otherwise return <code>null</code>.
+     * 返回指定的环境类型
      *
-     * @param name Name of the desired resource environment reference
+     * @param name
+     * @return
      */
-//    public String findResourceEnvRef(String name);
+    String findResourceEnvRef(String name);
 
 
     /**
-     * Return the set of resource environment reference names for this
-     * web application.  If none have been specified, a zero-length
-     * array is returned.
-     */
-//    public String[] findResourceEnvRefs();
-
-
-    /**
-     * Return the resource link with the specified name, if any;
-     * otherwise return <code>null</code>.
+     * 返回所有环境类型
      *
-     * @param name Name of the desired resource link
+     * @return
      */
-//    public ContextResourceLink findResourceLink(String name);
+    String[] findResourceEnvRefs();
 
 
     /**
-     * Return the defined resource links for this application.  If
-     * none have been defined, a zero-length array is returned.
+     * 返回指定的资源连接
+     *
+     * @param name
+     * @return
      */
-//    public ContextResourceLink[] findResourceLinks();
+    ContextResourceLink findResourceLink(String name);
 
 
     /**
-     * Return the defined resource references for this application.  If
-     * none have been defined, a zero-length array is returned.
+     * 返回所有资源连接
+     *
+     * @return
      */
-//    public ContextResource[] findResources();
+    ContextResourceLink[] findResourceLinks();
+
+
+    /**
+     * 返回所有资源
+     *
+     * @return
+     */
+    ContextResource[] findResources();
 
 
     /**
@@ -726,6 +793,7 @@ public interface Context extends Container {
      * http://127.0.0.1/servlet/testServlet，那么/testServlet将是联系具体的wrapper对象的key
      * 所以可知，value存放的就是具体的wrapper名字
      * 根据pattern找到具体的wrapper对象
+     *
      * @param pattern
      * @return
      */
@@ -738,6 +806,7 @@ public interface Context extends Container {
      * http://127.0.0.1/servlet/testServlet，那么/testServlet将是联系具体的wrapper对象的key
      * 所以可知，value存放的就是具体的wrapper名字
      * 所以这个方法就是返回所有的key
+     *
      * @return
      */
     String[] findServletMappings();
@@ -794,17 +863,19 @@ public interface Context extends Container {
 
 
     /**
-     * Return the set of LifecycleListener classes that will be added to
-     * newly created Wrappers automatically.
+     * 返回所有wrapper生命周期监听器类名
+     *
+     * @return
      */
-//    public String[] findWrapperLifecycles();
+    String[] findWrapperLifecycles();
 
 
     /**
-     * Return the set of ContainerListener classes that will be added to
-     * newly created Wrappers automatically.
+     * 返回所有wrapper监听器
+     *
+     * @return
      */
-//    public String[] findWrapperListeners();
+    String[] findWrapperListeners();
 
 
     /**
@@ -813,17 +884,20 @@ public interface Context extends Container {
     void reload();
 
 
-    // 移除应用程序监听器
-//    void removeApplicationListener(String listener);
+    /**
+     * 移除指定的应用程序监听器
+     *
+     * @param listener
+     */
+    void removeApplicationListener(String listener);
 
 
     /**
-     * Remove the application parameter with the specified name from
-     * the set for this application.
+     * 移除指定的应用程序参数
      *
-     * @param name Name of the application parameter to remove
+     * @param name
      */
-//    public void removeApplicationParameter(String name);
+    void removeApplicationParameter(String name);
 
 
     /**
@@ -831,7 +905,7 @@ public interface Context extends Container {
      *
      * @param constraint Constraint to be removed
      */
-//    public void removeConstraint(SecurityConstraint constraint);
+//    void removeConstraint(SecurityConstraint constraint);
 
 
     /**
@@ -877,12 +951,11 @@ public interface Context extends Container {
 
 
     /**
-     * Remove a class name from the set of InstanceListener classes that
-     * will be added to newly created Wrappers.
+     * 移除指定的wrapper实例监听器类名
      *
-     * @param listener Class name of an InstanceListener class to be removed
+     * @param listener
      */
-//    public void removeInstanceListener(String listener);
+    void removeInstanceListener(String listener);
 
 
     /**
@@ -903,34 +976,35 @@ public interface Context extends Container {
 
 
     /**
-     * 删除指定name的参数
+     * 移除指定的参数
+     *
      * @param name
      */
     void removeParameter(String name);
 
 
     /**
-     * Remove any resource reference with the specified name.
+     * 移除指定资源
      *
-     * @param name Name of the resource reference to remove
+     * @param name
      */
-//    public void removeResource(String name);
+    void removeResource(String name);
 
 
     /**
-     * Remove any resource environment reference with the specified name.
+     * 移除指定环境类型
      *
-     * @param name Name of the resource environment reference to remove
+     * @param name
      */
-//    public void removeResourceEnvRef(String name);
+    void removeResourceEnvRef(String name);
 
 
     /**
-     * Remove any resource link with the specified name.
+     * 移除指定资源连接
      *
-     * @param name Name of the resource link to remove
+     * @param name
      */
-//    public void removeResourceLink(String name);
+    void removeResourceLink(String name);
 
 
     /**
@@ -955,6 +1029,7 @@ public interface Context extends Container {
      * http://127.0.0.1/servlet/testServlet，那么/testServlet将是联系具体的wrapper对象的key
      * 所以可知，value存放的就是具体的wrapper名字
      * 移除pattern与指定指定的wrapper映射
+     *
      * @param pattern
      */
     void removeServletMapping(String pattern);
@@ -978,19 +1053,17 @@ public interface Context extends Container {
 
 
     /**
-     * Remove a class name from the set of LifecycleListener classes that
-     * will be added to newly created Wrappers.
+     * 移除指定的wrapper生命周期监听器类名
      *
-     * @param listener Class name of a LifecycleListener class to be removed
+     * @param listener
      */
-//    public void removeWrapperLifecycle(String listener);
+    void removeWrapperLifecycle(String listener);
 
 
     /**
-     * Remove a class name from the set of ContainerListener classes that
-     * will be added to newly created Wrappers.
+     * 移除指定的wrapper监听器类名
      *
-     * @param listener Class name of a ContainerListener class to be removed
+     * @param listener
      */
-//    public void removeWrapperListener(String listener);
+    void removeWrapperListener(String listener);
 }

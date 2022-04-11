@@ -3,7 +3,7 @@ package com.ranni.startup;
 import com.ranni.connector.HttpConnector;
 import com.ranni.container.context.SimpleContextLifecycleListener;
 import com.ranni.container.context.StandardContext;
-import com.ranni.container.context.DefaultContextMapper;
+import com.ranni.container.context.StandardContextMapper;
 import com.ranni.container.wrapper.StandardWrapper;
 import com.ranni.container.loader.SimpleLoader;
 import com.ranni.test.valves.ClientIPLoggerValve;
@@ -43,7 +43,7 @@ public class Bootstrap2 {
         context.setLoader(loader);
 
         // 创建context的默认映射器并设置协议
-        DefaultContextMapper contextMapper = new DefaultContextMapper();
+        StandardContextMapper contextMapper = new StandardContextMapper();
         contextMapper.setProtocol("http");
 
 
