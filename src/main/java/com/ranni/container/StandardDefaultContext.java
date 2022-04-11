@@ -832,13 +832,42 @@ public class StandardDefaultContext implements DefaultContext, LifecycleListener
         }
 
         if (!(context instanceof StandardContext)) {
+            // TODO EJB也是在这里导入
 
+
+            for (ContextEnvironment ce : findEnvironments())
+                context.addEnvironment(ce);
+
+            for (ContextResource cr : findResources())
+                context.addResource(cr);
+
+            String[] names = findResourceEnvRefs();
+            for (int i = 0; i < names.length; i++) {
+                context.addResourceEnvRef(names[i], findResourceEnvRef(name));
+            }
         }
     }
 
 
+    /**
+     * TODO 处理所有生命周期事件
+     *
+     * @param event
+     */
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
 
+    }
+
+
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        if (getParent() != null) {
+            sb.append(getParent().toString());
+            sb.append(".");
+        }
+        sb.append("DefaultContext[");
+        sb.append("]");
+        return (sb.toString());
     }
 }

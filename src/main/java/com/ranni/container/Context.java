@@ -360,13 +360,6 @@ public interface Context extends Container {
     void addEnvironment(ContextEnvironment environment);
 
 
-    /**
-     * 批量添加容器环境
-     *
-     * @param environments
-     */
-    void addEnvironment(ContextEnvironment[] environments);
-
 
     /**
      * Add an error page for the specified error or Java exception.
@@ -441,14 +434,6 @@ public interface Context extends Container {
      * @param resource
      */
     void addResource(ContextResource resource);
-
-
-    /**
-     * 批量添加资源
-     *
-     * @param resources
-     */
-    void addResource(ContextResource[] resources);
 
 
     /**

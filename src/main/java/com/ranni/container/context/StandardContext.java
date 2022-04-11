@@ -2,10 +2,7 @@ package com.ranni.container.context;
 
 import com.ranni.container.*;
 import com.ranni.container.scope.ApplicationContext;
-import com.ranni.deploy.ApplicationParameter;
-import com.ranni.deploy.ContextEnvironment;
-import com.ranni.deploy.ContextResource;
-import com.ranni.deploy.ContextResourceLink;
+import com.ranni.deploy.*;
 import com.ranni.exception.LifecycleException;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
@@ -42,7 +39,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private String[] instanceListeners = new String[0]; // 将新创建的Wrapper实例监听器加入到该集合
     private ApplicationParameter[] applicationParameters = new ApplicationParameter[0]; // 应用程序参数集
     private Map<String, String> parameters = new HashMap<>(); // 参数集合
-
+    private NamingResources namingResources = new NamingResources(); // 命名资源管理实例
 
     protected String servletClass; // 要加载的servlet类全限定名
     protected Map<String, String> servletMappings = new HashMap<>(); // 请求servlet与wrapper容器的映射
@@ -423,15 +420,16 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         }
     }
 
+    /**
+     * 添加环境
+     *
+     * @param environment
+     */
     @Override
     public void addEnvironment(ContextEnvironment environment) {
-
+        namingResources.addEnvironment(environment);
     }
 
-    @Override
-    public void addEnvironment(ContextEnvironment[] environments) {
-
-    }
 
     /**
      * 添加实例监听器
@@ -489,24 +487,37 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         }
     }
 
+    /**
+     * 添加资源
+     *
+     * @param resource
+     */
     @Override
     public void addResource(ContextResource resource) {
-
+        namingResources.addResource(resource);
     }
 
-    @Override
-    public void addResource(ContextResource[] resources) {
 
-    }
-
+    /**
+     * 添加资源环境类型
+     *
+     * @param name
+     * @param type
+     */
     @Override
     public void addResourceEnvRef(String name, String type) {
-
+        namingResources.addResourceEnvRef(name, type);
     }
 
+
+    /**
+     * 添加资源连接
+     *
+     * @param resourceLink
+     */
     @Override
     public void addResourceLink(ContextResourceLink resourceLink) {
-
+        namingResources.addResourceLink(resourceLink);
     }
 
     /**
