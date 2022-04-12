@@ -7,14 +7,22 @@ import com.ranni.exception.LifecycleException;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
+import com.ranni.resource.DirContextURLStreamHandlerFactory;
+import com.ranni.resource.Resource;
 import com.ranni.util.LifecycleSupport;
 
+import javax.naming.Binding;
+import javax.naming.NameClassPair;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletContext;
 import java.beans.PropertyChangeListener;
-import java.io.File;
+import java.io.*;
 import java.lang.reflect.Constructor;
+import java.net.URL;
+import java.net.URLStreamHandlerFactory;
+import java.util.jar.JarFile;
 
 /**
  * Title: HttpServer
@@ -249,21 +257,33 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
             return;
 
         // 为JNDI协议注册流处理工厂
-//        URLStreamHandlerFactory streamHandlerFactory = new DirContextURLStreamHandlerFactory();
-//
-//        URL.setURLStreamHandlerFactory(streamHandlerFactory);
+        URLStreamHandlerFactory streamHandlerFactory = new DirContextURLStreamHandlerFactory();
+        URL.setURLStreamHandlerFactory(streamHandlerFactory);
 
         // 创建类载入器
         classLoader = createClassLoader();
-//        if (classLoader == null)
-//            throw new
+        classLoader.setResources(container.getResources());
+        classLoader.setDelegate(this.delegate); // 设置委托标志
+        // 导入存储库
+        for (int i = 0; i < repositories.length; i++) {
+            classLoader.addRepository(repositories[i]);
+        }
+
 
         // 设置仓库
         setRepositories();
+
+        // 设置类路径
+
+        // 设置访问权限
+
+        // 启动一个新的线程来支持自动重载
     }
 
     /**
-     * 设置仓库
+     * 设置仓库，主要完成下面两个操作
+     * WEB应用class文件存放的位置
+     * WEB应用使用的JAR包
      */
     private void setRepositories() {
         if (!(container instanceof Context))
@@ -284,16 +304,157 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
         // 取得资源文件
         DirContext resources = container.getResources();
 
-        String classPath = "/WEB-INF/classes"; // 类的路径
+        // 导入WEB应用程序的class文件
+        String classesPath = "/WEB-INF/classes"; // 类的路径
         DirContext classes = null;
 
         try {
-            Object o = resources.lookup(classPath);// TODO 解析这个路径下所有的类
+            Object o = resources.lookup(classesPath);// 解析这个路径下所有的类
             if (o instanceof DirContext)
                 classes = (DirContext) o;
         } catch (NamingException e) {
             e.printStackTrace();
         }
+
+        if (classes != null) {
+            File classRepository = null; // 类仓库
+            String realPath = servletContext.getRealPath(classesPath);
+            if (realPath != null) {
+                // 如果能在servlet的全局作用域中找到这个路径则表示这个路径的class已经导入了
+                classRepository = new File(realPath);
+            } else {
+                // 在当前工作目录下创建类仓库文件夹
+                classRepository = new File(workDir, classesPath);
+                classRepository.mkdirs();
+                copyDir(classes, classRepository);
+            }
+
+            log("WebappLoader 类部署  classPath: " + classesPath + "   classRepositoryAbPath: " + classRepository.getAbsolutePath());
+
+            classLoader.addRepository(classesPath + "/", classRepository);
+        }
+
+
+        // 导入WEB应用使用的JAR包，需要将JAR包里的类拷贝出来
+        String libPath = "/WEB-INF/lib";
+        classLoader.setJarPath(libPath);
+
+        DirContext libDir = null;
+        try {
+            Object object = resources.lookup(libPath);
+            if (object instanceof DirContext)
+                libDir = (DirContext) object;
+        } catch (NamingException e) {
+
+        }
+
+        if (libDir != null) {
+            boolean copyJars = false; // 是否需要拷贝JAR包中的文件
+            String realPath = servletContext.getRealPath(libPath);
+            File destDir = null;
+
+            if (realPath != null) {
+                // 如果能在servlet的全局作用域中找到这个路径则表示这个路径的JAR已经导入了
+                destDir = new File(realPath);
+            } else {
+                destDir = new File(workDir, libPath);
+                destDir.mkdirs();
+                copyJars = true;
+            }
+
+            try {
+                NamingEnumeration<Binding> it = resources.listBindings(libPath);
+                while (it.hasMoreElements()) {
+                    Binding binding = it.nextElement();
+                    String filename = libPath + "/" + binding.getName();
+                    if (!filename.endsWith(".jar"))
+                        continue;
+
+                    File destFile = new File(destDir, binding.getName());
+                    log("WebappLoader JAR部署  filename: " + filename + "  path: " + destFile.getAbsolutePath());
+
+                    Resource jarResource = (Resource) binding.getObject();
+                    if (copyJars) {
+                        OutputStream os = new FileOutputStream(destFile);
+                        if (!copy(jarResource.streamContent(), os))
+                            continue;
+                    }
+
+                    JarFile jarFile = new JarFile(destFile);
+                    classLoader.addJar(filename, jarFile, destFile);
+                }
+            } catch (NamingException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    /**
+     * 将srcDir中的类文件拷贝到desDir对象的目录下
+     *
+     * @param srcDir
+     * @param destDir
+     */
+    private boolean copyDir(DirContext srcDir, File destDir) {
+        try {
+            NamingEnumeration<NameClassPair> it = srcDir.list("");
+            while (it.hasMoreElements()) {
+                NameClassPair ncPair = it.nextElement();
+                String name = ncPair.getName();
+                Object object = srcDir.lookup(name);
+                File currentFile = new File(destDir, name);
+
+                if (object instanceof Resource) {
+                    InputStream is = ((Resource) object).streamContent();
+                    OutputStream os = new FileOutputStream(currentFile);
+                    if (!copy(is, os))
+                        return false;
+                } else if (object instanceof InputStream) {
+                    OutputStream os = new FileOutputStream(currentFile);
+                    if (!copy((InputStream) object, os))
+                        return false;
+                } else if (object instanceof DirContext) {
+                    // 当前名称对应的是个文件夹
+                    // 递归复制里面的文件
+                    currentFile.mkdir();
+                    copyDir((DirContext) object, currentFile);
+                }
+            }
+        } catch (NamingException e) {
+            return false;
+        } catch (IOException e) {
+            return false;
+        }
+
+        return true;
+    }
+
+
+    /**
+     * 把输入流的内容从输出流输出出去
+     *
+     * @param is
+     * @param os
+     * @return
+     */
+    private boolean copy(InputStream is, OutputStream os) {
+
+        try {
+            byte[] buffer = new byte[4096];
+            int len = -1;
+            while ((len = is.read(buffer)) != -1) {
+                os.write(buffer, 0, len);
+            }
+            is.close();
+            os.close();
+        } catch (IOException e) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

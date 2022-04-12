@@ -99,6 +99,7 @@ public final class LifecycleSupport {
         }
 
         for (LifecycleListener ll : clone) {
+            // 执行监听器的方法
             ll.lifecycleEvent(lifecycleEvent);
         }
     }

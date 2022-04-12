@@ -7,18 +7,18 @@ import java.util.Map;
 /**
  * Title: HttpServer
  * Description:
- * 保存和管理资源与名称的关联
+ * JNDI中命名（Naming）与容器（Context）的关联
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022-04-10 17:04
  */
 public final class NamingResources {
-    private Object container; // 关联的容器
+    private Object container; // 关联的执行容器，此容器非JNDI中的容器
     private Map<String, String> entries = Collections.synchronizedMap(new HashMap<>()); // 线程安全的map。key是资源名，value是条目类型
-    private Map<String ,ContextEnvironment> envs = new HashMap<>(); // 环境
-    private Map<String, ContextResource> resources = new HashMap<>(); // 资源引用
-    private Map<String, ContextResourceLink> resourceLinks = new HashMap<>(); // 资源连接
+    private Map<String ,ContextEnvironment> envs = new HashMap<>(); // 环境容器
+    private Map<String, ContextResource> resources = new HashMap<>(); // 资源引用容器
+    private Map<String, ContextResourceLink> resourceLinks = new HashMap<>(); // 资源连接容器
     private Map<String, ResourceParams> resourceParams = new HashMap<>(); // 资源参数
     private Map<String, String> resourceEnvRefs = new HashMap<>(); // 资源环境引用，key是资源环境名，value是资源环境类型
 

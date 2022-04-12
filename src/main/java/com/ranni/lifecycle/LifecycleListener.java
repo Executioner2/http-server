@@ -12,6 +12,7 @@ package com.ranni.lifecycle;
 public interface LifecycleListener {
     /**
      * 该监听器实例监听事件被触发后，执行此方法
+     *
      * @param event
      */
     void lifecycleEvent(LifecycleEvent event);

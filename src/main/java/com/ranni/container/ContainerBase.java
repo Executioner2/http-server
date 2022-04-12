@@ -7,6 +7,7 @@ import com.ranni.container.pip.Pipeline;
 import com.ranni.container.pip.Valve;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.logger.Logger;
+import com.ranni.resource.ProxyDirContext;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletException;
@@ -14,6 +15,7 @@ import java.awt.event.ContainerListener;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 
 /**
@@ -35,7 +37,7 @@ public abstract class ContainerBase implements Container, Pipeline {
     protected String name; // 容器名字
     protected Map<String, Container> children = new HashMap<>(); // 子容器
     protected boolean started; // 启动标志
-    protected DirContext resource; // 资源文件
+    protected DirContext resources; // 容器资源
 
     /**
      * 返回类加载器
@@ -120,14 +122,14 @@ public abstract class ContainerBase implements Container, Pipeline {
 
 
     /**
-     * 返回资源文件，如果没有就返回父Container的，都没有就返回null
+     * 返回目录容器，如果没有就返回父Container的，都没有就返回null
      *
      * @return
      */
     @Override
     public DirContext getResources() {
-        if (resource != null)
-            return resource;
+        if (resources != null)
+            return resources;
         else if (parent != null)
             return parent.getResources();
         return null;
@@ -135,16 +137,21 @@ public abstract class ContainerBase implements Container, Pipeline {
 
 
     /**
-     * 设置资源文件
+     * 设置目录容器
      *
      * @param resources
      */
     @Override
-    public void setResources(DirContext resources) {
-        DirContext oldResource = this.resource;
+    public synchronized void setResources(DirContext resources) {
+        DirContext oldResource = this.resources;
 
-        if (oldResource == resource) return;
+        if (oldResource == this.resources) return;
 
+        Hashtable<String, String> env = new Hashtable<>();
+        if (getParent() != null)
+            env.put(ProxyDirContext.HOST, getParent().getName());
+        env.put(ProxyDirContext.CONTEXT, getName());
+        this.resources = new ProxyDirContext(env, resources); // 变成代理目录容器（增加缓存功能）
     }
 
 

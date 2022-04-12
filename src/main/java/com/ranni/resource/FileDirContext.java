@@ -8,7 +8,8 @@ import java.util.*;
 /**
  * Title: HttpServer
  * Description:
- * 文件资源管理器
+ * 文件资源容器
+ * JNDI中的context
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -18,7 +19,7 @@ public class FileDirContext extends BaseDirContext {
     protected static final int BUFFER_SIZE = 2048; // 缓冲区大小
 
     protected File base; // 文件夹根目录
-    protected String absoluteBase; // 绝对文件名
+    protected String absoluteBase; // 绝对基本路径
     protected boolean caseSensitive = true; // 是否检查绝对路径的规范性
     protected boolean allowLinking = false; // 是否允许连接
 
@@ -163,7 +164,7 @@ public class FileDirContext extends BaseDirContext {
      * 例子：\root//a/../b/./c\\\e///a/d//v
      * 规范化后：/root/b/c/e/a/d/v
      *
-     * 用栈优化原本的字符串拼接算法
+     * 用栈优化原本的字符串拼接
      *
      * @param path
      * @return
@@ -528,8 +529,9 @@ public class FileDirContext extends BaseDirContext {
             throw new NamingException("资源不存在！  " + name);
 
         List<NamingEntry> list = list(file);
-        return new NamingContextEnumeration<NameClassPair>(list);
+        return new NamingContextEnumeration<>(list);
     }
+
 
     /**
      * 返回绑定的资源集合的迭代器
@@ -547,7 +549,7 @@ public class FileDirContext extends BaseDirContext {
             throw new NamingException("资源不存在！  " + name);
 
         List<NamingEntry> list = list(file);
-        return new NamingContextEnumeration<Binding>(list);
+        return new NamingContextEnumeration<>(list);
     }
 
     /**

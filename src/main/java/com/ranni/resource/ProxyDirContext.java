@@ -78,6 +78,35 @@ public class ProxyDirContext implements DirContext {
         this.contextName = proxyDirContext.contextName;
     }
 
+    /**
+     * 返回主机名
+     *
+     * @return
+     */
+    public String getHostName() {
+        return this.hostName;
+    }
+
+
+    /**
+     * 返回容器名
+     *
+     * @return
+     */
+    public String getContextName() {
+        return this.contextName;
+    }
+
+
+    /**
+     * 返回被代理的目录容器
+     *
+     * @return
+     */
+    public DirContext getDirContext() {
+        return this.dirContext;
+    }
+
 
     /**
      * 缓存的视图类，为ProxyDirContext的内部类

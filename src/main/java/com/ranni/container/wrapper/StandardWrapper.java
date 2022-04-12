@@ -250,6 +250,7 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
         throw new IllegalStateException ("标准wrapper没有child");
     }
 
+
     /**
      * 添加生命周期监听器
      *
@@ -261,6 +262,7 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
     public void addLifecycleListener(LifecycleListener listener) {
         lifecycle.addLifecycleListener(listener);
     }
+
 
     /**
      * 返回所有生命周期监听器
@@ -274,6 +276,7 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
         return lifecycle.findLifecycleListeners();
     }
 
+
     /**
      * 移除生命周期监听器
      *
@@ -285,6 +288,7 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
     public void removeLifecycleListener(LifecycleListener listener) {
         lifecycle.removeLifecycleListener(listener);
     }
+
 
     /**
      * wrapper容器启动
@@ -318,6 +322,7 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
         // 此wrapper容器启动之后
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
     }
+
 
     /**
      * 关闭当前容器

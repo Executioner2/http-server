@@ -3,7 +3,7 @@ package com.ranni.deploy;
 /**
  * Title: HttpServer
  * Description:
- * 资源连接视图类
+ * 资源连接容器视图类
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com

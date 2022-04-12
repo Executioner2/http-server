@@ -368,8 +368,6 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     public synchronized void stop() throws Exception {
         if (!started) throw new LifecycleException("此connector连接器实例已经停止！");
 
-        // 连接器停止前
-        lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_STOP_EVENT, null);
         // 连接器停止
         lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
 

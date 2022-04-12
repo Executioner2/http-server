@@ -9,6 +9,7 @@ import javax.servlet.RequestDispatcher;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import java.io.File;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -27,7 +28,7 @@ public class ApplicationContext implements ServletContext {
     private static final List empty = new ArrayList(); // 统一空集合
 
     private StandardContext context;
-    private String basePath;
+    private String basePath; // 根路径
     private Map attributes = new HashMap(); // 属性
     private Map readOnlyAttributes = new HashMap(); // 只读属性
     private ServletContext facade = new ApplicationContextFacade(this); // 外观类
@@ -36,8 +37,8 @@ public class ApplicationContext implements ServletContext {
 
     public ApplicationContext(String basePath, StandardContext context) {
         super();
-        this.context = context;
         this.basePath = basePath;
+        this.context = context;
     }
 
     /**
@@ -151,9 +152,19 @@ public class ApplicationContext implements ServletContext {
 
     }
 
+    /**
+     * 取得真实路径
+     * 如果JNDI容器不是文件目录容器就直接返回null
+     *
+     * @param s
+     * @return
+     */
     @Override
     public String getRealPath(String s) {
-        return null;
+        if (!context.isFilesystemBased())
+            return null;
+        File file = new File(basePath, s);
+        return file.getAbsolutePath();
     }
 
     @Override

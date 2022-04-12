@@ -13,7 +13,8 @@ import java.util.zip.ZipFile;
 /**
  * Title: HttpServer
  * Description:
- * WAR包解析
+ * WAR包容器
+ * JNDI中的context
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com

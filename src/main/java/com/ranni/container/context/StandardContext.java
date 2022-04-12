@@ -1,14 +1,20 @@
 package com.ranni.container.context;
 
+import com.ranni.common.Globals;
 import com.ranni.container.*;
 import com.ranni.container.scope.ApplicationContext;
 import com.ranni.deploy.*;
 import com.ranni.exception.LifecycleException;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.resource.BaseDirContext;
+import com.ranni.resource.FileDirContext;
+import com.ranni.resource.ProxyDirContext;
+import com.ranni.resource.WARDirContext;
 import com.ranni.util.CharsetMapper;
 import com.ranni.util.LifecycleSupport;
 
+import javax.naming.directory.DirContext;
 import javax.servlet.ServletContext;
 import java.io.File;
 import java.util.*;
@@ -40,10 +46,13 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private ApplicationParameter[] applicationParameters = new ApplicationParameter[0]; // 应用程序参数集
     private Map<String, String> parameters = new HashMap<>(); // 参数集合
     private NamingResources namingResources = new NamingResources(); // 命名资源管理实例
+    private String namingContextName; // 命名容器全名
 
+    protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
     protected Map<String, String> servletMappings = new HashMap<>(); // 请求servlet与wrapper容器的映射
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
+    protected boolean filesystemBased; // 关联的目录容器是否是文件类型的目录容器
 
     public StandardContext() {
         pipeline.setBasic(new SimpleContextValve(this));
@@ -124,6 +133,94 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
         return docBase;
     }
+
+    /**
+     * 是否是文件目录的目录容器
+     *
+     * @return
+     */
+    public boolean isFilesystemBased() {
+        return filesystemBased;
+    }
+
+
+    /**
+     * 设置目录容器
+     *
+     * @param resources
+     */
+    @Override
+    public synchronized void setResources(DirContext resources) {
+        if (resources instanceof BaseDirContext) {
+            ((BaseDirContext) resources).setCached(isCachingAllowed());
+        }
+        if (resources instanceof FileDirContext) {
+            filesystemBased = true;
+        }
+        super.setResources(resources);
+
+        // 将此目录容器存入Servlet的全局作用域中
+        if (started)
+            postResources();
+    }
+
+
+    /**
+     * 存入到Servlet的全局作用域中
+     */
+    private void postResources() {
+        getServletContext().setAttribute(Globals.RESOURCES_ATTR, getResources());
+    }
+
+
+    /**
+     * 设置是否允许缓存目录容器中的资源
+     *
+     * @param cachingAllowed
+     */
+    public void setCachingAllowed(boolean cachingAllowed) {
+        this.cachingAllowed = cachingAllowed;
+    }
+
+    /**
+     * 返回是否允许缓存目录容器中的资源
+     *
+     * @return
+     */
+    private boolean isCachingAllowed() {
+        return this.cachingAllowed;
+    }
+
+    /**
+     * 取得命名容器的全名
+     *
+     * @return
+     */
+    private String getNamingContextName() {
+        if (namingContextName == null) {
+            // 尝试取得命名容器全名
+            Container parent = getParent();
+            if (parent == null) {
+                namingContextName = getName();
+            } else {
+                Deque<String> deque = new LinkedList<>();
+                StringBuffer sb = new StringBuffer();
+                while (parent != null) {
+                    deque.push(parent.getName());
+                    parent = parent.getParent();
+                }
+
+                while (!deque.isEmpty()) {
+                    sb.append("/" + deque.pop());
+                }
+                sb.append("/" + getName());
+                namingContextName = sb.toString();
+            }
+        }
+
+        return namingContextName;
+    }
+
 
     /**
      * 返回服务器的文件根目录
@@ -839,12 +936,36 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     @Override
     public synchronized void start() throws Exception {
         if (started) throw new LifecycleException("此context容器实例已经启动！");
+        boolean ok = true;
 
         // 容器启动前
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
-        started = true;
+
 
         try {
+            // 设置资源
+            if (getResources() == null) {
+                log("开始配置默认资源");
+                try {
+                    if (docBase != null && docBase.endsWith(".war")) {
+                        setResources(new WARDirContext());
+                    } else {
+                        setResources(new FileDirContext());
+                    }
+                } catch (IllegalArgumentException e) {
+                    log("资源文件初始化失败： " + e.getMessage());
+                    ok = false;
+                }
+            }
+
+            // 设置目录根路径
+            if (ok && resources instanceof ProxyDirContext) {
+                DirContext dirContext = ((ProxyDirContext) resources).getDirContext();
+                if (dirContext instanceof BaseDirContext) {
+                    ((BaseDirContext) dirContext).setDocBase(getBasePath());
+                }
+            }
+
             // 启动加载器
             if (loader != null && loader instanceof Lifecycle)
                 ((Lifecycle) loader).start();
@@ -863,7 +984,12 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
             // context容器自身启动
             lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
         } catch (Exception e) {
-            e.printStackTrace();
+            ok = false;
+            log("context容器启动失败： " + e.getMessage());
+        }
+
+        if (ok) {
+            started = true;
         }
 
         // 容器启动后

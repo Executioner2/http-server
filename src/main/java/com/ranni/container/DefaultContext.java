@@ -298,16 +298,16 @@ public interface DefaultContext {
 
 
     /**
-     * Return the EJB resource reference with the specified name, if any;
+     * Return the EJB resources reference with the specified name, if any;
      * otherwise, return <code>null</code>.
      *
-     * @param name Name of the desired EJB resource reference
+     * @param name Name of the desired EJB resources reference
      */
 //    ContextEjb findEjb(String name);
 
 
     /**
-     * Return the defined EJB resource references for this application.
+     * Return the defined EJB resources references for this application.
      * If there are none, a zero-length array is returned.
      */
 //    ContextEjb[] findEjbs();
@@ -447,9 +447,9 @@ public interface DefaultContext {
 
 
     /**
-     * Remove any EJB resource reference with the specified name.
+     * Remove any EJB resources reference with the specified name.
      *
-     * @param name Name of the EJB resource reference to remove
+     * @param name Name of the EJB resources reference to remove
      */
 //    void removeEjb(String name);
 

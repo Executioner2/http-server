@@ -206,6 +206,7 @@ public interface Context extends Container {
 
     /**
      * 返回此web应用程序的上下文路径
+     *
      * @return
      */
     String getPath();
@@ -213,6 +214,7 @@ public interface Context extends Container {
 
     /**
      * 设置此web应用程序的上下文路径
+     *
      * @param path
      */
     void setPath(String path);
@@ -345,9 +347,9 @@ public interface Context extends Container {
 
 
     /**
-     * Add an EJB resource reference for this web application.
+     * Add an EJB resources reference for this web application.
      *
-     * @param ejb New EJB resource reference
+     * @param ejb New EJB resources reference
      */
 //    public void addEjb(ContextEjb ejb);
 
@@ -402,9 +404,9 @@ public interface Context extends Container {
 
 
     /**
-     * Add a local EJB resource reference for this web application.
+     * Add a local EJB resources reference for this web application.
      *
-     * @param ejb New local EJB resource reference
+     * @param ejb New local EJB resources reference
      */
 //    public void addLocalEjb(ContextLocalEjb ejb);
 
@@ -561,16 +563,16 @@ public interface Context extends Container {
 
 
     /**
-     * Return the EJB resource reference with the specified name, if any;
+     * Return the EJB resources reference with the specified name, if any;
      * otherwise, return <code>null</code>.
      *
-     * @param name Name of the desired EJB resource reference
+     * @param name Name of the desired EJB resources reference
      */
 //    public ContextEjb findEjb(String name);
 
 
     /**
-     * Return the defined EJB resource references for this application.
+     * Return the defined EJB resources references for this application.
      * If there are none, a zero-length array is returned.
      */
 //    public ContextEjb[] findEjbs();
@@ -649,16 +651,16 @@ public interface Context extends Container {
 
 
     /**
-     * Return the local EJB resource reference with the specified name, if any;
+     * Return the local EJB resources reference with the specified name, if any;
      * otherwise, return <code>null</code>.
      *
-     * @param name Name of the desired EJB resource reference
+     * @param name Name of the desired EJB resources reference
      */
 //    public ContextLocalEjb findLocalEjb(String name);
 
 
     /**
-     * Return the defined local EJB resource references for this application.
+     * Return the defined local EJB resources references for this application.
      * If there are none, a zero-length array is returned.
      */
 //    public ContextLocalEjb[] findLocalEjbs();
@@ -894,9 +896,9 @@ public interface Context extends Container {
 
 
     /**
-     * Remove any EJB resource reference with the specified name.
+     * Remove any EJB resources reference with the specified name.
      *
-     * @param name Name of the EJB resource reference to remove
+     * @param name Name of the EJB resources reference to remove
      */
 //    public void removeEjb(String name);
 
@@ -944,9 +946,9 @@ public interface Context extends Container {
 
 
     /**
-     * Remove any local EJB resource reference with the specified name.
+     * Remove any local EJB resources reference with the specified name.
      *
-     * @param name Name of the EJB resource reference to remove
+     * @param name Name of the EJB resources reference to remove
      */
 //    public void removeLocalEjb(String name);
 

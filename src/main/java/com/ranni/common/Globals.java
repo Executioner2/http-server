@@ -10,11 +10,9 @@ package com.ranni.common;
  * @Date 2022-04-06 18:27
  */
 public final class Globals {
-
-    /**
-     * The servlet context attribute under which we store a temporary
-     * working directory (as an object of type File) for use by servlets
-     * within this web application.
-     */
+    // 工作目录属性
     public static final String WORK_DIR_ATTR = "javax.servlet.context.tempdir";
+
+    // 目录容器资源文件
+    public static final String RESOURCES_ATTR = "com.ranni.resources";
 }

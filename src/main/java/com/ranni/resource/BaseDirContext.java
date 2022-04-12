@@ -8,6 +8,7 @@ import java.util.Hashtable;
  * Title: HttpServer
  * Description:
  * 抽象文件夹容器，可以把这个DirContext其实现类的容器看作是一个文件夹的封装对象
+ * JNDI的抽象目录容器
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
