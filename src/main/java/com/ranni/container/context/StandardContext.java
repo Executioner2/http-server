@@ -13,6 +13,7 @@ import com.ranni.resource.ProxyDirContext;
 import com.ranni.resource.WARDirContext;
 import com.ranni.util.CharsetMapper;
 import com.ranni.util.LifecycleSupport;
+import com.ranni.util.RequestUtil;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletContext;
@@ -47,6 +48,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private Map<String, String> parameters = new HashMap<>(); // 参数集合
     private NamingResources namingResources = new NamingResources(); // 命名资源管理实例
     private String namingContextName; // 命名容器全名
+    private boolean paused; // 是否开始接收请求
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
@@ -65,6 +67,24 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
     public void setSwallowOutput(boolean swallowOutput) {
         this.swallowOutput = swallowOutput;
+    }
+
+    /**
+     * 是否开始接收请求
+     *
+     * @return
+     */
+    public boolean isPaused() {
+        return paused;
+    }
+
+    /**
+     * 设置是否开始接受请求
+     *
+     * @param paused
+     */
+    private void setPaused(boolean paused) {
+        this.paused = paused;
     }
 
     /**
@@ -346,9 +366,14 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         return getName();
     }
 
+    /**
+     * 设置容器在URL中的路径
+     *
+     * @param path
+     */
     @Override
     public void setPath(String path) {
-
+        setName(RequestUtil.URLDecode(path));
     }
 
     @Override
@@ -820,8 +845,19 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         return new String[0];
     }
 
+    /**
+     * TODO 容器重载
+     */
     @Override
-    public void reload() {
+    public synchronized void reload() {
+        if (!started)
+            throw new IllegalStateException("容器还没有启动！");
+
+        log("开始重载容器！");
+
+        // 停止接收请求
+//        setPaused(true);
+
 
     }
 

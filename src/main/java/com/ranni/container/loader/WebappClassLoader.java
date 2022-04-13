@@ -1,5 +1,7 @@
 package com.ranni.container.loader;
 
+import com.ranni.lifecycle.Lifecycle;
+import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.resource.ResourceAttributes;
 
 import javax.naming.NamingException;
@@ -9,6 +11,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLStreamHandlerFactory;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.jar.JarFile;
 
 /**
@@ -19,7 +25,19 @@ import java.util.jar.JarFile;
  * @Email 1205878539@qq.com
  * @Date 2022-04-06 15:45
  */
-public class WebappClassLoader extends URLClassLoader implements Reloader {
+public class WebappClassLoader extends URLClassLoader implements Reloader, Lifecycle {
+    // 不允许载入的类和包
+    private static final String[] packageTriggers = {
+            "javax",                                     // Java extensions
+            "org.xml.sax",                               // SAX 1 & 2
+            "org.w3c.dom",                               // DOM 1 & 2
+            "org.apache.xerces",                         // Xerces 1 & 2
+            "org.apache.xalan"                           // Xalan
+    };
+    private static final String[] triggers = {
+            "javax.servlet.Servlet"                     // Servlet API
+    };
+
     private ClassLoader parent; // 父-类加载器
     private ClassLoader system; // 应用（系统）类加载器
 
@@ -35,7 +53,8 @@ public class WebappClassLoader extends URLClassLoader implements Reloader {
     protected File[] jarRealFiles = new File[0]; // 存放JAR包中资源的文件夹集合
     protected long[] lastModifiedDates = new long[0]; // JAR的最后修改日期
     protected String[] paths = new String[0]; // JAR包路径列表
-
+    protected Set<String> notFoundResources = new HashSet<>(); // 缓存未找到的资源名
+    protected Map<String, ResourceEntry> resourceEntries = new HashMap<>(); // 已经载入的缓存资源
 
 
     public WebappClassLoader(URL[] urls, ClassLoader parent, URLStreamHandlerFactory factory) {
@@ -218,5 +237,71 @@ public class WebappClassLoader extends URLClassLoader implements Reloader {
         jarRealFiles = res5;
 
         // TODO 加载清单
+    }
+
+    /**
+     * 不支持哦哦哦
+     *
+     * @return
+     */
+    @Override
+    public void addLifecycleListener(LifecycleListener listener) {
+
+    }
+
+    /**
+     * 不支持哦哦哦
+     *
+     * @return
+     */
+    @Override
+    public LifecycleListener[] findLifecycleListeners() {
+        return new LifecycleListener[0];
+    }
+
+    /**
+     * 不支持哦哦哦
+     *
+     * @return
+     */
+    @Override
+    public void removeLifecycleListener(LifecycleListener listener) {
+
+    }
+
+    /**
+     * 仅设置启动标志位为true
+     *
+     * @return
+     */
+    @Override
+    public void start() throws Exception {
+        started = true;
+    }
+
+    /**
+     * 释放资源
+     *
+     * @throws Exception
+     */
+    @Override
+    public void stop() throws Exception {
+        started = false;
+
+        for (JarFile jf : jarFiles)
+            jf.close();
+
+        notFoundResources.clear(); // 清除未找到的资源文件缓存
+        resourceEntries.clear(); // 清除已解析的资源文件
+
+        repositories = new String[0];
+        files = new File[0];
+        jarFiles = new JarFile[0];
+        jarRealFiles = new File[0];
+        jarPath = null;
+        jarNames = new String[0];
+        lastModifiedDates = new long[0];
+        paths = new String[0];
+        hasExternalRepositories = false;
     }
 }

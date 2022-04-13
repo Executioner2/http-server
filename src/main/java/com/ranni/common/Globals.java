@@ -15,4 +15,7 @@ public final class Globals {
 
     // 目录容器资源文件
     public static final String RESOURCES_ATTR = "com.ranni.resources";
+
+    // JSP类路径
+    public static final String CLASS_PATH_ATTR = "com.ranni.jsp_classpath";
 }

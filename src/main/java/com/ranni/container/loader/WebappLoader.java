@@ -21,6 +21,7 @@ import java.beans.PropertyChangeListener;
 import java.io.*;
 import java.lang.reflect.Constructor;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.net.URLStreamHandlerFactory;
 import java.util.jar.JarFile;
 
@@ -43,6 +44,23 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
     private boolean reloadable; // 重载标志位
     private String[] repositories = new String[0]; // 仓库
     private LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理实例
+    private Thread thread; // 重载线程
+    private boolean threadDone; // 重载线程是否执行完成
+    private String threadName; // 重载线程名字
+    private int checkInterval = 15; // 重载线程休眠时间因子
+
+    /**
+     * 容器重载通知线程类
+     */
+    protected class WebappContextNotifier implements Runnable {
+        /**
+         * 线程启动之后执行容器的重载方法
+         */
+        @Override
+        public void run() {
+            ((Context) container).reload();
+        }
+    }
 
     public WebappLoader() {
     }
@@ -172,6 +190,12 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
         System.arraycopy(repositories, 0, newRepositories, 0, repositories.length);
         newRepositories[repositories.length] = repository;
         repositories = newRepositories;
+
+        // 如果此类加载器已经启动了，那么立刻载入到仓库中
+        if (started && classLoader != null) {
+            classLoader.addRepository(repository);
+            setClassPath();
+        }
     }
 
     /**
@@ -194,9 +218,46 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
 
     }
 
+    /**
+     * 重载线程
+     */
     @Override
     public void run() {
+        log("重载线程已启动！");
 
+        while (!threadDone) {
+            try {
+                Thread.sleep(checkInterval * 1000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            if (!started)
+                break;
+
+            // 检查类加载器是否有修改
+            try {
+                if (!classLoader.modified())
+                    continue;
+            } catch (Exception e) {
+                log("检查类加载器是否修改发生了异常  " + e.getMessage());
+                continue;
+            }
+
+            // 通知容器重载
+            notifyContext();
+            break;
+        }
+
+        log("重载线程关闭！");
+    }
+
+    /**
+     * 启动通知线程通知容器进行重载
+     */
+    private void notifyContext() {
+        WebappContextNotifier webappContextNotifier = new WebappContextNotifier();
+        new Thread(webappContextNotifier).start();
     }
 
     /**
@@ -240,7 +301,8 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
      * 2、设置仓库
      * 3、设置类路径
      * 4、设置访问权限
-     * 5、启动一个新的线程来支持自动重载
+     * 5、启动类加载器
+     * 6、启动一个新的线程来支持自动重载
      *
      * @throws Exception
      */
@@ -269,15 +331,99 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
             classLoader.addRepository(repositories[i]);
         }
 
-
         // 设置仓库
         setRepositories();
 
         // 设置类路径
+        setClassPath();
 
         // 设置访问权限
+        setPermissions();
+
+        // 启动类加载器
+        if (classLoader instanceof Lifecycle)
+            ((Lifecycle) classLoader).start(); // 起飞！
 
         // 启动一个新的线程来支持自动重载
+        if (reloadable) {
+            log("开启一个新的线程来支持自动重载！");
+            threadStart();
+        }
+
+    }
+
+    /**
+     * 启动一个重载线程
+     */
+    private void threadStart() {
+        if (thread != null)
+            return;
+
+        if (!reloadable)
+            throw new IllegalStateException("进入threadStart()之前说能重载，进入后又说不能重载了，GNM！");
+        if (!(container instanceof Context))
+            throw new IllegalStateException("container不是Context类型的容器！");
+
+        log("重载线程启动中。。。");
+        threadDone = false;
+        threadName = "WebappLoader[" + container.getName() + "]";
+        thread = new Thread(this, threadName);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+
+    /**
+     * 设置类加载器的访问权限
+     */
+    private void setPermissions() {
+        // TODO 设置个鸡毛，ranni不需要安全
+    }
+
+
+    /**
+     * 设置拓展类的类路径
+     * 这个就相当于在设置CLASSPATH环境变量
+     * XXX 当这个加载器启动后还会调用这个方法，但是启动后并不需要进行全扫描，只需要扫描刚加入的类就可以了，这点后面来改进
+     */
+    private void setClassPath() {
+        // 信息验证
+        if (!(container instanceof Context))
+            return;
+        ServletContext servletContext = ((Context) container).getServletContext();
+        if (servletContext == null)
+            return;
+
+        StringBuffer classpath = new StringBuffer();
+
+        // 取得拓展仓库的类路径
+        ClassLoader loader = getClassLoader();
+        for (int layers = 0, count = 0; // count 的作用就是复合名字只有一个名字的时候不做分隔符
+             layers < 3 && loader != null && loader instanceof URLClassLoader;
+             layers++, loader = loader.getParent()) {
+
+            URL[] repositories = ((URLClassLoader) loader).getURLs();
+            for (URL url : repositories) {
+                String repository = url.toString();
+                if (repository.startsWith("file://"))
+                    repository = repository.substring(7);
+                else if (repository.startsWith("file:"))
+                    repository.substring(5);
+                else if (repository.startsWith("jndi:"))
+                    repository = servletContext.getRealPath(repository.substring(5));
+                else
+                    continue;
+
+                if (repository == null)
+                    continue;
+                if (count > 0)
+                    classpath.append(File.pathSeparator); // 分隔符 windows下是 ";"
+                classpath.append(repository);
+                count++;
+            }
+        }
+
+        servletContext.setAttribute(Globals.CLASS_PATH_ATTR, classpath.toString());
     }
 
     /**

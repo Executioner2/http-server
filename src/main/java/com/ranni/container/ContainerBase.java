@@ -34,10 +34,11 @@ public abstract class ContainerBase implements Container, Pipeline {
     protected Mapper mapper; // 默认关联mapper，即mappers中只有一个mapper，那么就会将此mapper设置为默认关联mapper
     protected Map<String, Mapper> mappers = new HashMap<>(); // 协议与mapper的映射集
     protected Container parent; // 父容器
-    protected String name; // 容器名字
+    protected String name; // 容器名字，同时也是URL中的路径
     protected Map<String, Container> children = new HashMap<>(); // 子容器
     protected boolean started; // 启动标志
     protected DirContext resources; // 容器资源
+
 
     /**
      * 返回类加载器
