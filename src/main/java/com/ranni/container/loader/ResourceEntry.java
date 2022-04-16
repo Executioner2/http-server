@@ -15,10 +15,10 @@ import java.util.jar.Manifest;
  */
 public class ResourceEntry {
     public long lastModified = -1L; // 最后修改时间
-    public byte[] binaryCount; // 二进制流缓存
+    public byte[] binaryContent; // 二进制流缓存
     public Class loadedClass; // 关联的类加载器
-    public URL source; // 源
-    public URL codeBase; // 加载对象的代码库？？？
+    public URL source; // "jar:" + jar包路径 + "!/" + 文件相对路径（如果是从文件夹中找到的，则该参数和codeBase一致）
+    public URL codeBase; // 如果是jar中的资源，则是仓库的绝对路径，如果是文件夹中的资源，则是资源的绝对路径
     public Manifest manifest; // 从JAR加载的清单
     public Certificate[] certificates; // JAR包的CER证书
 }

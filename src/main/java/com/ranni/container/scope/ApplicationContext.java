@@ -4,6 +4,7 @@ import com.ranni.connector.Constants;
 import com.ranni.container.Context;
 import com.ranni.container.Host;
 import com.ranni.container.context.StandardContext;
+import com.ranni.util.Enumerator;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.Servlet;
@@ -30,7 +31,7 @@ public class ApplicationContext implements ServletContext {
     private StandardContext context;
     private String basePath; // 根路径
     private Map attributes = new HashMap(); // 属性
-    private Map readOnlyAttributes = new HashMap(); // 只读属性
+    private Set<String> readOnlyAttributes = new HashSet<>(); // 只读属性名
     private ServletContext facade = new ApplicationContextFacade(this); // 外观类
     private Map<String, String> parameters = null; // 参数
 
@@ -182,28 +183,91 @@ public class ApplicationContext implements ServletContext {
         return null;
     }
 
+    /**
+     * 取得指定的属性值
+     *
+     * @param s
+     * @return
+     */
     @Override
     public Object getAttribute(String s) {
-        return null;
+        synchronized (attributes) {
+            return attributes.get(s);
+        }
     }
 
+    /**
+     * 取得属性名集合的迭代器
+     * @return
+     */
     @Override
     public Enumeration getAttributeNames() {
-        return null;
+        synchronized (attributes) {
+            return new Enumerator(attributes.keySet());
+        }
     }
 
+    /**
+     * 设置属性值
+     * 不允许有空的name
+     * 如果传入的value为null将移除name
+     *
+     * @param name
+     * @param value
+     */
     @Override
-    public void setAttribute(String s, Object o) {
+    public void setAttribute(String name, Object value) {
+        if (name == null)
+            throw new IllegalArgumentException("ApplicationContext.setAttribute:  name不能为null");
 
+        if (value == null) {
+            removeAttribute(name);
+            return;
+        }
+
+        synchronized (attributes) {
+            attributes.put(name, value);
+        }
+
+        // TODO 通知监听器
     }
 
+    /**
+     * 移除指定的属性
+     *
+     * @param s
+     */
     @Override
     public void removeAttribute(String s) {
+        if (readOnlyAttributes.contains(s))
+            return;
 
+        synchronized (attributes) {
+            attributes.remove(s);
+        }
+
+        // TODO 通知监听器
     }
 
+    /**
+     * 取得servlet全局作用域对象的名字
+     * @return
+     */
     @Override
     public String getServletContextName() {
-        return null;
+        return context.getDisplayName();
     }
+
+    /**
+     * 将原有属性改为只读属性
+     *
+     * @param name
+     */
+    public void setAttributeReadOnly(String name) {
+        synchronized (attributes) {
+            if (attributes.containsKey(name))
+                readOnlyAttributes.add(name);
+        }
+    }
+
 }

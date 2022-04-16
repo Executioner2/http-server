@@ -19,7 +19,7 @@ public abstract class BaseDirContext implements DirContext {
     protected int cacheTTL = 5000; // 缓存生存时间，5s
     protected int cacheObjectMaxSize = 32768; // 缓存对象最大大小，32k
     protected Hashtable env; // 环境
-    protected String docBase; // 此容器在JNDI中的名字，必须是个文件夹
+    protected String docBase; // 此容器的就绝对路径，必须是个文件夹
 
     public BaseDirContext() {
         this.env = new Hashtable();
@@ -30,7 +30,7 @@ public abstract class BaseDirContext implements DirContext {
     }
 
     /**
-     * 返回此容器在JNDI中的名字
+     * 返回此容器的就绝对路径
      *
      * @return
      */
@@ -39,7 +39,7 @@ public abstract class BaseDirContext implements DirContext {
     }
 
     /**
-     * 设置此容器在JNDI中的名字
+     * 设置此容器的就绝对路径
      *
      * @param docBase
      */

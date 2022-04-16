@@ -29,6 +29,23 @@ public class StandardHost extends ContainerBase implements Host {
     protected boolean autoDeploy; // 自动部署
 
 
+    /**
+     * 取得工作路径
+     *
+     * @return
+     */
+    public String getWorkDir() {
+        return workDir;
+    }
+
+    /**
+     * 设置工作路径
+     *
+     * @param workDir
+     */
+    public void setWorkDir(String workDir) {
+        this.workDir = workDir;
+    }
 
     /**
      * 取得根路径

@@ -36,6 +36,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     private ServerSocket serverSocket; // 服务器socket
     private boolean stopped = false; // 连接器线程停止标签
     private String threadName; // 线程名
+    private int debug = Logger.INFORMATION; // 日志输出级别
 
     protected boolean started; // 连接器启动标志
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具类实例
@@ -44,6 +45,24 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     protected Container container; // 容器
     protected ProcessorPool processorPool; // 处理器池
 
+
+    /**
+     * 取得日志输出级别
+     *
+     * @return
+     */
+    public int getDebug() {
+        return debug;
+    }
+
+    /**
+     * 设置日志输出级别
+     *
+     * @param debug
+     */
+    public void setDebug(int debug) {
+        this.debug = debug;
+    }
 
     /**
      * 返回容器
@@ -197,7 +216,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         try {
             s = f.createSocket(8080);
         } catch (IOException e) {
-            ;
+            log("server socket创建失败，请检查端口是否被占用！" + e.getMessage());
         }
 
         return s;
@@ -235,6 +254,9 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
             try {
                 socket = serverSocket.accept();
+                if (debug >= 4)
+                    log("接收到请求！   " + socket);
+
                 // 从处理池中拿到一个请求，如果处理池满了并且处理池的处理器数量达到了最大值就丢弃该请求
                 Processor processor = processorPool.getProcessor();
 
@@ -247,7 +269,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
                 if (container == null) throw new ServletException("没有容器！！！！");
 
                 processor.setHttpConnector(this);
-                processor.setContainer(container); // XXX 这里容器也是每次都创建，后面得优化
+                processor.setContainer(container);
                 processor.assign(socket);
 
             } catch (IOException e) {
@@ -399,7 +421,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         String localName = threadName;
         if (localName == null)
             localName = "HttpConnector";
-        if (logger == null)
+        if (logger != null)
             logger.log(localName + " " + msg);
         else
             System.out.println(localName + " " + msg);
@@ -416,7 +438,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         String localName = threadName;
         if (localName == null)
             localName = "HttpConnector";
-        if (logger == null)
+        if (logger != null)
             logger.log(localName + " " + msg, throwable);
         else {
             System.out.println(localName + " " + msg);

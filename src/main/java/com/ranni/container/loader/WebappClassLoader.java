@@ -2,19 +2,20 @@ package com.ranni.container.loader;
 
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.resource.Resource;
 import com.ranni.resource.ResourceAttributes;
 
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.URLStreamHandlerFactory;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.security.CodeSource;
+import java.util.*;
+import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 /**
@@ -40,6 +41,7 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
 
     private ClassLoader parent; // 父-类加载器
     private ClassLoader system; // 应用（系统）类加载器
+    private Object lock = new Object(); // 锁
 
     protected DirContext resources; // 容器资源
     protected boolean delegate; // 委托标志
@@ -48,19 +50,420 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
     protected String[] repositories = new String[0]; // 类仓库名，与类文件仓库的下标是对应的
     protected File[] files = new File[0]; // 类文件仓库，与类仓库名的的下标是对应的
     protected String jarPath; // JAR包的路径
-    protected String[] jarNames = new String[0]; // JAR包名集合
-    protected JarFile[] jarFiles = new JarFile[0]; // JAR包列表
-    protected File[] jarRealFiles = new File[0]; // 存放JAR包中资源的文件夹集合
-    protected long[] lastModifiedDates = new long[0]; // JAR的最后修改日期
-    protected String[] paths = new String[0]; // JAR包路径列表
+    protected List<String> jarNames = new ArrayList<>(); // JAR包名集合
+    protected List<JarFile> jarFiles = new ArrayList<>(); // JAR包列表
+    protected List<File> jarRealFiles = new ArrayList<>(); // 存放JAR包中资源的文件夹集合
+    protected List<Long> lastModifiedDates = new ArrayList<>(); // JAR的最后修改日期
+    protected List<String> paths = new ArrayList<>(); // JAR包路径列表
     protected Set<String> notFoundResources = new HashSet<>(); // 缓存未找到的资源名
     protected Map<String, ResourceEntry> resourceEntries = new HashMap<>(); // 已经载入的缓存资源
 
-
-    public WebappClassLoader(URL[] urls, ClassLoader parent, URLStreamHandlerFactory factory) {
-        super(urls, parent, factory);
+    public WebappClassLoader() {
+        super(new URL[0]);
+        this.parent = getParent();
+        this.system = getSystemClassLoader();
     }
 
+    public WebappClassLoader(ClassLoader parent) {
+        super(new URL[0], parent);
+        this.parent = getParent();
+        this.system = getSystemClassLoader();
+    }
+
+
+    /**
+     * 类加载
+     *
+     * @param name
+     * @return
+     * @throws ClassNotFoundException
+     */
+    @Override
+    public Class<?> loadClass(String name) throws ClassNotFoundException {
+        return loadClass(name, false);
+    }
+
+    /**
+     * 类加载
+     *
+     * @param name
+     * @param resolve
+     * @return
+     * @throws ClassNotFoundException
+     */
+    @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        if (!started)
+            throw new ClassNotFoundException(name);
+
+        Class clazz = null;
+
+        // 尝试从WebappClassLoader的缓存中查询
+        clazz = findLoadedClass0(name);
+        if (clazz != null) {
+            // 是否需要重新解析
+            if (resolve)
+                resolveClass(clazz);
+            return clazz;
+        }
+
+        // 尝试从父类的缓存中查询
+        clazz = findLoadedClass(name);
+        if (clazz != null) {
+            // 是否需要重新解析
+            if (resolve)
+                resolveClass(clazz);
+            return clazz;
+        }
+
+        // 从系统类加载器中加载（JDK 9之前的双亲委派机制）
+        try {
+            clazz = system.loadClass(name);
+            if (clazz != null) {
+                // 是否需要重新加载
+                if (resolve)
+                    resolveClass(clazz);
+                return clazz;
+            }
+        } catch (ClassNotFoundException e) {
+            ;
+        }
+
+        // 是否委托加载，如果是被过滤的包也要启用委托
+        boolean delegateLoad = delegate || filter(name);
+
+        // 尝试委托加载
+        if (delegateLoad) {
+            ClassLoader loader = parent == null ? system : parent;
+
+            try {
+                clazz = loader.loadClass(name);
+                if (clazz != null) {
+                    // 是否需要重新加载
+                    if (resolve)
+                        resolveClass(clazz);
+                    return clazz;
+                }
+            } catch (ClassNotFoundException e) {
+                ;
+            }
+        }
+
+        // 尝试从本地加载
+        try {
+            clazz = findClass(name);
+            if (clazz != null) {
+                // 是否需要重新加载
+                if (resolve)
+                    resolveClass(clazz);
+                return clazz;
+            }
+        } catch (ClassNotFoundException e) {
+            ;
+        }
+
+        // 如果本地加载未加载上，且还没有委托加载，则尝试委托加载
+        if (!delegateLoad) {
+            ClassLoader loader = parent == null ? system : parent;
+
+            try {
+                clazz = loader.loadClass(name);
+                if (clazz != null) {
+                    // 是否需要重新加载
+                    if (resolve)
+                        resolveClass(clazz);
+                    return clazz;
+                }
+            } catch (ClassNotFoundException e) {
+                ;
+            }
+        }
+
+        // 没有找到这个类
+        throw new ClassNotFoundException(name);
+    }
+
+
+    /**
+     * 查询类
+     *
+     * @param name
+     * @return
+     * @throws ClassNotFoundException
+     */
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        Class clazz = findClassInternal(name);
+
+        // 如果从主库中找不到资源而刚好有扩展库，那就尝试从扩展库中去找
+        if (clazz == null && hasExternalRepositories) {
+            clazz = super.findClass(name);
+        }
+
+        if (clazz == null) {
+            throw new ClassNotFoundException(name);
+        }
+
+        return clazz;
+    }
+
+    /**
+     * 从本地存储中查找类
+     *
+     * @param name
+     * @return
+     */
+    protected Class findClassInternal(String name) throws ClassNotFoundException {
+        if (!validate(name))
+            throw new ClassNotFoundException(name);
+
+        String tempPath = name.replace('.', '/');
+        String classPath = tempPath + ".class";
+
+        ResourceEntry entry = null;
+        entry = findResourceInternal(name, classPath);
+
+        if (entry == null || entry.binaryContent == null)
+            throw new ClassNotFoundException(name);
+
+        Class clazz = entry.loadedClass;
+        if (clazz != null)
+            return clazz;
+
+        String packageName = null;
+        int pos = name.lastIndexOf('.');
+        if (pos != -1)
+            packageName = name.substring(0, pos);
+
+        Package pkg = null;
+        if (packageName != null) {
+            pkg = getDefinedPackage(packageName);
+
+            if (pkg == null) {
+                if (entry.manifest == null) {
+                    definePackage(packageName,null, null, null, null, null,
+                            null, null);
+                } else {
+                    definePackage(packageName, entry.manifest, entry.codeBase);
+                }
+            }
+        }
+
+        CodeSource codeSource = new CodeSource(entry.codeBase, entry.certificates);
+
+        if (entry.loadedClass == null) {
+            synchronized (this) {
+                // 双重(entry.loadedClass == null)判断，避免重复创建类加载器
+                if (entry.loadedClass == null) {
+                    clazz = defineClass(name, entry.binaryContent, 0,
+                                        entry.binaryContent.length,
+                                        codeSource);
+                    entry.loadedClass = clazz;
+                } else {
+                    clazz = entry.loadedClass;
+                }
+            }
+        } else {
+            clazz = entry.loadedClass;
+        }
+
+        return clazz;
+    }
+
+    /**
+     * 从本地资源中查询并解析资源
+     *
+     * @param name
+     * @param path 相对路径
+     * @return
+     */
+    private ResourceEntry findResourceInternal(String name, String path) {
+        if (!started)
+            return null;
+
+        if (name == null || path == null)
+            return null;
+
+        ResourceEntry entry = resourceEntries.get(name);
+        if (entry != null)
+            return entry;
+
+        int contentLength = -1;
+        InputStream binaryStream = null;
+        Resource resource = null;
+
+        // 尝试从repositories中找到需要被加载的类
+        for (int i = 0; resource == null
+            && i < repositories.length; i++) {
+
+            try {
+                String fullPath = repositories[i] + path;
+                Object res = resources.lookup(fullPath);
+                if (res instanceof Resource)
+                    resource = (Resource) res;
+
+                entry = new ResourceEntry();
+                try {
+                    entry.source = getURL(new File(files[i], path));
+                    entry.codeBase = entry.source;
+                } catch (MalformedURLException e) {
+                    return null;
+                }
+
+                ResourceAttributes attributes = (ResourceAttributes) resources.getAttributes(fullPath);
+                entry.lastModified = attributes.getLastModified();
+                contentLength = (int) attributes.getContentLength();
+
+                if (resource != null) {
+                    try {
+                        binaryStream = resource.streamContent();
+                    } catch (IOException e) {
+                        return null;
+                    }
+
+                    synchronized (lock) {
+                        lastModifiedDates.add(entry.lastModified);
+                        paths.add(fullPath);
+                    }
+                }
+
+            } catch (NamingException e) {
+                e.printStackTrace();
+            }
+        } // for end
+
+        if (entry == null && notFoundResources.contains(name))
+            return null;
+
+        // 尝试从jarFiles中寻找
+        JarEntry jarEntry = null;
+        for (int i = 0; entry == null
+            && i < jarFiles.size(); i++) {
+
+            jarEntry = jarFiles.get(i).getJarEntry(path);
+
+            if (jarEntry != null) {
+                entry = new ResourceEntry();
+                try {
+                    entry.codeBase = getURL(jarRealFiles.get(i)); // jar包的绝对路径的URL
+                    String jarFakeUrl = entry.codeBase.toString(); // jar包的绝对路径
+                    jarFakeUrl = "jar:" + jarFakeUrl + "!/" + path; // emm，jar中资源的定位
+                    entry.source = new URL(jarFakeUrl); // 资源地址
+                } catch (MalformedURLException e) {
+                    return null;
+                }
+
+                contentLength = (int) jarEntry.getSize();
+                try {
+                    entry.manifest = jarFiles.get(i).getManifest();
+                    binaryStream = jarFiles.get(i).getInputStream(jarEntry);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } // for end
+
+        // 没有找到资源文件，加入未找到资源文件清单并返回null
+        if (entry == null) {
+            synchronized (notFoundResources) {
+                notFoundResources.add(name);
+            }
+            return null;
+        }
+
+        if (binaryStream != null) {
+            byte[] binaryContent = new byte[contentLength];
+            try {
+                int pos = 0;
+                int n = 0;
+                do {
+                    n = binaryStream.read(binaryContent, pos, contentLength - n);
+                    pos += n;
+                } while (n > 0);
+                binaryStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+
+            entry.binaryContent = binaryContent;
+
+            if (jarEntry != null) {
+                entry.certificates = jarEntry.getCertificates();
+            }
+        }
+
+        // 找到并解析了这个资源，现在把解析好的资源对象放到集合中
+        synchronized (resourceEntries) {
+            // 如果已经存在了就返回存在的（多线程问题）
+            ResourceEntry entry2 = resourceEntries.get(name);
+            if (entry2 == null) {
+                resourceEntries.put(name, entry);
+            } else {
+                entry = entry2;
+            }
+        }
+
+        return entry;
+    }
+
+
+    /**
+     * 取得文件的URL
+     *
+     * @param file
+     * @return
+     */
+    protected URL getURL(File file) throws MalformedURLException {
+        try {
+            file = file.getCanonicalFile();
+        } catch (IOException e) {
+            ;
+        }
+        return file.toURI().toURL();
+    }
+
+
+    /**
+     * 合法性验证
+     *
+     * @param name
+     * @return
+     */
+    protected boolean validate(String name) {
+        if (name == null)
+            return false;
+        if (name.startsWith("java."))
+            return false;
+
+        return true;
+    }
+
+
+    /**
+     * 是否是被过滤的包
+     *
+     * @param name
+     * @return
+     */
+    protected boolean filter(String name) {
+       if (name == null) return false;
+
+       String packageName = null;
+       int pos = name.lastIndexOf('.');
+       if (pos != -1)
+           packageName = name.substring(0, pos);
+       else
+           return false;
+
+        for (int i = 0; i < packageTriggers.length; i++) {
+            if (packageName.startsWith(packageTriggers[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /**
      * 添加拓展仓库
@@ -145,11 +548,11 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
 
         // XXX 这里将类仓库名和类文件仓库的拷贝当作了一个整体进行，如果抛出下标异常优先检查这里
 
-        String[] res1 = new String[repositories.length + 1];
+        String[] res1 = new String[this.repositories.length + 1];
         File[] res2 = new File[this.files.length + 1];
         int i = 0;
 
-        for (; i < res1.length; i++) {
+        for (; i < files.length; i++) {
             res1[i] = repositories[i];
             res2[i] = files[i];
         }
@@ -199,25 +602,14 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
             while (jarName.startsWith("/"))
                 jarName = jarName.substring(1);
 
-            String[] res1 = new String[jarNames.length + 1];
-            System.arraycopy(jarNames, 0, res1, 0, jarNames.length);
-            res1[jarNames.length] = jarName;
-            jarNames = res1;
+            jarNames.add(jarName);
         }
 
         // 此JAR包最后修改时间
         try {
             long lastModified = ((ResourceAttributes) resources.getAttributes(path)).getLastModified();
-
-            String[] res2 = new String[paths.length + 1];
-            System.arraycopy(paths, 0, res2, 0, paths.length);
-            res2[paths.length] = path;
-            paths = res2;
-
-            long[] res3 = new long[lastModifiedDates.length + 1];
-            System.arraycopy(lastModifiedDates, 0, res3, 0, lastModifiedDates.length);
-            res3[lastModifiedDates.length] = lastModified;
-            lastModifiedDates = res3;
+            paths.add(path);
+            lastModifiedDates.add(lastModified);
 
         } catch (NamingException e) {
             ;
@@ -226,15 +618,8 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
         // TODO 检查JAR包中有无无效类
 //        if (!validateJarFile(file)) return;
 
-        JarFile[] res4 = new JarFile[this.jarFiles.length + 1];
-        System.arraycopy(jarFiles, 0, res4, 0, jarFiles.length);
-        res4[jarFiles.length] = jarFile;
-        jarFiles = res4;
-
-        File[] res5 = new File[this.jarRealFiles.length + 1];
-        System.arraycopy(jarRealFiles, 0, res5, 0, jarRealFiles.length);
-        res5[jarRealFiles.length] = file;
-        jarRealFiles = res5;
+        jarFiles.add(jarFile);
+        jarRealFiles.add(file);
 
         // TODO 加载清单
     }
@@ -280,6 +665,19 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
     }
 
     /**
+     * 查询缓存中是否已经加载此类
+     *
+     * @param name
+     * @return
+     */
+    protected Class findLoadedClass0(String name) {
+        ResourceEntry entry = resourceEntries.get(name);
+        if (entry != null)
+            return entry.loadedClass;
+        return null;
+    }
+
+    /**
      * 释放资源
      *
      * @throws Exception
@@ -295,13 +693,13 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
         resourceEntries.clear(); // 清除已解析的资源文件
 
         repositories = new String[0];
-        files = new File[0];
-        jarFiles = new JarFile[0];
-        jarRealFiles = new File[0];
         jarPath = null;
-        jarNames = new String[0];
-        lastModifiedDates = new long[0];
-        paths = new String[0];
+        files = new File[0];
+        jarFiles.clear();
+        jarRealFiles.clear();
+        jarNames.clear();
+        paths.clear();
+        lastModifiedDates.clear();
         hasExternalRepositories = false;
     }
 }

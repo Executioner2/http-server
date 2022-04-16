@@ -19,7 +19,7 @@ public class FileDirContext extends BaseDirContext {
     protected static final int BUFFER_SIZE = 2048; // 缓冲区大小
 
     protected File base; // 文件夹根目录
-    protected String absoluteBase; // 绝对基本路径
+    protected String absoluteBase; // 文档根目录的绝对路径
     protected boolean caseSensitive = true; // 是否检查绝对路径的规范性
     protected boolean allowLinking = false; // 是否允许连接
 
@@ -44,7 +44,7 @@ public class FileDirContext extends BaseDirContext {
     }
 
     /**
-     * 设置文档根目录
+     * 设置文档根目录的绝对路径
      *
      * @param docBase
      */

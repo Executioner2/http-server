@@ -61,8 +61,35 @@ public abstract class ContainerBase implements Container, Pipeline {
      * @param loader
      */
     @Override
-    public void setLoader(Loader loader) {
+    public synchronized void setLoader(Loader loader) {
+        Loader oldLoader = this.loader;
+        if (oldLoader == loader)
+            return;
+
         this.loader = loader;
+
+        // 如果容器已经启动了
+        // 那么需要先停止旧的加载器（继承了Lifecycle的话），再启动新的加载器（继承了Lifecycle的话）
+        if (started && oldLoader != null
+            && oldLoader instanceof Lifecycle) {
+            try {
+                ((Lifecycle) oldLoader).stop();
+            } catch (Exception exception) {
+                log("ContainerBase.setLoader：旧的加载器停止失败！");
+            }
+        }
+
+        if (loader != null)
+            loader.setContainer(this);
+
+        if (started && loader != null
+            && loader instanceof Lifecycle) {
+            try {
+                ((Lifecycle) loader).start();
+            } catch (Exception exception) {
+                log("ContainerBase.setLoader：新的的加载器启动失败！");
+            }
+        }
     }
 
 
@@ -144,9 +171,7 @@ public abstract class ContainerBase implements Container, Pipeline {
      */
     @Override
     public synchronized void setResources(DirContext resources) {
-        DirContext oldResource = this.resources;
-
-        if (oldResource == this.resources) return;
+        if (this.resources == resources) return;
 
         Hashtable<String, String> env = new Hashtable<>();
         if (getParent() != null)
@@ -307,6 +332,7 @@ public abstract class ContainerBase implements Container, Pipeline {
     @Override
     public Mapper findMapper(String protocol) {
         if (mapper != null) return mapper;
+
         synchronized (mappers) {
             return mappers.get(protocol);
         }
@@ -488,5 +514,32 @@ public abstract class ContainerBase implements Container, Pipeline {
         if (period >= 0)
             className = className.substring(period + 1);
         return (className + "[" + getName() + "]");
+    }
+
+    /**
+     * 添加默认的映射器
+     * mappers中第一位就是默认mapper
+     *
+     * @param mapperClass
+     */
+    protected void addDefaultMapper(String mapperClass) {
+        if (mapperClass == null || mapperClass.isBlank())
+            throw new IllegalArgumentException("mapperClass不能为空！");
+        if (mappers.size() >= 1)
+            return;
+
+        try {
+            Mapper defaultMapper = null;
+            Class clazz = Class.forName(mapperClass);
+            Object o = clazz.getConstructor().newInstance();
+            if (!(o instanceof Mapper))
+                throw new ClassCastException("该类不是Mapper的实现类！");
+
+            defaultMapper = (Mapper) o;
+            defaultMapper.setProtocol("http");
+            addMapper(defaultMapper);
+        } catch (Exception e) {
+            log("containerBase.addDefaultMapper  " + e.getMessage());
+        }
     }
 }

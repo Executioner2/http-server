@@ -1,7 +1,9 @@
 package com.ranni.container.context;
 
 import com.ranni.common.Globals;
+import com.ranni.common.SystemProperty;
 import com.ranni.container.*;
+import com.ranni.container.host.StandardHost;
 import com.ranni.container.scope.ApplicationContext;
 import com.ranni.deploy.*;
 import com.ranni.exception.LifecycleException;
@@ -18,6 +20,7 @@ import com.ranni.util.RequestUtil;
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletContext;
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -49,6 +52,8 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private NamingResources namingResources = new NamingResources(); // 命名资源管理实例
     private String namingContextName; // 命名容器全名
     private boolean paused; // 是否开始接收请求
+    private String workDir; // 工作目录
+    private String mapperClass = "com.ranni.container.context.StandardContextMapper"; // 默认映射器
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
@@ -60,6 +65,46 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         pipeline.setBasic(new SimpleContextValve(this));
     }
 
+
+    /**
+     * 返回默认的映射器
+     *
+     * @return
+     */
+    public String getMapperClass() {
+        return mapperClass;
+    }
+
+    /**
+     * 设置默认的映射器
+     *
+     * @param mapperClass
+     */
+    public void setMapperClass(String mapperClass) {
+        this.mapperClass = mapperClass;
+    }
+
+    /**
+     * 取得工作目录
+     *
+     * @return
+     */
+    public String getWorkDir() {
+        return workDir;
+    }
+
+    /**
+     * 设置工作目录
+     *
+     * @param workDir
+     */
+    public void setWorkDir(String workDir) {
+        this.workDir = workDir;
+
+        // 如果容器在运行时更改了工作目录就要重新配置
+        if (started)
+            postWorkDirectory();
+    }
 
     public boolean isSwallowOutput() {
         return swallowOutput;
@@ -247,7 +292,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
      *
      * @return
      */
-    private File engineBase() {
+    protected File engineBase() {
         return new File(System.getProperty("ranni.base"));
     }
 
@@ -316,14 +361,24 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
     }
 
+    /**
+     * 返回容器显示名字
+     *
+     * @return
+     */
     @Override
     public String getDisplayName() {
-        return null;
+        return this.displayName;
     }
 
+    /**
+     * 设置容器显示名字
+     *
+     * @param displayName
+     */
     @Override
     public void setDisplayName(String displayName) {
-
+        this.displayName = displayName;
     }
 
     @Override
@@ -961,11 +1016,14 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
     /**
      * context容器启动
-     * 启动顺序：
-     *  1、加载器
-     *  2、子容器
-     *  3、管道
-     *  4、容器自身
+     * 要做的操作：
+     *  1、配置资源
+     *  2、启动加载器
+     *  3、设置工作目录
+     *  4、设置默认映射器
+     *  5、启动子容器
+     *  6、启动管道
+     *  7、启动容器自身
      *
      * @throws Exception
      */
@@ -1002,6 +1060,12 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
                 }
             }
 
+            // 设置工作目录
+            postWorkDirectory();
+
+            // 设置默认映射器
+            addDefaultMapper(this.mapperClass);
+
             // 启动加载器
             if (loader != null && loader instanceof Lifecycle)
                 ((Lifecycle) loader).start();
@@ -1030,6 +1094,86 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
         // 容器启动后
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
+    }
+
+    /**
+     * 添加默认映射器
+     *
+     * @param mapperClass
+     */
+    protected void addDefaultMapper(String mapperClass) {
+        super.addDefaultMapper(mapperClass);
+    }
+
+    /**
+     * 设置工作目录，把工作目录属性存入ServletContext中
+     * 会先查询engine和host的路径，为空的话就用"_"代替
+     */
+    private void postWorkDirectory() {
+        String workDir = getWorkDir();
+
+        if (workDir == null) {
+            String hostName = null;
+            String engineName = null;
+            String hostWorkDir = null;
+            Container parentHost = getParent();
+
+            if (parentHost != null) {
+                hostName = parentHost.getName();
+                // 取得主机的工作路径
+                if (parentHost instanceof StandardHost) {
+                    hostWorkDir = ((StandardHost) parentHost).getWorkDir();
+                }
+
+                Container parentEngine = parentHost.getParent();
+
+                if (parentEngine != null) {
+                    engineName = parentEngine.getName();
+                }
+            }
+
+            if (engineName == null || engineName.isEmpty()) {
+                engineName = "_";
+            }
+            if (hostName == null || hostName.isEmpty()) {
+                hostName = "_";
+            }
+
+            String path = getPath();
+
+            if (path.startsWith("/")) {
+                path = path.substring(1);
+            }
+
+            if (hostWorkDir != null) {
+                workDir = hostWorkDir + File.separator + path;
+            } else {
+                workDir = "work" + File.separator + engineName +
+                        File.separator + hostName + File.separator + path;
+            }
+
+            setWorkDir(workDir);
+        } // if (workDir == null) end
+
+        // 创建必要的目录
+        File dir = new File(workDir);
+        if (!dir.isAbsolute()) {
+            // 不是绝对路径，那么就取得服务器的工作路径
+            File ranniHome = new File(System.getProperty(SystemProperty.SERVER_BASE));
+            String ranniHomePath = null;
+            try {
+                ranniHomePath = ranniHome.getCanonicalPath();
+                dir = new File(ranniHomePath, workDir);
+            } catch (IOException e) {
+                ;
+            }
+        }
+        dir.mkdirs();
+
+        // 添加到ServletContext中并设为只读属性
+        getServletContext().setAttribute(Globals.WORK_DIR_ATTR, dir);
+        if (getServletContext() instanceof ApplicationContext)
+            ((ApplicationContext) getServletContext()).setAttributeReadOnly(Globals.WORK_DIR_ATTR);
     }
 
     /**
