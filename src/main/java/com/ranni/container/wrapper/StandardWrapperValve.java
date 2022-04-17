@@ -16,15 +16,15 @@ import java.io.IOException;
 /**
  * Title: HttpServer
  * Description:
- * 默认的wrapper阀
+ * 标准的的wrapper基础阀
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 21:47
  */
-public class DefaultWrapperValve extends ValveBase {
+public class StandardWrapperValve extends ValveBase {
 
-    public DefaultWrapperValve(Container container) {
+    public StandardWrapperValve(Container container) {
         setContainer(container);
     }
 

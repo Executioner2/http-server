@@ -33,7 +33,7 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
 
 
     public StandardWrapper() {
-        pipeline.setBasic(new DefaultWrapperValve(this));
+        pipeline.setBasic(new StandardWrapperValve(this));
     }
 
 

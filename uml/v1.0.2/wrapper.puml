@@ -1,0 +1,17 @@
+@startuml
+title v1.0.2 StandardWrapper容器UML图
+
+interface Wrapper
+interface Lifecycle
+interface ValveBase
+abstract class ContainerBase
+class StandardWrapper
+class StandardWrapperValve
+
+Lifecycle <|.. StandardWrapper
+Wrapper <|.. StandardWrapper
+ContainerBase <|-- StandardWrapper
+ValveBase <|-- StandardWrapperValve
+ContainerBase "1" ..> "1" StandardWrapperValve
+
+@enduml
