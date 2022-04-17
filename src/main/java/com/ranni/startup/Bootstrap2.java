@@ -4,7 +4,6 @@ import com.ranni.connector.HttpConnector;
 import com.ranni.container.context.StandardContext;
 import com.ranni.container.context.StandardContextMapper;
 import com.ranni.container.wrapper.StandardWrapper;
-import com.ranni.container.loader.SimpleLoader;
 import com.ranni.test.valves.ClientIPLoggerValve;
 import com.ranni.test.valves.HeaderLoggerValve;
 
@@ -36,10 +35,6 @@ public class Bootstrap2 {
         // 将阀添加到context容器中
         context.addValve(valve1);
         context.addValve(valve2);
-
-        // 给容器类添加载器
-        SimpleLoader loader = new SimpleLoader();
-        context.setLoader(loader);
 
         // 创建context的默认映射器并设置协议
         StandardContextMapper contextMapper = new StandardContextMapper();

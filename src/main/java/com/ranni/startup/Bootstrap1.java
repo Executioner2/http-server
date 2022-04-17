@@ -2,7 +2,6 @@ package com.ranni.startup;
 
 import com.ranni.connector.HttpConnector;
 import com.ranni.container.wrapper.StandardWrapper;
-import com.ranni.container.loader.SimpleLoader;
 
 /**
  * Title: HttpServer
@@ -18,7 +17,6 @@ public class Bootstrap1 {
         try {
             connector.initialize();
             StandardWrapper simpleWrapper = new StandardWrapper();
-            simpleWrapper.setLoader(new SimpleLoader());
             connector.setContainer(simpleWrapper);
             connector.start();
         } catch (Exception e) {
