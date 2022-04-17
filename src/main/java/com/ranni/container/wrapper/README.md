@@ -1,4 +1,8 @@
-## com.ranni.container.context包下类/接口的说明
+## com.ranni.container.wrapper包下类/接口的说明
+
+此包下存放的是Wrapper容器的标准实现类（StandardWrapper）以及Wrapper标准实现类
+会用到的一些组件的实现类
+---
 
 |类型|类名|说明|
 |---|---|---|
