@@ -28,7 +28,7 @@ public abstract class RequestBase implements Request, ServletRequest {
     protected Context context; // TODO 请求上下文，暂时无实现
     protected String info; // TODO 暂时无用
     protected ServletRequest request; // 请求对象
-    protected RequestFacade facade = new RequestFacade(this); // 请求对象对外的包装对象
+    protected ServletRequest facade = new HttpRequestFacade(this); // 请求对象对外的包装对象
     protected Response response; // 响应对象
     protected Socket socket; // 本次请求的套接字
     protected InputStream input; // socket中的输入流

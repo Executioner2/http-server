@@ -24,7 +24,7 @@ import java.util.Locale;
  * @Date 2022-03-22 18:26
  */
 public abstract class ResponseBase implements ServletResponse, Response {
-    protected ResponseFacade facade = new ResponseFacade(this); // 响应外观类
+    protected ServletResponse facade = new HttpResponseFacade(this); // 响应外观类
     protected Connector connector; // 连接器
     protected int contentCount; // 输入到输出流中真实的数据长度
     protected Context context; // context类型的容器

@@ -17,16 +17,16 @@ import java.io.IOException;
 /**
  * Title: HttpServer
  * Description:
- * 简单的wrapper阀
+ * 默认的wrapper阀
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 21:47
  */
-public class SimpleWrapperValve implements Valve, Contained {
+public class DefaultWrapperValve implements Valve, Contained {
     private Container container;
 
-    public SimpleWrapperValve(Container container) {
+    public DefaultWrapperValve(Container container) {
         setContainer(container);
     }
 
