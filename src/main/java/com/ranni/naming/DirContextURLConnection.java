@@ -1,4 +1,4 @@
-package com.ranni.resource;
+package com.ranni.naming;
 
 import com.ranni.util.Enumerator;
 
@@ -27,6 +27,7 @@ import java.util.*;
  * @Email 1205878539@qq.com
  * @Date 2022-04-12 16:15
  */
+@Deprecated // 暂时还用不到
 public class DirContextURLConnection extends URLConnection {
     protected DirContext context; // 目录容器
     protected Resource resource; // 资源

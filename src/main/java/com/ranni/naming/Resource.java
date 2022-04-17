@@ -1,4 +1,4 @@
-package com.ranni.resource;
+package com.ranni.naming;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

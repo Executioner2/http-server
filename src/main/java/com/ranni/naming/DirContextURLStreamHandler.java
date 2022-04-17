@@ -1,4 +1,4 @@
-package com.ranni.resource;
+package com.ranni.naming;
 
 import javax.naming.directory.DirContext;
 import java.io.IOException;
@@ -18,6 +18,7 @@ import java.util.Map;
  * @Email 1205878539@qq.com
  * @Date 2022-04-06 17:35
  */
+@Deprecated // 暂时还用不到
 public class DirContextURLStreamHandler extends URLStreamHandler {
     private static Map<ClassLoader, DirContext> clBindings = Collections.synchronizedMap(new HashMap<>()); // 绑定类加载器，key为线程的类加载器
     private static Map<Thread, DirContext> threadBindings = Collections.synchronizedMap(new HashMap<>()); // 与线程绑定的目录容器

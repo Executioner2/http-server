@@ -1,5 +1,22 @@
 @startuml
-title v1.0.2 loader UML图
+title v1.0.2 WebappLoader UML图
 
+interface Loader
+interface Reloader
+interface Lifecycle
+interface java.lang.Runnable
+class ResourceEntry
+class WebappClassLoader
+class WebappLoader
+class java.net.URLClassLoader
+
+Lifecycle <|.. WebappClassLoader
+Lifecycle <|.. WebappLoader
+java.lang.Runnable <|.. WebappLoader
+Loader <|.. WebappLoader
+Reloader <|.. WebappClassLoader
+java.net.URLClassLoader <|-- WebappClassLoader
+WebappLoader <-- WebappClassLoader
+WebappLoader "1" o-- "n" ResourceEntry
 
 @enduml

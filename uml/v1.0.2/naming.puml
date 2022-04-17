@@ -1,0 +1,36 @@
+@startuml
+title v1.0.2 naming UML图
+
+interface javax.naming.NameParser
+interface javax.naming.directory.DirContext
+abstract class BaseDirContext
+class FileDirContext
+class NameParserImpl
+class NamingContextEnumeration
+class NamingEntry
+class ProxyDirContext
+class Resource
+class ResourceAttributes
+class WARDirContext
+class FileDirContext.FileResource <<inner class>>
+class FileDirContext.FileResourceAttributes <<inner class>>
+class WARDirContext.Entry <<inner class>>
+class WARDirContext.WARResource <<inner class>>
+
+note "ProxyDirContext代理BaseDirContext\n的实现子类，便于缓存的资源" as n1
+ProxyDirContext .. n1
+n1 .. BaseDirContext
+
+javax.naming.directory.DirContext <|.. BaseDirContext
+BaseDirContext <|-- FileDirContext
+BaseDirContext <|-- WARDirContext
+FileDirContext <-- FileDirContext.FileResource
+FileDirContext <-- FileDirContext.FileResourceAttributes
+WARDirContext <-- WARDirContext.Entry
+WARDirContext <-- WARDirContext.WARResource
+ProxyDirContext <-- BaseDirContext
+javax.naming.directory.DirContext <|.. ProxyDirContext
+
+
+
+@enduml

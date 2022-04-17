@@ -8,7 +8,7 @@ import com.ranni.container.pip.StandardPipeline;
 import com.ranni.container.pip.Valve;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.logger.Logger;
-import com.ranni.resource.ProxyDirContext;
+import com.ranni.naming.ProxyDirContext;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletException;

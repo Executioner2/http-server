@@ -1,4 +1,4 @@
-package com.ranni.resource;
+package com.ranni.naming;
 
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;

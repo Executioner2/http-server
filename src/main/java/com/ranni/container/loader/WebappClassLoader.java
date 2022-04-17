@@ -2,8 +2,8 @@ package com.ranni.container.loader;
 
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
-import com.ranni.resource.Resource;
-import com.ranni.resource.ResourceAttributes;
+import com.ranni.naming.Resource;
+import com.ranni.naming.ResourceAttributes;
 
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
@@ -55,7 +55,7 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
     protected List<File> jarRealFiles = new ArrayList<>(); // 存放JAR包中资源的文件夹集合
     protected List<Long> lastModifiedDates = new ArrayList<>(); // JAR的最后修改日期
     protected List<String> paths = new ArrayList<>(); // JAR包路径列表
-    protected Set<String> notFoundResources = new HashSet<>(); // 缓存未找到的资源名
+    protected Set<String> notFoundResources = new HashSet<>(); // 未找到的资源名
     protected Map<String, ResourceEntry> resourceEntries = new HashMap<>(); // 已经载入的缓存资源
 
     public WebappClassLoader() {

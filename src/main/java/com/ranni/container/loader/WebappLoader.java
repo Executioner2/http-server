@@ -7,8 +7,8 @@ import com.ranni.exception.LifecycleException;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
-import com.ranni.resource.DirContextURLStreamHandlerFactory;
-import com.ranni.resource.Resource;
+import com.ranni.naming.DirContextURLStreamHandlerFactory;
+import com.ranni.naming.Resource;
 import com.ranni.util.LifecycleSupport;
 
 import javax.naming.Binding;
@@ -318,7 +318,7 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
         if (container.getResources() == null)
             return;
 
-        // 为JNDI协议注册流处理工厂
+        // XXX  为JNDI协议注册流处理工厂   这个东西暂时还没用上，后续可能删除掉
         URLStreamHandlerFactory streamHandlerFactory = new DirContextURLStreamHandlerFactory();
         URL.setURLStreamHandlerFactory(streamHandlerFactory);
 

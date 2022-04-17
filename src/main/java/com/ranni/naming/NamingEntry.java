@@ -1,4 +1,4 @@
-package com.ranni.resource;
+package com.ranni.naming;
 
 /**
  * Title: HttpServer
