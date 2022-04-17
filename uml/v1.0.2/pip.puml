@@ -1,0 +1,25 @@
+@startuml
+title v1.0.2 StandardPipeline UML图
+
+interface Contained
+interface Pipeline
+interface Valve
+interface ValveContext
+abstract class ValveBase
+abstract class ContainerBase
+class StandardPipeline
+class StandardValveContext
+class ValveImpl
+
+Contained <|.. ValveBase
+Valve <|.. ValveBase
+Valve <|.. ValveImpl
+ValveContext <|.. StandardValveContext
+Pipeline <|.. StandardPipeline
+Pipeline <|.. ContainerBase
+StandardPipeline <-- ContainerBase
+StandardPipeline <-- StandardValveContext
+StandardPipeline "1" *-- "1" ValveBase
+StandardPipeline "1" o-- "n" ValveImpl
+
+@enduml
