@@ -1,9 +1,7 @@
-package com.ranni.container.context;
+package com.ranni.container.pip;
 
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
-import com.ranni.container.pip.Valve;
-import com.ranni.container.pip.ValveContext;
 
 import javax.servlet.ServletException;
 import java.io.IOException;

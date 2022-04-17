@@ -1,26 +1,23 @@
 @startuml
+title v1.0.2 StandardContext容器UML图
 
 interface Valve
 interface Contained
 interface Context
 interface Lifecycle
 interface Mapper
-interface ValveContext
 abstract class ContainerBase
 abstract class ValveBase
+class StandardPipeline
 class StandardContextValve
 class StandardContext
 class StandardContextMapper
-class StandardValveContext
 class ValveImpl
 
 ContainerBase <|-- StandardContext
+ContainerBase "1" *-- "1" StandardPipeline : 标准管道结构详情见pip包
 Lifecycle <|.. StandardContext
 Context <|.. StandardContext
-
-StandardContext "1" *-- "1" StandardValveContext
-
-ValveContext <|.. StandardValveContext
 
 Valve <|.. ValveImpl
 
@@ -29,8 +26,8 @@ Contained <|.. ValveBase
 
 ValveBase <|-- StandardContextValve
 
-StandardValveContext "1" o-- "n" ValveImpl
-StandardValveContext "1" <-- "1" StandardContextValve
+StandardPipeline "1" o-- "n" ValveImpl
+StandardPipeline "1" <-- "1" StandardContextValve
 Mapper <|.. StandardContextMapper
 StandardContext "1" *-- "1" StandardContextMapper
 
