@@ -82,7 +82,7 @@ public class StandardContextMapper implements Mapper {
         // 获得request的URI
         String requestURI = ((HttpRequest) request).getDecodedRequestURI();
 
-        // 获得真实的URI，即剪掉context的长度
+        // 获得真实的URI，即剪掉context长度的字符串
         String relativeURI = requestURI.substring(contextPath.length());
 
         // 根据URI取得对应的wrapper

@@ -1,7 +1,6 @@
 package com.ranni.startup;
 
 import com.ranni.connector.HttpConnector;
-import com.ranni.container.context.SimpleContextLifecycleListener;
 import com.ranni.container.context.StandardContext;
 import com.ranni.container.context.StandardContextMapper;
 import com.ranni.container.wrapper.StandardWrapper;
@@ -50,10 +49,6 @@ public class Bootstrap2 {
         // 给context容器添加刚刚创建的context映射器并添加URI与mapper名的映射
         context.addMapper(contextMapper);
         context.addServletMapping("/TestServlet", "TestServlet");
-
-        // 添加监听器
-        SimpleContextLifecycleListener simpleContextLifecycleListener = new SimpleContextLifecycleListener();
-        context.addLifecycleListener(simpleContextLifecycleListener);
 
         // 设置连接器的容器
         connector.setContainer(context);

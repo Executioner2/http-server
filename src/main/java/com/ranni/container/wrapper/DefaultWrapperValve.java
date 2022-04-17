@@ -4,8 +4,7 @@ import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.Container;
 import com.ranni.container.Wrapper;
-import com.ranni.container.pip.Contained;
-import com.ranni.container.pip.Valve;
+import com.ranni.container.pip.ValveBase;
 import com.ranni.container.pip.ValveContext;
 
 import javax.servlet.Servlet;
@@ -23,8 +22,7 @@ import java.io.IOException;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 21:47
  */
-public class DefaultWrapperValve implements Valve, Contained {
-    private Container container;
+public class DefaultWrapperValve extends ValveBase {
 
     public DefaultWrapperValve(Container container) {
         setContainer(container);

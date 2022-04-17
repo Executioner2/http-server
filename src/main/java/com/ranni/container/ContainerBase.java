@@ -4,6 +4,7 @@ import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.loader.Loader;
 import com.ranni.container.pip.Pipeline;
+import com.ranni.container.pip.StandardPipeline;
 import com.ranni.container.pip.Valve;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.logger.Logger;
@@ -30,7 +31,7 @@ import java.util.Map;
 public abstract class ContainerBase implements Container, Pipeline {
     protected Loader loader; // 加载器
     protected Logger logger; // 日志记录器
-    protected Pipeline pipeline = new SimplePipeline(this); // 管道
+    protected Pipeline pipeline = new StandardPipeline(this); // 管道
     protected Mapper mapper; // 默认关联mapper，即mappers中只有一个mapper，那么就会将此mapper设置为默认关联mapper
     protected Map<String, Mapper> mappers = new HashMap<>(); // 协议与mapper的映射集
     protected Container parent; // 父容器

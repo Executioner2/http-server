@@ -1,4 +1,4 @@
-## com.ranni.connector.http.response包下类的说明
+## com.ranni.connector.http.response包下类/接口的说明
 
 |类型|类名|说明|
 |---|---|---|
@@ -20,4 +20,4 @@
   
   
 ### UML类图
-![img](../../../../../../../../uml/v0.0.2/response.png)
+![img](../../../../../../../../uml/v1.0.2/response.png)

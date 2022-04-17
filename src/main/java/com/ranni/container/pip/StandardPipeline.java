@@ -1,12 +1,9 @@
-package com.ranni.container;
+package com.ranni.container.pip;
 
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
+import com.ranni.container.Container;
 import com.ranni.container.context.StandardValveContext;
-import com.ranni.container.pip.Contained;
-import com.ranni.container.pip.Pipeline;
-import com.ranni.container.pip.Valve;
-import com.ranni.container.pip.ValveContext;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
 
@@ -16,19 +13,19 @@ import java.io.IOException;
 /**
  * Title: HttpServer
  * Description:
- * 简单的管道实现类，带该方类足够完整时再晋升为标准管道实现类
+ * 标准管道实现类
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 21:45
  */
-public class SimplePipeline implements Pipeline, Contained, Lifecycle {
+public class StandardPipeline implements Pipeline, Contained, Lifecycle {
     private Container container;
     private Valve[] valves = new Valve[0]; // 阀
     private Valve basic; // 基础阀
     private final ValveContext valveContext = new StandardValveContext();
 
-    public SimplePipeline(Container container) {
+    public StandardPipeline(Container container) {
         setContainer(container);
     }
 

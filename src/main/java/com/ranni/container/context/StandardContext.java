@@ -62,7 +62,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     protected boolean filesystemBased; // 关联的目录容器是否是文件类型的目录容器
 
     public StandardContext() {
-        pipeline.setBasic(new SimpleContextValve(this));
+        pipeline.setBasic(new StandardContextValve(this));
     }
 
 

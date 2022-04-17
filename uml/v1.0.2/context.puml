@@ -1,0 +1,37 @@
+@startuml
+
+interface Valve
+interface Contained
+interface Context
+interface Lifecycle
+interface Mapper
+interface ValveContext
+abstract class ContainerBase
+abstract class ValveBase
+class StandardContextValve
+class StandardContext
+class StandardContextMapper
+class StandardValveContext
+class ValveImpl
+
+ContainerBase <|-- StandardContext
+Lifecycle <|.. StandardContext
+Context <|.. StandardContext
+
+StandardContext "1" *-- "1" StandardValveContext
+
+ValveContext <|.. StandardValveContext
+
+Valve <|.. ValveImpl
+
+Valve <|.. ValveBase
+Contained <|.. ValveBase
+
+ValveBase <|-- StandardContextValve
+
+StandardValveContext "1" o-- "n" ValveImpl
+StandardValveContext "1" <-- "1" StandardContextValve
+Mapper <|.. StandardContextMapper
+StandardContext "1" *-- "1" StandardContextMapper
+
+@enduml
