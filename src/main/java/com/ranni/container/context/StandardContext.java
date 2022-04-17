@@ -34,7 +34,7 @@ import java.util.*;
  */
 public class StandardContext extends ContainerBase implements Context, Lifecycle {
     private ApplicationContext context; // servlet的全局作用域
-    private String docBase; // web应用程序文档根目录
+    private String docBase; // web应用程序文档根目录（相对路径）
     private boolean crossContext; // 跨servlet访问
     private String displayName; // 显示的名称
     private boolean distributable; // 可分发标志

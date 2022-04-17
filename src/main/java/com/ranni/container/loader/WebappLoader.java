@@ -455,7 +455,7 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
         DirContext classes = null;
 
         try {
-            Object o = resources.lookup(classesPath);// 解析这个路径下所有的类
+            Object o = resources.lookup(classesPath);// 解析得到这个路径（/WEB-INF/classes）的JNDI目录容器
             if (o instanceof DirContext)
                 classes = (DirContext) o;
         } catch (NamingException e) {

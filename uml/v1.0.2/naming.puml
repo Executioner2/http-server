@@ -16,6 +16,7 @@ class FileDirContext.FileResource <<inner class>>
 class FileDirContext.FileResourceAttributes <<inner class>>
 class WARDirContext.Entry <<inner class>>
 class WARDirContext.WARResource <<inner class>>
+class ProxyDirContext.CacheEntry <<inner class>>
 
 note "ProxyDirContext代理BaseDirContext\n的实现子类，便于缓存的资源" as n1
 ProxyDirContext .. n1
@@ -29,7 +30,11 @@ FileDirContext <-- FileDirContext.FileResourceAttributes
 WARDirContext <-- WARDirContext.Entry
 WARDirContext <-- WARDirContext.WARResource
 ProxyDirContext <-- BaseDirContext
+ProxyDirContext <-- ProxyDirContext.CacheEntry
 javax.naming.directory.DirContext <|.. ProxyDirContext
+ResourceAttributes <|-- FileDirContext.FileResourceAttributes
+Resource <|-- FileDirContext.FileResource
+Resource <|-- WARDirContext.WARResource
 
 
 

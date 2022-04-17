@@ -537,7 +537,7 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
 
 
     /**
-     * 批量添加文件到仓库
+     * 将class仓库名和具体的File对象加入到集合
      *
      * @param repository
      * @param file

@@ -152,7 +152,7 @@ public class ProxyDirContext implements DirContext {
             cacheEntry = new CacheEntry();
             cacheEntry.name = name;
             if (!cachedLoad(cacheEntry)) {
-                // 如果从载入到缓存失败，则返回null
+                // 如果载入到缓存失败，则返回null
                 return null;
             }
             return cacheEntry;
