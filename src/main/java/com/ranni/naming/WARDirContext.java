@@ -4,10 +4,8 @@ import javax.naming.*;
 import javax.naming.directory.*;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.*;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 /**
@@ -552,23 +550,20 @@ public class WARDirContext extends BaseDirContext {
 
         public WARResource(ZipEntry entry) {
             this.entry = entry;
+            setContext(entry);
         }
 
         /**
-         * 取得输入流
+         * 设置资源文件以二进制流的方式输入
          *
-         * @return
+         * @param entry
          */
-        public InputStream streamContent() throws IOException {
+        public void setContext(ZipEntry entry) {
             try {
-                if (binaryContent == null) {
-                    inputStream = base.getInputStream(entry);
-                }
-            } catch (ZipException e) {
-                throw new IOException(e.getMessage());
+                this.inputStream = base.getInputStream(entry);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-
-            return super.streamContent();
         }
     }
 

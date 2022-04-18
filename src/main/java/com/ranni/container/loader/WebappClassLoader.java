@@ -210,7 +210,7 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
     /**
      * 从本地存储中查找类
      *
-     * @param name
+     * @param name 伪类名或伪全限定类名，为什么是伪，因为没有.class后缀
      * @return
      */
     protected Class findClassInternal(String name) throws ClassNotFoundException {

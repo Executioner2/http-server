@@ -473,7 +473,7 @@ public class FileDirContext extends BaseDirContext {
     }
 
     /**
-     * 将文件夹中的资源存入集合中
+     * 得到传入的File文件夹中的资源
      * 如果该资源是个目录，则将该资源封装成FileDirContext对象后存入集合
      * 如果该资源是个文件，则将该资源封装成FileResource对象后存入集合
      *
@@ -609,7 +609,7 @@ public class FileDirContext extends BaseDirContext {
      */
     protected class FileResourceAttributes extends ResourceAttributes {
         protected File file; // 资源文件
-        protected boolean accessed; // 访问标志
+        protected boolean accessed; // 是否访问过子资源
 
         public FileResourceAttributes(File file) {
             this.file = file;
@@ -724,25 +724,24 @@ public class FileDirContext extends BaseDirContext {
      */
     protected class FileResource extends Resource {
         protected File file;
-        protected long length = -1L;
-
 
 
         public FileResource(File file) {
             this.file = file;
+            setContext(file);
         }
 
         /**
-         * 取得输入流
+         * 设置资源文件以二进制流的方式输入
          *
-         * @return
+         * @param file
          */
-        @Override
-        public InputStream streamContent() throws IOException {
-            if (binaryContent == null)
-                inputStream = new FileInputStream(file);
-
-            return super.streamContent();
+        public void setContext(File file) {
+            try {
+                this.inputStream = new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

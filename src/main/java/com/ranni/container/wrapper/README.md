@@ -7,7 +7,7 @@
 |类型|类名|说明|
 |---|---|---|
 |实现类|StandardWrapper|标准的Wrapper容器，一个Wrapper对应着一个Servlet，Wrapper可以通过管道阀机制增强Servlet|
-|实现类|StandardWrapperValve|Wrapper容器中的标准基础阀，最终会执行请求的Servlet对象|
+|实现类|StandardWrapperValve|Wrapper容器中的标准基础阀，最终会解析请求的Servlet类文件，创建Servlet对象并执行该对象的service()方法|
 
    
 注：  

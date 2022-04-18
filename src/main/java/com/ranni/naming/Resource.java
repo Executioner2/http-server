@@ -1,8 +1,6 @@
 package com.ranni.naming;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
 /**
  * Title: HttpServer
@@ -72,7 +70,7 @@ public class Resource {
     }
 
     /**
-     * 返回资源内容（二进制数据）
+     * 返回资源内容（byte数组数据）
      *
      * @return
      */

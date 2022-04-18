@@ -139,11 +139,6 @@ public class StandardEngine extends ContainerBase implements Engine {
     }
 
     @Override
-    public Container map(Request request, boolean update) {
-        return null;
-    }
-
-    @Override
     public void removeChild(Container child) {
 
     }

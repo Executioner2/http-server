@@ -1,11 +1,9 @@
 @startuml
 title v1.0.2 naming UML图
 
-interface javax.naming.NameParser
 interface javax.naming.directory.DirContext
 abstract class BaseDirContext
 class FileDirContext
-class NameParserImpl
 class NamingContextEnumeration
 class NamingEntry
 class ProxyDirContext
@@ -27,7 +25,7 @@ BaseDirContext <|-- FileDirContext
 BaseDirContext <|-- WARDirContext
 FileDirContext <-- FileDirContext.FileResource
 FileDirContext <-- FileDirContext.FileResourceAttributes
-WARDirContext <-- WARDirContext.Entry
+WARDirContext "1" o-- "n" WARDirContext.Entry
 WARDirContext <-- WARDirContext.WARResource
 ProxyDirContext <-- BaseDirContext
 ProxyDirContext <-- ProxyDirContext.CacheEntry
@@ -35,6 +33,10 @@ javax.naming.directory.DirContext <|.. ProxyDirContext
 ResourceAttributes <|-- FileDirContext.FileResourceAttributes
 Resource <|-- FileDirContext.FileResource
 Resource <|-- WARDirContext.WARResource
+FileDirContext <-- NamingContextEnumeration
+WARDirContext <-- NamingContextEnumeration
+NamingContextEnumeration "1" o-- "n" NamingEntry
+WARDirContext ..> ResourceAttributes
 
 
 

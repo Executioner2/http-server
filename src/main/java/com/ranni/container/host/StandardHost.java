@@ -290,20 +290,6 @@ public class StandardHost extends ContainerBase implements Host {
         pipeline.invoke(request, response);
     }
 
-    /**
-     *  返回映射器其对应的容器
-     *
-     * @param request
-     * @param update
-     * @return
-     */
-    @Override
-    public Container map(Request request, boolean update) {
-        Mapper mapper = findMapper(request.getRequest().getProtocol());
-        if (mapper == null) return null;
-        return mapper.map(request, update);
-    }
-
     @Override
     public void removeChild(Container child) {
 

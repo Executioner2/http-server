@@ -14,6 +14,7 @@ import javax.naming.NamingException;
  * @Email 1205878539@qq.com
  * @Date 2022-04-07 17:18
  */
+@Deprecated // 暂时没有用到
 public class NameParserImpl implements NameParser {
     @Override
     public Name parse(String name) throws NamingException {

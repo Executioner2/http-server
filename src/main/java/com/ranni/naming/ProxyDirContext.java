@@ -252,7 +252,7 @@ public class ProxyDirContext implements DirContext {
 
         String name = cacheEntry.name;
 
-        // 填充属性
+        // 取得资源属性并填充
         if (cacheEntry.attributes == null) {
             try {
                 Attributes attributes = dirContext.getAttributes(name);
@@ -266,7 +266,7 @@ public class ProxyDirContext implements DirContext {
             }
         }
 
-        // 填充资源
+        // 取得资源文件
         if (cacheEntry.resource == null && cacheEntry.context == null) {
             try {
                 // 从被代理的资源文件对象中解析出资源对象
@@ -285,7 +285,7 @@ public class ProxyDirContext implements DirContext {
             }
         }
 
-        // 如果资源填充了，但是没有从资源的输入流中获取数据
+        // 如果取得了资源文件，但是还没有从资源文件的输入流中获取数据（还没有把资源文件的内容拿出来）
         // 那么就从流中取得数据
         if (cacheEntry.resource != null && cacheEntry.resource.getContext() == null
             && cacheEntry.attributes.getContentLength() >= 0
