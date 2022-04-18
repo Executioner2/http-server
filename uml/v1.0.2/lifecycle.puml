@@ -1,0 +1,16 @@
+@startuml
+
+interface Lifecycle
+interface LifecycleListener
+class java.util.EventObject
+class LifecycleEvent
+class LifecycleImpl
+class LifecycleListenerImpl
+
+LifecycleListener <|.. LifecycleListenerImpl
+Lifecycle <|.. LifecycleImpl
+java.util.EventObject <|-- LifecycleEvent
+LifecycleListenerImpl <-- LifecycleImpl
+LifecycleEvent <.. LifecycleListenerImpl
+
+@enduml

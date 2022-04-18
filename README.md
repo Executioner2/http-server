@@ -16,15 +16,19 @@
 ##### 目录结构
 |包|作用|
 |----|----|
-|com.ranni.util|此目录为工具模块|
-|com.ranni.processor|此目录为核心模块|
-|com.ranni.connector|此目录为连接器模块|  
-|com.ranni.startup|此目录为HTTP服务器启动模块| 
+|com.ranni.util|此目录为工具类存放目录|
+|com.ranni.connector|此目录为连接器实现文件存放目录|  
+|com.ranni.container|此目录为容器实现文件存放目录| 
+|com.ranni.startup|此目录为HTTP服务器启动文件存放目录| 
+|com.ranni.logger|此目录为HTTP服务器日志记录器实现文件存放目录| 
+|com.ranni.naming|此目录为JNDI命名资源实现文件存放目录| 
+|com.ranni.lifecycle|此目录为生命周期定义文件存放目录| 
 
-+ [Request模块](./src/main/java/com/ranni/connector/http/request/README.md)
-+ [Response模块](./src/main/java/com/ranni/connector/http/response/README.md)
-+ [Container模块](./src/main/java/com/ranni/container/README.md)
-+ [Naming模块](./src/main/java/com/ranni/naming/README.md)
++ [Request](./src/main/java/com/ranni/connector/http/request/README.md)
++ [Response](./src/main/java/com/ranni/connector/http/response/README.md)
++ [Container](./src/main/java/com/ranni/container/README.md)
++ [Naming](./src/main/java/com/ranni/naming/README.md)
++ [Lifecycle](./src/main/java/com/ranni/lifecycle/README.md)
 
 **说明：**
 1. 在此服务器demo中，有使用大量的数组而非ArrayList，而且在删除和增加元素时也使用了大量的
