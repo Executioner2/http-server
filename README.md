@@ -5,7 +5,10 @@
 #
 ## 计划
 + Servlet类文件内容读取一次后会存入缓存中，但是缓存内容失效后又要重新将内容从流中取出来，计划后续提供解析一次就永久存入**内存**下来的选项
-
++ 热部署
++ 日志记录
++ 注解式
++ 图形界面
 
 
 #
@@ -21,6 +24,7 @@
 + [Request模块](./src/main/java/com/ranni/connector/http/request/README.md)
 + [Response模块](./src/main/java/com/ranni/connector/http/response/README.md)
 + [Container模块](./src/main/java/com/ranni/container/README.md)
++ [Naming模块](./src/main/java/com/ranni/naming/README.md)
 
 **说明：**
 1. 在此服务器demo中，有使用大量的数组而非ArrayList，而且在删除和增加元素时也使用了大量的
@@ -33,6 +37,11 @@ System.arraycopy()。至于为什么不用ArrayList，是因为数组和ArrayLis
 - 新增HttpProcessorPool
 - 新增Container模块结构
 - 新增管道和阀机制
+- 新增loader模块
+- 新增logger模块
+- 新增mapper（映射器）
+- 新增lifecycle模块
+- 新增naming模块（JNDI）
 - 更新Request类关系
 - 更新Response类关系
 - 采用异步处理Http请求
@@ -44,9 +53,6 @@ System.arraycopy()。至于为什么不用ArrayList，是因为数组和ArrayLis
 - Response部分方法未能实现
 - Session没做
 - Context没做
-- Container每次都得重新创建
-- servlet实现类加载功能没有独立出来做个模块
-- Wrapper是个空有其表的接口
 - keepAlive和100状态码未实现
 - CookieTools和DateTool为Tomcat源码文件  
 
