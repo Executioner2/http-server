@@ -1,7 +1,7 @@
 package com.ranni.connector.http.request;
 
-import com.ranni.container.scope.Session;
 import com.ranni.connector.http.ParameterMap;
+import com.ranni.session.Session;
 import com.ranni.util.Enumerator;
 import com.ranni.util.RequestUtil;
 
@@ -328,6 +328,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
      * @return
      */
     private HttpSession doGetSession(boolean create) {
+
         if (context == null) return null;
 
         // 如果session存在但失效了就返回null，否则返回session
