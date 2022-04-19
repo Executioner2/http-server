@@ -278,7 +278,7 @@ public class StandardSession implements Session, HttpSession, Serializable {
         if (value == null)
             throw new IllegalArgumentException("StandardSession.setAttribute:  value不能为null！");
 
-        // 如果此session所属的mapper启用了序列化功能，而此value未实现序列化接口，那将抛出异常
+        // 如果此session所属的manager启用了序列化功能，而此value未实现序列化接口，那将抛出异常
         if (manager != null && manager.getDistributable()
             && !(value instanceof Serializable))
             throw new IllegalArgumentException("StandardSession.setAttribute:  value不支持序列化！");
