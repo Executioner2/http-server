@@ -1,6 +1,8 @@
 package com.ranni.connector.http.request;
 
 import com.ranni.connector.http.ParameterMap;
+import com.ranni.container.Context;
+import com.ranni.session.Manager;
 import com.ranni.session.Session;
 import com.ranni.util.Enumerator;
 import com.ranni.util.RequestUtil;
@@ -52,6 +54,11 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
     protected Session session; // session
 
     public HttpRequestBase() {
+
+    }
+
+    public HttpRequestBase(Context context) {
+        this.context = context;
     }
 
     public HttpRequestBase(Socket socket) {
@@ -312,6 +319,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
 
     /**
      * 返回此请求的session，如有必要就创建一个
+     *
      * @param b 如果session不存在，是否创建
      * @return
      */
@@ -323,12 +331,12 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
     }
 
     /**
-     * TODO 取得session，如果不存在，根据create来决定是否创建
+     * 取得session，如果不存在，根据create来决定是否创建
+     *
      * @param create
      * @return
      */
     private HttpSession doGetSession(boolean create) {
-
         if (context == null) return null;
 
         // 如果session存在但失效了就返回null，否则返回session
@@ -340,15 +348,37 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
             }
         }
 
-//        if (create) {
-//
-//        }
+        // 取得session管理器
+        Manager manager = context.getManager();
 
-        return null;
+        // 先根据session id查询
+        if (requestedSessionId != null) {
+            session = manager.findSession(requestedSessionId);
+            if (session != null && !session.isValid())
+                session = null;
+            else if (session != null)
+                return session.getSession();
+        }
+
+        // 是否创建新的session
+        if (!create)
+            return null;
+        if (context != null && response != null && context.getCookies()
+            && response.getResponse().isCommitted()) {
+            throw new IllegalStateException("HttpRequestBase.doGetSession  响应已经提交！");
+        }
+
+        session = manager.createSession();
+
+        if (session == null)
+            return null;
+
+        return session.getSession();
     }
 
     /**
      * 返回此请求的session
+     *
      * @return
      */
     @Override
@@ -358,6 +388,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
 
     /**
      * TODO 验证session id是否合法
+     *
      * @return
      */
     @Override

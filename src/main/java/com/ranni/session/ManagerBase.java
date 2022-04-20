@@ -186,7 +186,7 @@ public abstract class ManagerBase implements Manager {
      */
     @Override
     public Session createSession() {
-        Session session = recycled.pop();
+        Session session = recycled.pollFirst();
 
         if (session != null) {
             // 复用session
@@ -352,7 +352,7 @@ public abstract class ManagerBase implements Manager {
      * @throws IOException
      */
     @Override
-    public Session findSession(String id) throws IOException {
+    public Session findSession(String id) {
         synchronized (sessions) {
             return sessions.get(id);
         }

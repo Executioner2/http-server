@@ -117,7 +117,7 @@ public final class HttpRequestFacade extends RequestFacade implements HttpServle
 
     @Override
     public HttpSession getSession(boolean b) {
-        return ((HttpServletRequest)request).getSession(b);
+        return ((HttpServletRequest) request).getSession(b);
     }
 
     @Override

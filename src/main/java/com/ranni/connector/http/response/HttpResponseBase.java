@@ -36,7 +36,6 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
     protected int status; // 响应状态码
 
     public HttpResponseBase() {
-
     }
 
     public HttpResponseBase(HttpRequestBase httpRequestBase) {

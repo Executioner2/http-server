@@ -10,6 +10,7 @@ import com.ranni.connector.processor.ProcessorPool;
 import com.ranni.connector.socket.DefaultServerSocketFactory;
 import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
+import com.ranni.container.Context;
 import com.ranni.exception.LifecycleException;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
@@ -190,7 +191,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      */
     @Override
     public Request createRequest() {
-        return new HttpRequestBase();
+        return new HttpRequestBase((Context) this.container);
     }
 
     /**

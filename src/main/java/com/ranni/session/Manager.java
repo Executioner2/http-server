@@ -94,7 +94,7 @@ public interface Manager {
      * @return
      * @throws IOException
      */
-    Session findSession(String id) throws IOException;
+    Session findSession(String id);
 
 
     /**
