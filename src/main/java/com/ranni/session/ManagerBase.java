@@ -38,6 +38,16 @@ public abstract class ManagerBase implements Manager {
 
 
     /**
+     * 设置日志输出级别
+     *
+     * @param debug
+     */
+    public void setDebug(int debug) {
+        this.debug = debug;
+    }
+
+
+    /**
      * 添加到回收队列
      *
      * @param session

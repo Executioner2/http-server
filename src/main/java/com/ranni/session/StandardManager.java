@@ -72,7 +72,7 @@ public class StandardManager extends ManagerBase implements Lifecycle, Runnable 
     @Override
     public void start() throws Exception {
         if (started)
-            throw new IllegalStateException("此session管理器已经启动！");
+            throw new IllegalStateException("StandardManager.start  此session管理器已经启动！ " + this);
         log("StandardManager.start  启动session管理器中");
 
         lifecycle.fireLifecycleEvent(START_EVENT, null);
@@ -81,7 +81,7 @@ public class StandardManager extends ManagerBase implements Lifecycle, Runnable 
         try {
             load();
         } catch (Throwable e) {
-            log("StandardManager.start  从存储器中载入session失败！");
+            log("StandardManager.start  从存储器中载入session失败！" + e);
         }
 
         // 启动失效session回收线程
@@ -90,15 +90,56 @@ public class StandardManager extends ManagerBase implements Lifecycle, Runnable 
 
 
     /**
-     * TODO 失效session回收线程
+     * 停止session管理器
+     * 主要做四件事
+     * 1、触发停止事件
+     * 2、将session从内存持久化到存储器中
+     * 3、停止失效session回收线程
+     * 4、销毁所有session（并不删除session对象，而是将session初始化后放入到session管理器的空闲session队列中）
+     * 5、置空随机生成器
+     *
+     * @throws Exception
      */
-    private void threadStart() {
+    @Override
+    public void stop() throws Exception {
+        if (!started)
+            throw new IllegalStateException("StandardManager.stop  此session管理器已经停止！ " + this);
+
+        log("StandardManager.stop  停止session管理器中");
+        lifecycle.fireLifecycleEvent(STOP_EVENT, null);
+        started = false;
+
+        try {
+            unload();
+        } catch (Throwable e) {
+            log("StandardManager.stop  持久化session到存储器中失败！" + e);
+        }
+
+        threadStop();
+
+        // 销毁所有session
+        for (Session session : findSessions()) {
+            if (!session.isValid())
+                continue;
+
+            session.recycle();
+        }
+
+        this.random = null;
     }
 
 
-    @Override
-    public void stop() throws Exception {
+    /**
+     * TODO 停止失效session回收线程
+     */
+    private void threadStop() {
+    }
 
+
+    /**
+     * TODO 启动失效session回收线程
+     */
+    private void threadStart() {
     }
 
 

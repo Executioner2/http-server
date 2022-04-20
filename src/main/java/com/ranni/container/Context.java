@@ -238,6 +238,7 @@ public interface Context extends Container {
 
     /**
      * 返回可重载标志
+     *
      * @return
      */
     boolean getReloadable();
@@ -245,12 +246,14 @@ public interface Context extends Container {
 
     /**
      * 设置可重载标志
+     *
      * @param reloadable
      */
     void setReloadable(boolean reloadable);
 
     /**
      * 返回重写标志
+     *
      * @return
      */
     boolean getOverride();
@@ -258,21 +261,24 @@ public interface Context extends Container {
 
     /**
      * 设置重写标志
+     *
      * @param override
      */
     void setOverride(boolean override);
 
 
     /**
-     * Return the privileged flag for this web application.
+     * 此容器是否有特权
+     *
+     * @return
      */
-    public boolean getPrivileged();
+    boolean getPrivileged();
 
 
     /**
-     * Set the privileged flag for this web application.
+     * 设置容器是否具备特权
      *
-     * @param privileged The new privileged flag
+     * @param privileged
      */
     void setPrivileged(boolean privileged);
 

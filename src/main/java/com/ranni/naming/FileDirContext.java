@@ -728,20 +728,24 @@ public class FileDirContext extends BaseDirContext {
 
         public FileResource(File file) {
             this.file = file;
-            setContext(file);
+
         }
 
+
         /**
-         * 设置资源文件以二进制流的方式输入
+         * 取得输入流
+         * 如果binaryContent为null，则说明没有把文件内容存入到数组中
+         * 那么即使inputStream不为null，也很可能这个流已经被用过并关闭掉了
+         * 所以只要没有把文件内容缓存下来，每次外部请求取得文件的输入流时就要新创建一个输入流对象
          *
-         * @param file
+         * @return
+         * @throws IOException
          */
-        public void setContext(File file) {
-            try {
-                this.inputStream = new FileInputStream(file);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
+        @Override
+        public InputStream streamContent() throws IOException {
+            if (binaryContent == null)
+                return new FileInputStream(file);
+            return super.streamContent();
         }
     }
 }

@@ -41,6 +41,8 @@ public abstract class ContainerBase implements Container, Pipeline {
     protected boolean started; // 启动标志
     protected DirContext resources; // 容器资源
     protected Manager manager; // session管理器
+    protected int debug = Logger.INFORMATION; // 日志级别
+    protected ClassLoader parentClassLoader; // 父容器的类加载器
 
 
     /**
@@ -50,7 +52,12 @@ public abstract class ContainerBase implements Container, Pipeline {
      */
     @Override
     public Manager getManager() {
-        return this.manager;
+        if (this.manager != null) {
+            return this.manager;
+        } else if (this.parent != null) {
+            return this.parent.getManager();
+        }
+        return null;
     }
 
 
@@ -60,8 +67,28 @@ public abstract class ContainerBase implements Container, Pipeline {
      * @param manager
      */
     @Override
-    public void setManager(Manager manager) {
+    public synchronized void setManager(Manager manager) {
+        // 容器已经启动了，并且之前有个实现了生命周期管理接口的session管理器那就先关闭之前那个
+        if (started && this.manager != null
+            && this.manager instanceof Lifecycle) {
+            try {
+                ((Lifecycle) this.manager).stop();
+            } catch (Exception e) {
+                log("ContainerBase.setManager  旧的管理器关闭失败！" + e);
+            }
+        }
+
         this.manager = manager;
+        if (this.manager != null)
+            this.manager.setContainer(this);
+
+        if (started && this.manager instanceof Lifecycle) {
+            try {
+                ((Lifecycle) this.manager).start();
+            } catch (Exception e) {
+                log("ContainerBase.setManager  新的管理器启动失败！" + e);
+            }
+        }
     }
 
 
@@ -162,15 +189,30 @@ public abstract class ContainerBase implements Container, Pipeline {
     }
 
 
+    /**
+     * 返回父容器的类加载器
+     *
+     * @return
+     */
     @Override
     public ClassLoader getParentClassLoader() {
-        return null;
+       if (parentClassLoader != null)
+           return parentClassLoader;
+       else if (parent != null)
+           return parent.getParentClassLoader();
+       else
+           return ClassLoader.getSystemClassLoader(); // 返回系统类（应用程序类）加载器
     }
 
 
+    /**
+     * 设置父容器的类加载器
+     *
+     * @param parent
+     */
     @Override
     public void setParentClassLoader(ClassLoader parent) {
-
+        this.parentClassLoader = parent;
     }
 
 

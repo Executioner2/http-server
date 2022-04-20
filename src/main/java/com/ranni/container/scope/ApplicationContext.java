@@ -270,4 +270,15 @@ public class ApplicationContext implements ServletContext {
         }
     }
 
+    /**
+     * 返回外观类
+     *
+     * @return
+     */
+    public ServletContext getFacade() {
+        if (facade == null)
+            facade = new ApplicationContextFacade(this);
+
+        return facade;
+    }
 }

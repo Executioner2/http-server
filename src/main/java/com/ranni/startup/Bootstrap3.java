@@ -4,7 +4,6 @@ import com.ranni.common.SystemProperty;
 import com.ranni.connector.HttpConnector;
 import com.ranni.container.Wrapper;
 import com.ranni.container.context.StandardContext;
-import com.ranni.container.loader.WebappLoader;
 import com.ranni.container.wrapper.StandardWrapper;
 
 /**
@@ -22,24 +21,29 @@ public class Bootstrap3 {
         HttpConnector connector = new HttpConnector();
 
         StandardContext context = new StandardContext();
-        WebappLoader loader = new WebappLoader();
+//        WebappLoader loader = new WebappLoader();
         context.setPath("/myApp");
         context.setDocBase("myApp");
 
         // 创建两个wrapper
         Wrapper wrapper1 = new StandardWrapper();
         Wrapper wrapper2 = new StandardWrapper();
+        Wrapper wrapper3 = new StandardWrapper();
         wrapper1.setName("Primitive");
         wrapper1.setServletClass("PrimitiveServlet");
         wrapper2.setName("Modern");
         wrapper2.setServletClass("ModernServlet");
+        wrapper3.setName("Session");
+        wrapper3.setServletClass("SessionServlet");
 
         context.addChild(wrapper1);
         context.addChild(wrapper2);
+        context.addChild(wrapper3);
 
         context.addServletMapping("/Primitive", "Primitive");
         context.addServletMapping("/Modern", "Modern");
-        context.setLoader(loader);
+        context.addServletMapping("/Session", "Session");
+//        context.setLoader(loader);
 
         try {
             connector.setContainer(context);

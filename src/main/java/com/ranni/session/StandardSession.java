@@ -50,6 +50,26 @@ public class StandardSession implements Session, HttpSession, Serializable {
 
 
     /**
+     * 返回日志信息输出级别
+     *
+     * @return
+     */
+    public int getDebug() {
+        return debug;
+    }
+
+
+    /**
+     * 设置日志信息输出级别
+     *
+     * @param debug
+     */
+    public void setDebug(int debug) {
+        this.debug = debug;
+    }
+
+
+    /**
      * 返回此session的认证类型
      *
      * @return

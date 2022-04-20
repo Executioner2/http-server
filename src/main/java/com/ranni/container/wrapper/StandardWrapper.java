@@ -4,17 +4,20 @@ import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.Container;
 import com.ranni.container.ContainerBase;
+import com.ranni.container.Context;
 import com.ranni.container.Wrapper;
 import com.ranni.container.loader.Loader;
 import com.ranni.exception.LifecycleException;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.util.Enumerator;
 import com.ranni.util.LifecycleSupport;
 
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-import javax.servlet.UnavailableException;
+import javax.servlet.*;
 import java.io.IOException;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Title: HttpServer
@@ -25,8 +28,10 @@ import java.io.IOException;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 21:44
  */
-public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle {
+public class StandardWrapper extends ContainerBase implements ServletConfig, Wrapper, Lifecycle {
     private Servlet servlet; // servlet
+    private StandardWrapperFacade facade = new StandardWrapperFacade(this);
+    private Map<String, String> parameters = new HashMap(); // 参数列表
 
     protected String servletClass; // servlet类全限定类名
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
@@ -138,8 +143,9 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
         }
 
         try {
-            servlet.init(null); // TODO 暂时传入个null
+            servlet.init(facade); // TODO 暂时传入个null
         } catch (Throwable t) {
+            System.out.println(t);
             throw new ServletException("servlet初始化失败！");
         }
 
@@ -153,7 +159,9 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
 
     @Override
     public String findInitParameter(String name) {
-        return null;
+        synchronized (parameters) {
+            return parameters.get(name);
+        }
     }
 
     @Override
@@ -367,5 +375,42 @@ public class StandardWrapper extends ContainerBase implements Wrapper, Lifecycle
         // 关闭此wrapper容器之后
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_STOP_EVENT, null);
 
+    }
+
+    /**
+     * 返回servlet的名字
+     * @return
+     */
+    @Override
+    public String getServletName() {
+        return getName();
+    }
+
+
+    /**
+     * 返回servlet全局作用域对象
+     *
+     * @return
+     */
+    @Override
+    public ServletContext getServletContext() {
+        if (parent == null)
+            return null;
+        else if (parent instanceof Context)
+            return ((Context) parent).getServletContext();
+        else
+            return null;
+    }
+
+    @Override
+    public String getInitParameter(String s) {
+        return findInitParameter(s);
+    }
+
+    @Override
+    public Enumeration getInitParameterNames() {
+        synchronized (parameters) {
+            return new Enumerator(parameters.keySet());
+        }
     }
 }

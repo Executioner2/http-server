@@ -4,6 +4,7 @@ import javax.naming.*;
 import javax.naming.directory.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -550,20 +551,22 @@ public class WARDirContext extends BaseDirContext {
 
         public WARResource(ZipEntry entry) {
             this.entry = entry;
-            setContext(entry);
         }
 
         /**
-         * 设置资源文件以二进制流的方式输入
+         * 返回一个输入流
+         * 如果binaryContent为null，则说明没有把文件内容存入到数组中
+         * 那么即使inputStream不为null，也很可能这个流已经被用过并关闭掉了
+         * 所以只要没有把文件内容缓存下来，每次外部请求取得文件的输入流时就要新创建一个输入流对象
          *
-         * @param entry
+         * @return
+         * @throws IOException
          */
-        public void setContext(ZipEntry entry) {
-            try {
-                this.inputStream = base.getInputStream(entry);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        @Override
+        public InputStream streamContent() throws IOException {
+            if (binaryContent == null)
+                inputStream = base.getInputStream(entry);
+            return super.streamContent();
         }
     }
 

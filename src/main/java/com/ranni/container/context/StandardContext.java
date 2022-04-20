@@ -4,6 +4,7 @@ import com.ranni.common.Globals;
 import com.ranni.common.SystemProperty;
 import com.ranni.container.*;
 import com.ranni.container.host.StandardHost;
+import com.ranni.container.loader.WebappLoader;
 import com.ranni.container.scope.ApplicationContext;
 import com.ranni.deploy.*;
 import com.ranni.exception.LifecycleException;
@@ -13,6 +14,7 @@ import com.ranni.naming.BaseDirContext;
 import com.ranni.naming.FileDirContext;
 import com.ranni.naming.ProxyDirContext;
 import com.ranni.naming.WARDirContext;
+import com.ranni.session.StandardManager;
 import com.ranni.util.CharsetMapper;
 import com.ranni.util.LifecycleSupport;
 import com.ranni.util.RequestUtil;
@@ -54,12 +56,14 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private boolean paused; // 是否开始接收请求
     private String workDir; // 工作目录
     private String mapperClass = "com.ranni.container.context.StandardContextMapper"; // 默认映射器
+    private boolean privileged; // 此容器是否具备特权
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
     protected Map<String, String> servletMappings = new HashMap<>(); // 请求servlet与wrapper容器的映射
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
     protected boolean filesystemBased; // 关联的目录容器是否是文件类型的目录容器
+
 
     public StandardContext() {
         pipeline.setBasic(new StandardContextValve(this));
@@ -461,14 +465,26 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
     }
 
+
+    /**
+     * 此容器是否有特权
+     *
+     * @return
+     */
     @Override
     public boolean getPrivileged() {
-        return false;
+        return this.privileged;
     }
 
+
+    /**
+     * 设置容器是否具备特权
+     *
+     * @param privileged
+     */
     @Override
     public void setPrivileged(boolean privileged) {
-
+        this.privileged = privileged;
     }
 
     @Override
@@ -1023,7 +1039,8 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
      *  4、设置默认映射器
      *  5、启动子容器
      *  6、启动管道
-     *  7、启动容器自身
+     *  7、容器启动事件
+     *  8、启动管理器
      *
      * @throws Exception
      */
@@ -1060,6 +1077,26 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
                 }
             }
 
+            // 开始设置加载器
+            if (getLoader() == null) {
+                log("开始配置加载器");
+                if (getPrivileged()) {
+                    if (debug > 1)
+                        log("此容器为特殊容器，可用此容器的加载器加载web应用程序的类");
+                    setLoader(new WebappLoader(this.getClass().getClassLoader()));
+                } else {
+                    if (debug > 1)
+                        log("此容器为普通容器，要用此容器的父容器的加载器作为web应用程序类的加载类");
+                    setLoader(new WebappLoader(getParentClassLoader()));
+                }
+            }
+
+            // 设置session管理器
+            if (getManager() == null) {
+                log("开始配置session管理器");
+                setManager(new StandardManager());
+            }
+
             // 设置工作目录
             postWorkDirectory();
 
@@ -1080,6 +1117,10 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
             // 启动管道
             if (pipeline instanceof Lifecycle)
                 ((Lifecycle) pipeline).start();
+
+            // 启动session管理器
+            if (manager instanceof Lifecycle)
+                ((Lifecycle) manager).start();
 
             // context容器自身启动
             lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
@@ -1179,10 +1220,11 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     /**
      * 关闭当前容器
      * 关闭顺序
-     *  1、容器本身
-     *  2、管道
-     *  3、子容器
-     *  4、加载器
+     *  1、session管理器
+     *  2、容器本身
+     *  3、管道
+     *  4、子容器
+     *  5、加载器
      *
      * @throws Exception
      */
@@ -1198,6 +1240,10 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         started = false;
 
         try {
+            // 关闭session管理器
+            if (manager instanceof Lifecycle)
+                ((Lifecycle) manager).stop();
+
             // 关闭管道
             if (pipeline instanceof Lifecycle)
                 ((Lifecycle) pipeline).stop();
