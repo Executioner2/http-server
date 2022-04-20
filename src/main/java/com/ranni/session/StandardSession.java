@@ -117,7 +117,7 @@ public class StandardSession implements Session, HttpSession, Serializable {
     @Override
     public void setId(String id) {
         if (this.id != null && manager != null)
-            manager.remove(id);
+            manager.remove(this);
 
         this.id = id;
 
@@ -165,6 +165,28 @@ public class StandardSession implements Session, HttpSession, Serializable {
             return null;
 
         return context.getServletContext();
+    }
+
+
+    /**
+     * 返回此session的管理器
+     *
+     * @return
+     */
+    @Override
+    public Manager getManager() {
+        return this.manager;
+    }
+
+
+    /**
+     * 设置此session的管理器
+     *
+     * @param manager
+     */
+    @Override
+    public void setManager(Manager manager) {
+        this.manager = manager;
     }
 
 

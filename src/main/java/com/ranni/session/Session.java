@@ -91,17 +91,19 @@ public interface Session {
 
 
     /**
-     * Return the Manager within which this Session is valid.
+     * 取得此session的管理器
+     *
+     * @return
      */
-//    public Manager getManager();
+    Manager getManager();
 
 
     /**
-     * Set the Manager within which this Session is valid.
+     * 设置此session的管理器
      *
-     * @param manager The new Manager
+     * @param manager
      */
-//    public void setManager(Manager manager);
+    void setManager(Manager manager);
 
 
     /**

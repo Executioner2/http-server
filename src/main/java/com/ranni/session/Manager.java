@@ -49,7 +49,7 @@ public interface Manager {
 
 
     /**
-     * 是否启用序列化（存储到存储器上）
+     * 是否持久化到存储器上（存储到存储器上）
      *
      * @return
      */
@@ -57,7 +57,7 @@ public interface Manager {
 
 
     /**
-     * 设置是否开启序列化
+     * 设置是否开持久化
      *
      * @param distributable
      */
@@ -136,12 +136,4 @@ public interface Manager {
      * @param session
      */
     void remove(Session session);
-
-
-    /**
-     * 移除这个id的session
-     *
-     * @param id
-     */
-    void remove(String id);
 }

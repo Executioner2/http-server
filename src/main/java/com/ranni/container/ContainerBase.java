@@ -9,6 +9,7 @@ import com.ranni.container.pip.Valve;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.logger.Logger;
 import com.ranni.naming.ProxyDirContext;
+import com.ranni.session.Manager;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletException;
@@ -39,6 +40,29 @@ public abstract class ContainerBase implements Container, Pipeline {
     protected Map<String, Container> children = new HashMap<>(); // 子容器
     protected boolean started; // 启动标志
     protected DirContext resources; // 容器资源
+    protected Manager manager; // session管理器
+
+
+    /**
+     * 取得session管理器
+     *
+     * @return
+     */
+    @Override
+    public Manager getManager() {
+        return this.manager;
+    }
+
+
+    /**
+     * 设置session管理器
+     *
+     * @param manager
+     */
+    @Override
+    public void setManager(Manager manager) {
+        this.manager = manager;
+    }
 
 
     /**

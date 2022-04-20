@@ -4,6 +4,7 @@ import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.loader.Loader;
 import com.ranni.logger.Logger;
+import com.ranni.session.Manager;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletException;
@@ -66,14 +67,26 @@ public interface Container {
      */
     void setLogger(Logger logger);
 
-    // 返回管理器，此Container没有就返回父Container的，都没有就返回null
-//    Manager getManager();
 
-    // 设置管理器
-//    void setManager(Manager manager);
+    /**
+     * 返回管理器，此Container没有就返回父Container的，都没有就返回null
+     *
+     * @return
+     */
+    Manager getManager();
+
+
+    /**
+     * 设置管理器
+     *
+     * @param manager
+     */
+    void setManager(Manager manager);
+
 
     // 返回Cluster，如果此Container没有就返回父Container的，都没有就返回null
 //    Cluster getCluster();
+
 
     // 设置Cluster
 //    void setCluster(Cluster cluster);
