@@ -48,7 +48,6 @@ public class StandardWrapperValve extends ValveBase {
         ServletRequest servletRequest = request.getRequest();
         ServletResponse servletResponse = response.getResponse();
         Servlet servlet = wrapper.allocate();
-        System.out.println("在处理servlet方法前进入了SimpleWrapperValve的invoke方法"); // TODO sout
         servlet.service(servletRequest, servletResponse);
         response.finishResponse();
     }
