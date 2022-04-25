@@ -5,6 +5,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Enumeration;
 
 /**
  * Title: HttpServer
@@ -25,6 +26,14 @@ public class SessionServlet extends HttpServlet {
         out.println("<body>");
         String value = request.getParameter("value");
         HttpSession session = request.getSession(true);
+
+        System.out.println("session = " + session);
+        System.out.println("value = " + value);
+        Enumeration parameterNames = request.getParameterNames();
+        while (parameterNames.hasMoreElements()) {
+            System.out.println("parameterNames.nextElement() = " + parameterNames.nextElement());
+        }
+
         out.println("<br>the previous value is " + session.getAttribute("value"));
         session.setAttribute("value", value);
         out.println("<br>the current value is " + session.getAttribute("value"));
