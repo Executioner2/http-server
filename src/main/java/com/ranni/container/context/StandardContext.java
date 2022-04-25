@@ -57,6 +57,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private String workDir; // 工作目录
     private String mapperClass = "com.ranni.container.context.StandardContextMapper"; // 默认映射器
     private boolean privileged; // 此容器是否具备特权
+    private boolean available; // 此WebApp是否可用
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
@@ -315,14 +316,25 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
     }
 
+    /**
+     * 当前WebApp可用标志位
+     *
+     * @return
+     */
     @Override
     public boolean getAvailable() {
-        return false;
+        return this.available;
     }
 
+
+    /**
+     * 设置此WebApp的可用标志位
+     *
+     * @param available
+     */
     @Override
     public void setAvailable(boolean available) {
-
+        this.available = available;
     }
 
     @Override
@@ -1131,6 +1143,8 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
         if (ok) {
             started = true;
+            // 设置WebApp可用
+            setAvailable(true);
         }
 
         // 容器启动后
@@ -1235,6 +1249,10 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
         // 关闭context容器之前
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_STOP_EVENT, null);
+
+        // 设置此WebApp不可用
+        setAvailable(false);
+
         // 关闭context容器
         lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
         started = false;

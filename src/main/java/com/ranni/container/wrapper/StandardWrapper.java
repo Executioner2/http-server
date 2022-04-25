@@ -41,6 +41,8 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     private int loadOnStartup = -1; // 此servlet的service()调用时机，大于0时，表示调用了init()后立即调用service()
     private int nInstances; // STM servlet的数量（STM SingleThreadModel）
     private boolean unloading; // 是否正在卸载中
+    private boolean unavailable; // 此wrapper是否不可用
+    private long available; // 此wrapper什么时候可用，为0L则表示永久可用，为Long.MAX_VALUE则表示永久不可用
 
     protected String servletClass; // servlet类全限定类名
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
@@ -51,40 +53,81 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     }
 
 
+    /**
+     * 返回此wrapper可用的日期时间
+     *
+     * @return
+     */
     @Override
     public long getAvailable() {
-        return 0;
+        return this.available;
     }
 
+
+    /**
+     * 设置此wrapper可用的日期时间
+     *
+     * @param available
+     */
     @Override
     public void setAvailable(long available) {
-
+        if (available < System.currentTimeMillis()) {
+            this.available = 0L;
+        } else {
+            this.available = available;
+        }
     }
 
+
+    /**
+     * 取得JSP文件名
+     *
+     * @return
+     */
     @Override
     public String getJspFile() {
-        return null;
+        return this.jspFile;
     }
 
+
+    /**
+     * 设置JSP文件名
+     *
+     * @param jspFile
+     */
     @Override
     public void setJspFile(String jspFile) {
-
+        this.jspFile = jspFile;
     }
 
+
+    /**
+     * 返回启动时加载顺序，为负数则表示第一次就加载
+     *
+     * @return
+     */
     @Override
     public int getLoadOnStartup() {
-        return 0;
+        return this.loadOnStartup;
     }
 
+
+    /**
+     * 设置启动时加载顺序
+     *
+     * @param value
+     */
     @Override
     public void setLoadOnStartup(int value) {
-
+        this.loadOnStartup = value;
     }
+
 
     @Override
     public String getRunAs() {
         return null;
     }
+
 
     @Override
     public void setRunAs(String runAs) {
@@ -120,14 +163,36 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         this.servletClass = servletClass;
     }
 
+
+    /**
+     * 此wrapper是否不可用
+     *
+     * @return
+     */
     @Override
     public boolean isUnavailable() {
-        return false;
+        if (available == 0L) {
+            return false;
+        } else if (available <= System.currentTimeMillis()) {
+            available = 0L;
+            return false;
+        } else {
+            return true;
+        }
     }
 
+
+    /**
+     * 添加初始化参数
+     *
+     * @param name
+     * @param value
+     */
     @Override
     public void addInitParameter(String name, String value) {
-
+        synchronized (parameters) {
+            parameters.put(name, value);
+        }
     }
 
 
@@ -391,11 +456,11 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     /**
      * TODO 接收不可用异常并做输出处理
      *
-     * @param unavailable
+     * @param unavailableException
      */
     @Override
-    public void unavailable(UnavailableException unavailable) {
-
+    public void unavailable(UnavailableException unavailableException) {
+        this.unavailable = true;
     }
 
 

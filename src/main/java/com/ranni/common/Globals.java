@@ -18,4 +18,7 @@ public final class Globals {
 
     // JSP类路径
     public static final String CLASS_PATH_ATTR = "com.ranni.jsp_classpath";
+
+    // 异常属性
+    public static final String EXCEPTION_ATTR = "javax.servlet.error.exception";
 }
