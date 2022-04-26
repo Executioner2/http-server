@@ -17,7 +17,7 @@ import java.util.List;
  * @Date 2022-04-25 22:44
  */
 public final class ApplicationFilterChain implements FilterChain {
-    private List<FilterConfig> filterConfigs = new ArrayList(); // 过滤器配置
+    private List<FilterConfig> filterConfigs = new ArrayList(); // 过滤器
     private Iterator iterator;
     private Servlet servlet;
     private InstanceSupport support; // 实例监听器工具类
