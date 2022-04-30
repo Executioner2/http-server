@@ -221,6 +221,8 @@ public class HttpProcessor implements Processor {
             // 进入容器
             container.invoke(request, response);
 
+            // 完成请求
+            response.finishResponse();
 //            if (request.getRequestURI().startsWith("/servlet/")) {
 //
 //            } else {

@@ -281,8 +281,13 @@ public abstract class ResponseBase implements ServletResponse, Response {
      */
     @Override
     public void finishResponse() throws IOException {
-        // XXX Tomcat在这里的做法是stream为空就获取一个然后关闭（脱了裤儿来放P？）
-        if (stream == null) return;
+        if (stream == null) {
+            // 没有用过流，但是要把socket中输出流关掉，所以从socket中拿。
+            stream = getOutputStream();
+            stream.flush();
+            stream.close();
+            return;
+        }
 
         if (((ResponseStream)stream).closed()) return;
 
