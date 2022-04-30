@@ -61,7 +61,10 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private String mapperClass = "com.ranni.container.context.StandardContextMapper"; // 默认映射器
     private boolean privileged; // 此容器是否具备特权
     private boolean available; // 此WebApp是否可用
+    private boolean configured; // TODO 此Context容器的配置标志，在start()通过生命周期事件触发配置监听器对此context容器进行配置，为true时WebApp才能启动
     private FilterMap[] filterMaps = new FilterMap[0]; // 过滤器映射集合
+    private CharsetMapper charsetMapper; // 字符集
+    private String charsetMapperClass = "com.ranni.util.CharsetMapper"; // 默认的字符集类
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
@@ -72,6 +75,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
     public StandardContext() {
         pipeline.setBasic(new StandardContextValve(this));
+        namingResources.setContainer(this);
     }
 
 
@@ -305,9 +309,24 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         return new File(System.getProperty("ranni.base"));
     }
 
+
+    /**
+     * 返回字符集
+     * 
+     * @return
+     */
     @Override
     public CharsetMapper getCharsetMapper() {
-        return null;
+        if (this.charsetMapper == null) {   
+            // 创建字符集实例
+            try {
+                Class<CharsetMapper> clazz = (Class<CharsetMapper>) Class.forName(charsetMapperClass);
+                this.charsetMapper = clazz.getConstructor().newInstance();
+            } catch (Throwable e) {
+                this.charsetMapper = new CharsetMapper();
+            }
+        }
+        return this.charsetMapper;
     }
 
     @Override
@@ -345,15 +364,27 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     public void setCharsetMapper(CharsetMapper mapper) {
 
     }
+    
 
+    /**
+     * 返回此容器是否正确配置的标志位
+     * 
+     * @return
+     */
     @Override
     public boolean getConfigured() {
-        return false;
+        return this.configured;
     }
+    
 
+    /**
+     * 设置此容器是否正确配置的标志位
+     * 
+     * @param configured 
+     */
     @Override
     public void setConfigured(boolean configured) {
-
+        this.configured = configured;
     }
 
     @Override
@@ -1143,119 +1174,244 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     /**
      * context容器启动
      * 要做的操作：
-     *  1、配置资源
-     *  2、启动加载器
-     *  3、设置工作目录
-     *  4、设置默认映射器
-     *  5、启动子容器
-     *  6、启动管道
-     *  7、容器启动事件
-     *  8、启动管理器
+     *  1、触发BEFORE_START事件
+     *  2、将availability设置false
+     *  3、将configured设置为false
+     *  4、配置资源，设置资源对象的根目录
+     *  5、设置载入器
+     *  6、设置Session管理器
+     *  7、初始化字符集映射器
+     *  8、启动与该Context容器相关联的组件
+     *  9、启动子容器
+     *  10、启动管道对象
+     *  11、启动Session管理器
+     *  12、触发START事件，在此监听器（ContextConfig实例）会进行一些配置操作，将配置结果返回给configured
+     *  13、检查configured属性的值：
+     *      如果为true则调用postWelcomePages()方法，并载入需要载入的子容器。将availability设置为true；
+     *      若为false则调用stop()方法
+     *  14、触发AFTER_START事件
+     *  
+     *  XXX 后续将Spring融入进来，Spring会有监听器会在此方法中监听START事件
      *
      * @throws Exception
      */
     @Override
     public synchronized void start() throws Exception {
         if (started) throw new LifecycleException("此context容器实例已经启动！");
-        boolean ok = true;
+        
+        if (debug >= 1)
+            log("启动中");
 
-        // 容器启动前
+        // 触发BEFORE_START事件
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
 
-
-        try {
-            // 设置资源
-            if (getResources() == null) {
+        if (debug >= 1)
+            log("Context启动前准备，当前容器可用状态：" + getAvailable());
+        
+        boolean ok = true;
+        setConfigured(false);
+        setAvailable(false);
+        
+        // 配置资源
+        if (getResources() == null) {
+            if (debug >= 1)
                 log("开始配置默认资源");
-                try {
-                    if (docBase != null && docBase.endsWith(".war")) {
-                        setResources(new WARDirContext());
-                    } else {
-                        setResources(new FileDirContext());
-                    }
-                } catch (IllegalArgumentException e) {
-                    log("资源文件初始化失败： " + e.getMessage());
-                    ok = false;
-                }
-            }
 
-            // 设置目录根路径
-            if (ok && resources instanceof ProxyDirContext) {
-                DirContext dirContext = ((ProxyDirContext) resources).getDirContext();
-                if (dirContext instanceof BaseDirContext) {
-                    ((BaseDirContext) dirContext).setDocBase(getBasePath());
-                }
-            }
-
-            // 开始设置加载器
-            if (getLoader() == null) {
-                log("开始配置加载器");
-                if (getPrivileged()) {
-                    if (debug > 1)
-                        log("此容器为特殊容器，可用此容器的加载器加载web应用程序的类");
-                    setLoader(new WebappLoader(this.getClass().getClassLoader()));
+            try {
+                if (docBase != null && docBase.endsWith(".war")) {
+                    setResources(new WARDirContext());
                 } else {
-                    if (debug > 1)
-                        log("此容器为普通容器，要用此容器的父容器的加载器作为web应用程序类的加载类");
-                    setLoader(new WebappLoader(getParentClassLoader()));
+                    setResources(new FileDirContext());
                 }
+            } catch (IllegalArgumentException e) {
+                log("资源文件初始化失败： " + e.getMessage());
+                ok = false;
             }
+        }
 
-            // 设置session管理器
-            if (getManager() == null) {
+        // 设置目录根路径
+        if (ok && resources instanceof ProxyDirContext) {
+            DirContext dirContext = ((ProxyDirContext) resources).getDirContext();
+            if (dirContext instanceof BaseDirContext) {
+                ((BaseDirContext) dirContext).setDocBase(getBasePath());
+            }
+        }
+
+        // 设置加载器
+        if (getLoader() == null) {
+            log("开始配置加载器");
+            if (getPrivileged()) {
+                if (debug > 1)
+                    log("此容器为特殊容器，可用此容器的加载器加载web应用程序的类");
+                
+                setLoader(new WebappLoader(this.getClass().getClassLoader()));
+            } else {
+                if (debug > 1)
+                    log("此容器为普通容器，要用此容器的父容器的加载器作为web应用程序类的加载类");
+                
+                setLoader(new WebappLoader(getParentClassLoader()));
+            }
+        }
+
+        // 设置session管理器
+        if (getManager() == null) {
+            if (debug >= 1)
                 log("开始配置session管理器");
-                setManager(new StandardManager());
-            }
-
-            // 设置工作目录
-            postWorkDirectory();
-
-            // 设置默认映射器
-            addDefaultMapper(this.mapperClass);
-
-            // 启动加载器
-            if (loader != null && loader instanceof Lifecycle)
-                ((Lifecycle) loader).start();
-
-            // TODO 启动监听器
-
-            // 启动过滤器
-            if (ok) {
-                if (!filterStart())
-                    ok = false;
-            }
-
-            // 启动子容器
-            Container[] children = findChildren();
-            for (Container child : children) {
-                if (child instanceof Lifecycle)
-                    ((Lifecycle) child).start();
-            }
-
-            // 启动管道
-            if (pipeline instanceof Lifecycle)
-                ((Lifecycle) pipeline).start();
-
-            // 启动session管理器
-            if (manager instanceof Lifecycle)
-                ((Lifecycle) manager).start();
-
-            // context容器自身启动
-            lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
-        } catch (Exception e) {
-            ok = false;
-            log("context容器启动失败： " + e.getMessage());
+            
+            setManager(new StandardManager());
         }
         
+        // 初始化字符集
+        getCharsetMapper();
+
+        // 设置工作目录
+        postWorkDirectory();
+        
+        // 给此线程设置新的上下文类加载器
+        ClassLoader oldCCL = bindThread();
+
+        if (debug >= 1)
+            log("Context容器正式启动");
+        
         if (ok) {
-            started = true;
+            try {
+                // 添加默认的映射器
+                addDefaultMapper(this.mapperClass);
+                started = true;
+
+                // 启动加载器
+                if (this.loader != null && this.loader instanceof Lifecycle)
+                    ((Lifecycle) this.loader).start();
+                
+                // 启动记录器日志
+                if (logger != null && logger instanceof Lifecycle)
+                    ((Lifecycle) logger).start();
+
+
+//                // 重新绑定上下文类加载器
+//                unbindThread(oldCCL);
+//                oldCCL = bindThread();
+                
+                // 启动相关组件 （领域，簇，JNDI资源等）
+                if (resources != null && resources instanceof Lifecycle)
+                    ((Lifecycle) resources).start();
+
+                // 启动映射器
+                Mapper mappers[] = findMappers();
+                for (Mapper mapper : mappers) {
+                    if (mapper instanceof Lifecycle)
+                        ((Lifecycle) mapper).start();
+                }
+                
+                // 启动子容器
+                Container[] children = findChildren();
+                for (Container child : children) {
+                    if (child instanceof Lifecycle)
+                        ((Lifecycle) child).start();
+                }
+
+                // 启动管道
+                if (pipeline instanceof Lifecycle)
+                    ((Lifecycle) pipeline).start();
+
+                // 启动事件
+                lifecycle.fireLifecycleEvent(START_EVENT, null);
+
+                // 启动Session管理器
+                if (manager != null && manager instanceof Lifecycle)
+                    ((Lifecycle) manager).start();
+
+                // 启动session管理器
+                if (manager instanceof Lifecycle)
+                    ((Lifecycle) manager).start();
+
+            } finally {
+                unbindThread(oldCCL);
+            }
+        }
+        
+        // 检查配置有无问题
+        if (!getConfigured())
+            ok = false;
+
+        // 设置JNDI资源到全局作用域中
+        if (ok) {
+            getServletContext().setAttribute(Globals.RESOURCES_ATTR, getResources());
+        }
+        
+        // 设置欢迎文件
+        if (ok) {
+            if (debug >= 1)
+                log("设置欢迎文件");
+
+            postWelcomeFiles(); // TODO 未实现
+        }
+        
+        // TODO 启动监听器
+
+        // 启动过滤器
+        if (ok) {
+            ok = filterStart();
+        }
+
+        // TODO 初始化所有加载时启动的servlet
+        
+        
+        if (ok) {
+            if (debug >= 1)
+                log("Context容器启动成功！");
+            
             // 设置WebApp可用
             setAvailable(true);
+        } else {
+            log("Context容器启动失败！");
+            try {
+                stop();
+            } catch (Throwable t) {
+                log("StandardContext.StartCleanup" + t);
+            }
+            setAvailable(false);
         }
 
         // 容器启动后
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
     }
+
+
+    /**
+     * TODO 设置欢迎文件
+     */
+    private void postWelcomeFiles() {
+    }
+
+
+    /**
+     * 解绑上下文类加载器
+     * 
+     * @param oldCCL
+     */
+    private void unbindThread(ClassLoader oldCCL) {
+    }
+
+
+    /**
+     * 取得与线程绑定的类加载器
+     * 如果JNDI资源为null则直接返回与线程绑定的上下文类加载器
+     * 否则设置上下文类加载器为从当前context容器取得的类加载器
+     * 
+     * @return 返回的始终都是此线程原来的上下文类加载器
+     */
+    private ClassLoader bindThread() {
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        
+        if (getResources() == null) 
+            return contextClassLoader;
+        
+        Thread.currentThread().setContextClassLoader(getLoader().getClassLoader());
+        
+        return contextClassLoader;
+    }
+    
 
     /**
      * 启动过滤器
@@ -1381,22 +1537,33 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     public synchronized void stop() throws Exception {
 
         if (!started) throw new LifecycleException("此context容器已处于关闭状态！");
+        
+        if (debug >= 1)
+            log("容器开始关闭！");
 
         // 关闭context容器之前
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_STOP_EVENT, null);
 
+        ClassLoader oldCCL = bindThread();
+        
         // 设置此WebApp不可用
         setAvailable(false);
+        
+        // 设置字符集为null
+        setCharsetMapper(null);
 
-        // 关闭context容器
-        lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
+        // 停止Session管理器
+        if (manager != null && manager instanceof Lifecycle)
+            ((Lifecycle) manager).stop();
+
+        if (debug >= 1)
+            log("容器正式关闭！");
+        
+        // 关闭事件
+        lifecycle.fireLifecycleEvent(STOP_EVENT, null);
         started = false;
 
         try {
-            // 关闭session管理器
-            if (manager instanceof Lifecycle)
-                ((Lifecycle) manager).stop();
-
             // 关闭管道
             if (pipeline instanceof Lifecycle)
                 ((Lifecycle) pipeline).stop();
@@ -1407,17 +1574,91 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
                 if (child instanceof Lifecycle)
                     ((Lifecycle) child).stop();
             }
+            
+            // 关闭mapper
+            Mapper[] mappers = findMappers();
+            for (Mapper mapper : mappers) {
+                if (mapper instanceof Lifecycle)
+                    ((Lifecycle) manager).stop();
+            }
+            
+            // 停止监听器
+            listenerStop(); // TODO 未实现
 
+            // 关闭JNDI资源 
+            if (resources != null) {
+                if (resources instanceof Lifecycle)
+                    ((Lifecycle) resources).stop();
+            } else if (resources instanceof ProxyDirContext) {
+                DirContext dirContext = ((ProxyDirContext) resources).getDirContext();
+                if (dirContext != null) {
+                    if (debug >= 1)
+                        log("开启清除资源根路径：" + docBase);
+                    
+                    if (dirContext instanceof BaseDirContext) {
+                        ((BaseDirContext) dirContext).release();
+                        if ((dirContext instanceof WARDirContext) 
+                           || (dirContext instanceof FileDirContext)) {
+                            resources = null;
+                        }
+                    } else {
+                        log("无法释放资源：" + resources);
+                    }
+                }
+            }
+            
+            // TODO 关闭领域、簇
+            
+            // 关闭记录器
+            if (logger != null && logger instanceof Lifecycle) 
+                ((Lifecycle) logger).stop();
+            
             // 关闭加载器
             if (loader != null && loader instanceof Lifecycle)
                 ((Lifecycle) loader).stop();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } finally {
+            unbindThread(oldCCL);
+        }
+        
+        context = null;
+        
+        lifecycle.fireLifecycleEvent(AFTER_STOP_EVENT, null);
+        if (debug >= 1)
+            log("容器已经关闭！");
+    }
+
+
+    /**
+     * 停止监听器
+     */
+    private void listenerStop() {
+    }
+
+
+    /**
+     * 停止过滤器
+     */
+    private void filterStop() {
+        if (debug >= 1)
+            log("停止过滤器！");
+        
+        synchronized (filterConfigs) {
+            Iterator<String> iterator = filterConfigs.keySet().iterator();
+            while (iterator.hasNext()) {
+                String name = iterator.next();
+                if (debug >= 1)
+                    log("停止过滤器：" + name);
+                
+                ApplicationFilterConfig filterConfig = (ApplicationFilterConfig) filterConfigs.get(name);
+                filterConfig.release();
+            }
+            
+            filterConfigs.clear();
         }
     }
 
-    
+
     /**
      * 根据传入的过滤器名称找到对应的过滤器配置项
      * 
@@ -1428,5 +1669,24 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         synchronized (filterConfigs) {
             return filterConfigs.get(filterName);
         }
+    }
+
+    /**
+     * 返回字符集类
+     * 
+     * @return
+     */
+    public String getCharsetMapperClass() {
+        return charsetMapperClass;
+    }
+
+
+    /**
+     * 设置字符集类
+     * 
+     * @param charsetMapperClass
+     */
+    public void setCharsetMapperClass(String charsetMapperClass) {
+        this.charsetMapperClass = charsetMapperClass;
     }
 }

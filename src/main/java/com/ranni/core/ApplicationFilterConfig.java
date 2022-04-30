@@ -142,7 +142,7 @@ public final class ApplicationFilterConfig implements FilterConfig {
     /**
      * 释放资源
      */
-    void release() {
+    public void release() {
         if (this.filter != null)
             filter.destroy();
         this.filter = null;

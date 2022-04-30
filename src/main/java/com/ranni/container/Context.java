@@ -79,17 +79,17 @@ public interface Context extends Container {
 
 
     /**
-     * Return the "correctly configured" flag for this Context.
+     * 返回此容器是否正确配置的标志位
+     * 
+     * @return
      */
     boolean getConfigured();
 
 
     /**
-     * Set the "correctly configured" flag for this Context.  This can be
-     * set to false by startup listeners that detect a fatal configuration
-     * error to avoid the application from being made available.
-     *
-     * @param configured The new correctly configured flag
+     * 设置此容器是否正确配置的标志位
+     * 
+     * @param configured
      */
     void setConfigured(boolean configured);
 
