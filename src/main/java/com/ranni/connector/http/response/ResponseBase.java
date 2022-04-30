@@ -515,6 +515,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
 
     /**
      * 设置适合此响应的地区以及编码格式
+     * 
      * @param locale
      */
     @Override

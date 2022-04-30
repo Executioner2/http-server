@@ -367,13 +367,14 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     
 
     /**
-     * 返回此容器是否正确配置的标志位
+     * TODO 返回此容器是否正确配置的标志位
      * 
      * @return
      */
     @Override
     public boolean getConfigured() {
-        return this.configured;
+//        return this.configured;
+        return true; // 暂时返回true
     }
     
 
@@ -1321,10 +1322,6 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
                 if (manager != null && manager instanceof Lifecycle)
                     ((Lifecycle) manager).start();
 
-                // 启动session管理器
-                if (manager instanceof Lifecycle)
-                    ((Lifecycle) manager).start();
-
             } finally {
                 unbindThread(oldCCL);
             }
@@ -1355,7 +1352,6 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         }
 
         // TODO 初始化所有加载时启动的servlet
-        
         
         if (ok) {
             if (debug >= 1)
@@ -1526,10 +1522,14 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
      * 关闭当前容器
      * 关闭顺序
      *  1、session管理器
-     *  2、容器本身
-     *  3、管道
-     *  4、子容器
-     *  5、加载器
+     *  2、管道
+     *  3、子容器
+     *  4、加载器
+     *  5、映射器
+     *  6、释放JNDI资源
+     *  7、监听器
+     *  8、记录器
+     *  9、加载器
      *
      * @throws Exception
      */
