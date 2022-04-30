@@ -1,9 +1,7 @@
 package com.ranni.container;
 
-import com.ranni.deploy.ApplicationParameter;
-import com.ranni.deploy.ContextEnvironment;
-import com.ranni.deploy.ContextResource;
-import com.ranni.deploy.ContextResourceLink;
+import com.ranni.core.FilterDef;
+import com.ranni.deploy.*;
 import com.ranni.util.CharsetMapper;
 
 import javax.servlet.ServletContext;
@@ -83,7 +81,7 @@ public interface Context extends Container {
     /**
      * Return the "correctly configured" flag for this Context.
      */
-    public boolean getConfigured();
+    boolean getConfigured();
 
 
     /**
@@ -93,7 +91,7 @@ public interface Context extends Container {
      *
      * @param configured The new correctly configured flag
      */
-    public void setConfigured(boolean configured);
+    void setConfigured(boolean configured);
 
 
     /**
@@ -191,17 +189,19 @@ public interface Context extends Container {
 
 
     /**
-     * Return the naming resources associated with this web application.
+     * 返回JNDI资源
+     * 
+     * @return
      */
-//    public NamingResources getNamingResources();
+    NamingResources getNamingResources();
 
 
     /**
-     * Set the naming resources for this web application.
-     *
-//     * @param namingResources The new naming resources
+     * 设置JNDI资源
+     * 
+     * @param namingResources
      */
-//    public void setNamingResources(NamingResources namingResources);
+    void setNamingResources(NamingResources namingResources);
 
 
     /**
@@ -378,19 +378,19 @@ public interface Context extends Container {
 
 
     /**
-     * Add a filter definition to this Context.
-     *
-     * @param filterDef The filter definition to be added
+     * 添加过滤器定义实例
+     * 
+     * @param filterDef
      */
-//    public void addFilterDef(FilterDef filterDef);
+    void addFilterDef(FilterDef filterDef);
 
 
     /**
-     * Add a filter mapping to this Context.
-     *
-     * @param filterMap The filter mapping to be added
+     * 添加过滤器映射实例
+     * 
+     * @param filterMap
      */
-//    public void addFilterMap(FilterMap filterMap);
+    void addFilterMap(FilterMap filterMap);
 
 
     /**
@@ -628,24 +628,28 @@ public interface Context extends Container {
 
 
     /**
-     * Return the filter definition for the specified filter name, if any;
-     * otherwise return <code>null</code>.
-     *
-     * @param filterName Filter name to look up
+     * 返回指定的容器定义实例
+     * 
+     * @param filterName
+     * @return
      */
-//    public FilterDef findFilterDef(String filterName);
+    FilterDef findFilterDef(String filterName);
 
 
     /**
-     * Return the set of defined filters for this Context.
+     * 返回此容器所有的过滤器定义实例
+     * 
+     * @return
      */
-//    public FilterDef[] findFilterDefs();
+    FilterDef[] findFilterDefs();
 
 
     /**
-     * Return the set of filter mappings for this Context.
+     * 返回此容器所有过滤器映射
+     * 
+     * @return
      */
-//    public FilterMap[] findFilterMaps();
+    FilterMap[] findFilterMaps();
 
 
     /**
@@ -927,20 +931,19 @@ public interface Context extends Container {
 
 
     /**
-     * Remove the specified filter definition from this Context, if it exists;
-     * otherwise, no action is taken.
-     *
-     * @param filterDef Filter definition to be removed
+     * 移除此容器的过滤器定义
+     * 
+     * @param filterDef
      */
-//    public void removeFilterDef(FilterDef filterDef);
+    void removeFilterDef(FilterDef filterDef);
 
 
     /**
-     * Remove a filter mapping from this Context.
-     *
-     * @param filterMap The filter mapping to be removed
+     * 删除与此容关联的过滤器映射实例
+     * 
+     * @param filterMap
      */
-//    public void removeFilterMap(FilterMap filterMap);
+    void removeFilterMap(FilterMap filterMap);
 
 
     /**

@@ -43,8 +43,9 @@ public abstract class ContainerBase implements Container, Pipeline {
     protected Manager manager; // session管理器
     protected int debug = Logger.INFORMATION; // 日志级别
     protected ClassLoader parentClassLoader; // 父容器的类加载器
-
-
+    
+    
+    
     /**
      * 取得session管理器
      *

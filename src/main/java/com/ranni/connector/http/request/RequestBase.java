@@ -26,7 +26,7 @@ public abstract class RequestBase implements Request, ServletRequest {
     protected String authorization; // 认证信息
     protected Connector connector; // 连接器
     protected Context context; // context容器
-    protected String info; // TODO 暂时无用
+    protected String info; // 实现类的信息
     protected ServletRequest request; // 请求对象
     protected ServletRequest facade = new HttpRequestFacade(this); // 请求对象对外的包装对象
     protected Response response; // 响应对象

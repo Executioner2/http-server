@@ -6,6 +6,8 @@ import com.ranni.container.*;
 import com.ranni.container.host.StandardHost;
 import com.ranni.container.loader.WebappLoader;
 import com.ranni.container.scope.ApplicationContext;
+import com.ranni.core.ApplicationFilterConfig;
+import com.ranni.core.FilterDef;
 import com.ranni.deploy.*;
 import com.ranni.exception.LifecycleException;
 import com.ranni.lifecycle.Lifecycle;
@@ -20,6 +22,7 @@ import com.ranni.util.LifecycleSupport;
 import com.ranni.util.RequestUtil;
 
 import javax.naming.directory.DirContext;
+import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import java.io.File;
 import java.io.IOException;
@@ -41,8 +44,8 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private String displayName; // 显示的名称
     private boolean distributable; // 可分发标志
     private Map exceptionPages = new HashMap(); // 异常页面，以异常的全限定类名作为key
-    private Map filterConfigs = new HashMap(); // 过滤器配置，以过滤器名作为key
-    private Map filterDefs = new HashMap(); // 过滤器定义，以过滤器名作为key
+    private Map<String, FilterConfig> filterConfigs = new HashMap(); // 过滤器配置，以过滤器名作为key
+    private Map<String, FilterDef> filterDefs = new HashMap<>(); // 过滤器定义，以过滤器名作为key
     private boolean useNaming = true; // 是否使用JNDI
     private boolean swallowOutput;
     private String[] wrapperLifecycles = new String[0]; // wrapper生命周期监听器类名
@@ -58,12 +61,13 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private String mapperClass = "com.ranni.container.context.StandardContextMapper"; // 默认映射器
     private boolean privileged; // 此容器是否具备特权
     private boolean available; // 此WebApp是否可用
+    private FilterMap[] filterMaps = new FilterMap[0]; // 过滤器映射集合
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
     protected Map<String, String> servletMappings = new HashMap<>(); // 请求servlet与wrapper容器的映射
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
-    protected boolean filesystemBased; // 关联的目录容器是否是文件类型的目录容器
+    protected boolean filesystemBased; // 关联的目录容器是否是文件类型的目录容器    
 
 
     public StandardContext() {
@@ -427,6 +431,16 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         this.docBase = docBase;
     }
 
+    @Override
+    public NamingResources getNamingResources() {
+        return null;
+    }
+
+    @Override
+    public void setNamingResources(NamingResources namingResources) {
+
+    }
+
     /**
      * 返回此容器的名字
      *
@@ -625,6 +639,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         }
     }
 
+    
     /**
      * 添加环境
      *
@@ -633,6 +648,49 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     @Override
     public void addEnvironment(ContextEnvironment environment) {
         namingResources.addEnvironment(environment);
+    }
+
+
+    /**
+     * 添加过滤器定义实例
+     * 
+     * @param filterDef
+     */
+    @Override
+    public void addFilterDef(FilterDef filterDef) {
+        synchronized (filterDefs) {
+            filterDefs.put(filterDef.getFilterName(), filterDef);
+        }
+    }
+
+
+    /**
+     * 添加过滤器映射
+     * 
+     * @param filterMap
+     */
+    @Override
+    public void addFilterMap(FilterMap filterMap) {
+        String filterName = filterMap.getFilterName();
+        String servletName = filterMap.getServletName();
+        String urlPattern = filterMap.getUrlPattern();
+        
+        // 合法性检查
+        if (findFilterDef(filterName) == null) 
+            throw new IllegalArgumentException("StandardContext.addFilterMap->name  没有找到这个名字的定义：" + filterName);
+        
+        if (servletName == null && urlPattern == null)
+            throw new IllegalArgumentException("StandardContext.addFilterMap：servletName或urlPattern为null");
+        
+        if (servletName != null && urlPattern != null)
+            throw new IllegalArgumentException("StandardContext.addFilterMap：此FilterMap已经添加");
+        
+        synchronized (filterMaps) {
+            FilterMap[] newArs = new FilterMap[filterMaps.length + 1];
+            System.arraycopy(filterMaps, 0, newArs, 0, filterMaps.length);
+            newArs[filterMaps.length] = filterMap;
+            filterMaps = newArs;
+        }
     }
 
 
@@ -837,6 +895,36 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         return new ContextEnvironment[0];
     }
 
+
+    /**
+     * 这个filterName是否是定义中的
+     * 
+     * @param filterName
+     * @return
+     */
+    @Override
+    public FilterDef findFilterDef(String filterName) {
+        synchronized (filterDefs) {
+            return filterDefs.get(filterName);
+        }
+    }
+
+    @Override
+    public FilterDef[] findFilterDefs() {
+        return new FilterDef[0];
+    }
+
+
+    /**
+     * 返回此容器所有过滤器映射
+     * 
+     * @return
+     */
+    @Override
+    public FilterMap[] findFilterMaps() {
+        return filterMaps;
+    }
+
     @Override
     public String[] findInstanceListeners() {
         return new String[0];
@@ -951,6 +1039,16 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
     @Override
     public void removeApplicationParameter(String name) {
+
+    }
+
+    @Override
+    public void removeFilterDef(FilterDef filterDef) {
+
+    }
+
+    @Override
+    public void removeFilterMap(FilterMap filterMap) {
 
     }
 
@@ -1119,6 +1217,14 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
             if (loader != null && loader instanceof Lifecycle)
                 ((Lifecycle) loader).start();
 
+            // TODO 启动监听器
+
+            // 启动过滤器
+            if (ok) {
+                if (!filterStart())
+                    ok = false;
+            }
+
             // 启动子容器
             Container[] children = findChildren();
             for (Container child : children) {
@@ -1140,7 +1246,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
             ok = false;
             log("context容器启动失败： " + e.getMessage());
         }
-
+        
         if (ok) {
             started = true;
             // 设置WebApp可用
@@ -1149,6 +1255,35 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
         // 容器启动后
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
+    }
+
+    /**
+     * 启动过滤器
+     * 实际上过滤器对象并未创建，只是将过滤器的定义信息载入了进来（其实就是创建了将过滤器定义、过滤器以及容器三者关联的对象）
+     * 
+     * @return
+     */
+    public boolean filterStart() {
+        boolean ok = true;
+        
+        // 从xml中载入过滤器配置
+        synchronized (filterConfigs) {
+            filterConfigs.clear();
+            Iterator<String> iterator = filterDefs.keySet().iterator();
+            while (iterator.hasNext()) {
+                String name = iterator.next();
+                ApplicationFilterConfig filterConfig = null;
+                try {
+                    filterConfig = new ApplicationFilterConfig(this, filterDefs.get(name));
+                    filterConfigs.put(name, filterConfig);
+                } catch (Throwable t) {
+                    log("StandardContext.filterStart  实例化应用程序过滤器配置失败！ " + filterConfig);
+                    ok = false;
+                }
+            }
+        }
+        
+        return ok;
     }
 
     /**
@@ -1279,6 +1414,19 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    
+    /**
+     * 根据传入的过滤器名称找到对应的过滤器配置项
+     * 
+     * @param filterName
+     * @return
+     */
+    public FilterConfig findFilterConfig(String filterName) {
+        synchronized (filterConfigs) {
+            return filterConfigs.get(filterName);
         }
     }
 }

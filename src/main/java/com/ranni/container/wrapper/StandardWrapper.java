@@ -12,6 +12,7 @@ import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
 import com.ranni.util.Enumerator;
+import com.ranni.util.InstanceSupport;
 import com.ranni.util.LifecycleSupport;
 
 import javax.servlet.*;
@@ -46,12 +47,23 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
 
     protected String servletClass; // servlet类全限定类名
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
+    protected InstanceSupport instanceSupport = new InstanceSupport(this); // 实例监听器工具实例
 
 
     public StandardWrapper() {
         pipeline.setBasic(new StandardWrapperValve(this));
     }
 
+
+    /**
+     * 返回实例监听器
+     * 
+     * @return
+     */
+    public InstanceSupport getInstanceSupport() {
+        return this.instanceSupport;
+    }
+    
 
     /**
      * 返回此wrapper可用的日期时间

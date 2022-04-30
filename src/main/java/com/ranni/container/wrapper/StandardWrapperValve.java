@@ -1,18 +1,19 @@
 package com.ranni.container.wrapper;
 
 import com.ranni.common.Globals;
+import com.ranni.connector.http.request.HttpRequest;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.Container;
 import com.ranni.container.Context;
+import com.ranni.container.context.StandardContext;
 import com.ranni.container.pip.ValveBase;
 import com.ranni.container.pip.ValveContext;
 import com.ranni.core.ApplicationFilterChain;
+import com.ranni.core.ApplicationFilterConfig;
+import com.ranni.deploy.FilterMap;
 
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -50,6 +51,8 @@ public class StandardWrapperValve extends ValveBase {
      * 5、调用wrapper的deallocate()方法归还servlet资源 {@link StandardWrapper#deallocate(Servlet)}
      * 6、若该servlet再也不会被使用到就会调用wrapper的unload()销毁此servlet实例 {@link StandardWrapper#unload()}
      *
+     * XXX 需要添加日志记录
+     * 
      * @param request
      * @param response
      * @param valveContext
@@ -63,6 +66,7 @@ public class StandardWrapperValve extends ValveBase {
         StandardWrapper wrapper = (StandardWrapper) getContainer();
         ServletRequest sreq = request.getRequest();
         ServletResponse sres = response.getResponse();
+        Throwable throwable = null;
         Servlet servlet = null;
 
         HttpServletRequest hreq = null;
@@ -98,31 +102,225 @@ public class StandardWrapperValve extends ValveBase {
                 servlet = wrapper.allocate();
             }
         } catch (Throwable e) {
+            throwable = e;
             servlet = null;
             exception(request, response, e); // 设置异常
         }
 
         // 创建请求链
         ApplicationFilterChain filterChain = createFilterChain(request, servlet);
+        
+        // 执行过滤，如果是jsp文件就要在请求对象中添加jsp文件名属性，过滤完后还要及时删除此属性
+        try {
+            String jspFile = wrapper.getJspFile();
+            if (jspFile != null) {
+                sreq.setAttribute(Globals.JSP_FILE_ATTR, jspFile);
+            } else {
+                sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+            }
+            if (servlet != null && filterChain != null) {
+                filterChain.doFilter(sreq, sres);
+            }
+            sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+        } catch (IOException e) {
+            sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+            throwable = e;
+            exception(request, response, e);
+        } catch (UnavailableException e) {
+            sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+            wrapper.unavailable(e);
+            long available = wrapper.getAvailable();
+            if ((available > 0L) && (available < Long.MAX_VALUE))
+                hres.setDateHeader("Retry-After", available);
+            throwable = e;
+            hres.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "StandardWrapper.isUnavailable" + wrapper.getName());
+        } catch (ServletException e) {
+            sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+            throwable = e;
+            exception(request, response, e);
+        } catch (Throwable e) {
+            sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+            throwable = e;
+            exception(request, response, e);
+        }
 
-//        Wrapper wrapper = (Wrapper) getContainer();
-//        ServletRequest servletRequest = request.getRequest();
-//        ServletResponse servletResponse = response.getResponse();
-//        Servlet servlet = wrapper.allocate();
-//        servlet.service(servletRequest, servletResponse);
-//        response.finishResponse();
+        // 到这里就已经完成了一次对请求的处理，开始资源回收
+        
+        // 回收过滤链
+        try {
+            if (filterChain != null)
+                filterChain.release();
+        } catch (Throwable e) {
+            if (throwable == null) {
+                // 还没发生过错误，那么这次发生的错误将返回给客户端
+                throwable = e;
+                exception(request, response, e);
+            }
+        }
+        
+        // 回收servlet
+        try {
+            if (servlet != null)
+                wrapper.deallocate(servlet);
+        } catch (Throwable e) {
+            if (throwable == null) {
+                // 还没发生过错误，那么这次发生的错误将返回给客户端
+                throwable = e;
+                exception(request, response, e);
+            }
+        }
+        
+        // 如果servlet被置为永久不可用，将卸载此servlet
+        try {
+            if (servlet != null && wrapper.getAvailable() == Long.MAX_VALUE)
+                wrapper.unload();
+        } catch (Throwable e) {
+            if (throwable == null) {
+                throwable = e;
+                exception(request, response, e);
+            }
+        }
+        
     }
 
 
     /**
-     * TODO 创建请求链
+     * 创建过滤链
+     * 此处不对过滤器进行实例化，仅仅创建过滤链，
+     * 然后将匹配的过滤器关联对象加入到过滤链的集合中
      *
      * @param request
      * @param servlet
      * @return
      */
     private ApplicationFilterChain createFilterChain(Request request, Servlet servlet) {
-        return null;
+        if (servlet == null)
+            return null;
+        
+        // 创建并初始化过滤器链对象
+        ApplicationFilterChain filterChain = new ApplicationFilterChain();
+        filterChain.setServlet(servlet);
+        StandardWrapper wrapper = (StandardWrapper) getContainer();
+        filterChain.setSupport(wrapper.getInstanceSupport());
+
+        // 取得过滤器的映射集
+        StandardContext context = (StandardContext) wrapper.getParent();
+        FilterMap[] filterMaps = context.findFilterMaps();
+        
+        if (filterMaps == null || filterMaps.length == 0)
+            return filterChain;
+        
+        // 实例化所有过滤器
+        String requestPath = null;
+        if (request instanceof HttpRequest) {
+            HttpServletRequest hreq = (HttpServletRequest) request.getRequest();
+            String contextPath = hreq.getContextPath();
+            if (contextPath == null) 
+                contextPath = "";
+            
+            String requestURI = ((HttpRequest) request).getDecodedRequestURI();            
+            if (requestURI.length() >= contextPath.length())
+                requestPath = requestURI.substring(contextPath.length());
+        }
+
+        String servletName = wrapper.getName();
+        int count = 0;
+
+        // 将符合条件的过滤器关联实例添加进过滤器链的集合中（按URL匹配）
+        for (int i = 0; i < filterMaps.length; i++) {
+            // 与此请求路径匹配的过滤器配置
+            if (!matchFiltersURL(filterMaps[i], requestPath)) 
+                continue;
+            
+            ApplicationFilterConfig filterConfig = (ApplicationFilterConfig) context.findFilterConfig(filterMaps[i].getFilterName());
+            
+            if (filterConfig != null) {
+                filterChain.addFilter(filterConfig);
+                count++;
+            }
+        }
+
+        // 将符合条件的过滤器关联实例添加进过滤器链的集合中（按Servlet匹配）
+        for (int i = 0; i < filterMaps.length; i++) {
+            if (!matchFiltersServlet(filterMaps[i], servletName))
+                continue;
+            
+            ApplicationFilterConfig filterConfig = (ApplicationFilterConfig) context.findFilterConfig(filterMaps[i].getFilterName());
+
+            if (filterConfig != null) {
+                filterChain.addFilter(filterConfig);
+                count++;
+            }
+        }
+        
+
+        return filterChain;
+    }
+
+
+    /**
+     * 判断servlet名是否与传入的过滤映射匹配
+     *
+     * @param filterMap
+     * @param servletName
+     * @return
+     */
+    private boolean matchFiltersServlet(FilterMap filterMap, String servletName) {
+        if (servletName == null)
+            return false;
+        
+        return servletName.equals(filterMap.getServletName());
+    }
+
+
+    /**
+     * 判断请求路径是否与传入的过滤映射匹配
+     * XXX 后面用动态规划进行优化
+     * 
+     * @param filterMap
+     * @param requestPath
+     * @return
+     */
+    private boolean matchFiltersURL(FilterMap filterMap, String requestPath) {
+        if (requestPath == null) 
+            return false;
+
+        String urlPattern = filterMap.getUrlPattern();
+        if (urlPattern == null)
+            return false;
+        
+        // 情况一：完全匹配
+        if (urlPattern.equals(requestPath))
+            return true;
+        
+        
+        // 情况二：路径匹配（"/*"）
+        if ("/*".equals(urlPattern))
+            return true;
+        
+        // 情况二的分支情况
+        if (urlPattern.endsWith("/*")) {
+            String comparePath = requestPath;
+            while (true) {
+                if (urlPattern.equals(comparePath + "/*"))
+                    return true;
+                
+                int slash = comparePath.lastIndexOf('/');
+                if (slash < 0) break;
+                comparePath = comparePath.substring(0, slash);
+            }
+            return false;
+        }
+        
+        // 情况三：扩展名匹配（"*."）
+        if (urlPattern.startsWith("*.")) {
+            int slash = requestPath.lastIndexOf('/');
+            int period = requestPath.lastIndexOf('.');
+            if (slash >= 0 && period > slash)
+                return urlPattern.equals("*." + requestPath.substring(period + 1));
+        }
+        
+        return false;
     }
 
 
@@ -145,6 +343,7 @@ public class StandardWrapperValve extends ValveBase {
 
     /**
      * 返回与此容器关联的阀
+     * 
      * @return
      */
     @Override
@@ -154,6 +353,7 @@ public class StandardWrapperValve extends ValveBase {
 
     /**
      * 设置与此阀关联的容器
+     * 
      * @param container
      */
     @Override

@@ -21,4 +21,7 @@ public final class Globals {
 
     // 异常属性
     public static final String EXCEPTION_ATTR = "javax.servlet.error.exception";
+    
+    // JSP文件属性
+    public static final String JSP_FILE_ATTR = "com.ranni.jsp_file";
 }

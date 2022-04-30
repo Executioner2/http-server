@@ -9,13 +9,14 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Map;
 
 /**
  * Title: HttpServer
  * Description:
- * 过滤器通用的配置模板类，在这里定义过滤器
+ * 过滤器关联类，将容器、过滤器定义实例和过滤器实例三者相关联起来
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -61,7 +62,7 @@ public final class ApplicationFilterConfig implements FilterConfig {
      * 
      * @return
      */
-    private Filter getFilter() throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ServletException {
+    Filter getFilter() throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, ServletException {
         if (filter != null)
             return filter;
 
@@ -132,7 +133,7 @@ public final class ApplicationFilterConfig implements FilterConfig {
     public Enumeration getInitParameterNames() {
         Map<String, String> parameterMap = filterDef.getParameterMap();
         if (parameterMap == null)
-            return null;
+            return new Enumerator(new ArrayList());
         
         return new Enumerator(parameterMap.keySet());
     }
