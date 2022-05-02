@@ -69,10 +69,8 @@ public interface Processor extends Runnable {
 
     /**
      * 停止处理器线程
-     *
-     * @throws Exception
      */
-    void stop() throws Exception;
+    void stop();
 
 
     /**

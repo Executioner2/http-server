@@ -132,11 +132,9 @@ public class HttpProcessor implements Processor {
 
     /**
      * 停止当前线程
-     *
-     * @throws Exception
      */
     @Override
-    public synchronized void stop() throws Exception {
+    public synchronized void stop() {
         stopped = true;
         assign(null); // 直接来个空的socket就行了
     }

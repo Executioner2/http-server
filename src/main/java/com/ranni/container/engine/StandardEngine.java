@@ -59,6 +59,11 @@ public class StandardEngine extends ContainerBase implements Engine {
     }
 
     @Override
+    public void backgroundProcessor() {
+        
+    }
+
+    @Override
     public String getName() {
         return null;
     }

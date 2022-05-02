@@ -1,10 +1,15 @@
 package com.ranni.container.loader;
 
-import com.ranni.lifecycle.Lifecycle;
-import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.lifecycle.LifecycleListener;
+import com.ranni.logger.Logger;
 import com.ranni.naming.Resource;
 import com.ranni.naming.ResourceAttributes;
 
+import javax.naming.Binding;
+import javax.naming.NameClassPair;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 import java.io.File;
@@ -42,11 +47,12 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
     private ClassLoader parent; // 父-类加载器
     private ClassLoader system; // 应用（系统）类加载器
     private Object lock = new Object(); // 锁
+    private int debug = Logger.ERROR; // 日志输出等级            
 
     protected DirContext resources; // 容器资源
     protected boolean delegate; // 委托标志
     protected boolean hasExternalRepositories; // 是否有拓展仓库集
-    protected boolean started;
+    protected boolean started; // 是否已经启动
     protected String[] repositories = new String[0]; // 类仓库名，与类文件仓库的下标是对应的
     protected File[] files = new File[0]; // 类文件仓库，与类仓库名的的下标是对应的
     protected String jarPath; // JAR包的路径
@@ -487,15 +493,85 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
         }
     }
 
+
+    /**
+     * 返回所有仓库
+     * 
+     * @return
+     */
     @Override
     public String[] findRepositories() {
-        return new String[0];
+        return repositories;
     }
 
+
+    /**
+     * TODO 是否有文件修改了
+     * XXX 此方法有可能会因为paths和lastModifiedDates的长度不一致引发重载失败或者数组下标异常问题
+     * 
+     * @return
+     */
     @Override
     public boolean modified() {
-        return false;
+        if (debug >= 3)
+            log("WebappClassLoader.modified  开始检查文件是否被修改或删除");
+        
+        // 检查普通文件目录
+        for (int i = 0; i < paths.size(); i++) {
+            try {
+                long lastModified = ((ResourceAttributes) resources.getAttributes(paths.get(i))).getLastModified();
+                if (lastModified != lastModifiedDates.get(i)) {
+                    log("有文件被修改了！ " + paths.get(i));
+                    return true;
+                }
+                
+            } catch (NamingException e) {
+                log("资源["+ paths.get(i) +"]未找到");
+                return true;
+            }
+        }
+
+        // 检查Jar包
+        if (getJarPath() != null) {
+            try {
+                NamingEnumeration<Binding> it = resources.listBindings(getJarPath());
+                int i = 0;
+                while (it.hasMore() && i < jarNames.size()) {
+                    NameClassPair ncPair = it.next();
+                    String name = ncPair.getName();
+                    if (!name.endsWith(".jar"))
+                        continue;
+                    if (!name.equals(jarNames.get(i))) {
+                        log("没有名为[ "+ name +" ]的JAR包");
+                        return true;
+                    }
+                    i++;
+                }
+
+                // 新添加了JAR包
+                if (i < jarNames.size()) {
+                    log("新添加了JAR包");
+                    return true;
+                }
+
+                // 还有JAR包，但是没有载入到WebappClassLoader的jarNames中
+                while (it.hasMore()) {
+                    NameClassPair ncPair = it.next();
+                    String name = ncPair.getName();
+                    if (name.endsWith(".jar")) {
+                        log("新添加了JAR包");
+                        return true;
+                    }
+                }
+            } catch (NamingException e) {
+                if (debug >= 2)
+                    log("Jar路径[ " + getJarPath() + " ]不存在");
+            }
+        }        
+
+        return false; 
     }
+    
 
     /**
      * 设置JNDI的容器资源
@@ -505,6 +581,7 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
     public void setResources(DirContext resources) {
         this.resources = resources;
     }
+    
 
     /**
      * 返回容器资源
@@ -660,7 +737,7 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
      * @return
      */
     @Override
-    public void start() throws Exception {
+    public void start() throws LifecycleException {
         started = true;
     }
 
@@ -683,11 +760,16 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
      * @throws Exception
      */
     @Override
-    public void stop() throws Exception {
+    public void stop() throws LifecycleException {
         started = false;
 
-        for (JarFile jf : jarFiles)
-            jf.close();
+        for (JarFile jf : jarFiles) {
+            try {
+                jf.close();
+            } catch (IOException e) {
+                log("WebappClassLoader.closeJarFile", e);
+            }
+        }
 
         notFoundResources.clear(); // 清除未找到的资源文件缓存
         resourceEntries.clear(); // 清除已解析的资源文件
@@ -701,5 +783,26 @@ public class WebappClassLoader extends URLClassLoader implements Reloader, Lifec
         paths.clear();
         lastModifiedDates.clear();
         hasExternalRepositories = false;
+    }
+
+
+    /**
+     * 打印到控制台
+     * 
+     * @param message
+     */
+    private void log(String message) {
+        System.out.println("WebappClassLoader: " + message);
+    }
+
+    /**
+     * 打印到控制台
+     *
+     * @param message
+     * @param t
+     */
+    private void log(String message, Throwable t) {
+        System.out.println("WebappClassLoader: " + message);
+        t.printStackTrace(System.out);
     }
 }

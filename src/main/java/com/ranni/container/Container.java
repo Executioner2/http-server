@@ -93,6 +93,59 @@ public interface Container {
 
 
     /**
+     * 设置后台任务线程
+     * 
+     * @param thread
+     */
+    void setThread(Thread thread);
+    
+
+    /**
+     * 启动后台任务线程
+     */
+    void threadStart();
+
+
+    /**
+     * 关闭后台任务线程
+     */
+    void threadStop();
+    
+    
+    /**
+     * 后台任务
+     */
+    void backgroundProcessor();
+
+
+    /**
+     * 后台任务间隔因子
+     * 值小于等于0表示没有单独的后台任务线程
+     * 
+     * @param val
+     */
+    void setBackgroundProcessorDelay(int val);
+
+
+    /**
+     * 返回后台任务间隔因子
+     * 值小于等于0表示没有单独的后台任务线程 
+     * 
+     * @return
+     */
+    int getBackgroundProcessorDelay();
+
+
+    /**
+     * 返回Engine容器，若没有就返回父容器
+     * 如果父容器也没有就返回当前容器
+     * 
+     * @return
+     */
+    Container getMappingObject();
+    
+    
+    /**
      * 返回此Container的名字（方便人用），该名字必须唯一
      *
      * @return

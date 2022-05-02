@@ -3,11 +3,10 @@ package com.ranni.container.loader;
 import com.ranni.common.Globals;
 import com.ranni.container.Container;
 import com.ranni.container.Context;
-import com.ranni.exception.LifecycleException;
-import com.ranni.lifecycle.Lifecycle;
-import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
-import com.ranni.naming.DirContextURLStreamHandlerFactory;
 import com.ranni.naming.Resource;
 import com.ranni.util.LifecycleSupport;
 
@@ -22,7 +21,6 @@ import java.io.*;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.URLStreamHandlerFactory;
 import java.util.jar.JarFile;
 
 /**
@@ -34,34 +32,20 @@ import java.util.jar.JarFile;
  * @Email 1205878539@qq.com
  * @Date 2022-04-06 15:45
  */
-public class WebappLoader implements Loader, Runnable, Lifecycle {
+public class WebappLoader implements Loader, Lifecycle {
     private String loaderClass = "com.ranni.container.loader.WebappClassLoader"; // 加载器的全限定类名，默认为com.ranni.container.loader.WebappClassLoader
     private ClassLoader parentLoader; // 类载入器（父）
     private WebappClassLoader classLoader; // 类载入器
     private boolean started; // 启动标志位
     private Container container; // 与此加载器关联的容器
     private boolean delegate; // 委托标志位
-    private boolean reloadable; // 重载标志位
     private String[] repositories = new String[0]; // 仓库
     private LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理实例
     private Thread thread; // 重载线程
     private boolean threadDone; // 重载线程是否执行完成
     private String threadName; // 重载线程名字
     private int checkInterval = 15; // 重载线程休眠时间因子
-
-    /**
-     * 容器重载通知线程类
-     */
-    protected class WebappContextNotifier implements Runnable {
-        /**
-         * 线程启动之后执行容器的重载方法
-         */
-        @Override
-        public void run() {
-            ((Context) container).reload();
-        }
-    }
-
+    
 
     public WebappLoader() {
     }
@@ -149,26 +133,6 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
         return null;
     }
 
-    /**
-     * 返回是否可重新载入标志
-     *
-     * @return
-     */
-    @Override
-    public boolean getReloadable() {
-        return this.reloadable;
-    }
-
-    /**
-     * 设置重新载入标志
-     *
-     * @param reloadable
-     */
-    @Override
-    public void setReloadable(boolean reloadable) {
-        this.delegate = delegate;
-    }
-
     @Override
     public void addPropertyChangeListener(PropertyChangeListener listener) {
 
@@ -211,57 +175,23 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
         return repositories;
     }
 
+
+    /**
+     * 是否有修改
+     * 
+     * @return
+     */
     @Override
     public boolean modified() {
-        return false;
+        return classLoader.modified();
     }
+    
 
     @Override
     public void removePropertyChangeListener(PropertyChangeListener listener) {
 
     }
-
-    /**
-     * 重载线程
-     */
-    @Override
-    public void run() {
-        log("重载线程已启动！");
-
-        while (!threadDone) {
-            try {
-                Thread.sleep(checkInterval * 1000L);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            if (!started)
-                break;
-
-            // 检查类加载器是否有修改
-            try {
-                if (!classLoader.modified())
-                    continue;
-            } catch (Exception e) {
-                log("检查类加载器是否修改发生了异常  " + e.getMessage());
-                continue;
-            }
-
-            // 通知容器重载
-            notifyContext();
-            break;
-        }
-
-        log("重载线程关闭！");
-    }
-
-    /**
-     * 启动通知线程通知容器进行重载
-     */
-    private void notifyContext() {
-        WebappContextNotifier webappContextNotifier = new WebappContextNotifier();
-        new Thread(webappContextNotifier).start();
-    }
+    
 
     /**
      * 添加监听器
@@ -305,12 +235,11 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
      * 3、设置类路径
      * 4、设置访问权限
      * 5、启动类加载器
-     * 6、启动一个新的线程来支持自动重载
      *
      * @throws Exception
      */
     @Override
-    public void start() throws Exception {
+    public void start() throws LifecycleException {
         if (started) throw new LifecycleException("此WebappLoader实例已经启动！");
 
         log("载入器启动！");
@@ -322,11 +251,15 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
             return;
 
         // XXX  为JNDI协议注册流处理工厂   这个东西暂时还没用上，后续可能删除掉
-        URLStreamHandlerFactory streamHandlerFactory = new DirContextURLStreamHandlerFactory();
-        URL.setURLStreamHandlerFactory(streamHandlerFactory);
+//        URLStreamHandlerFactory streamHandlerFactory = new DirContextURLStreamHandlerFactory();
+//        URL.setURLStreamHandlerFactory(streamHandlerFactory);
 
         // 创建类载入器
-        classLoader = createClassLoader();
+        try {
+            classLoader = createClassLoader();
+        } catch (Exception e) {
+            log("WebappLoader.createClassLoader", e);
+        }
         classLoader.setResources(container.getResources());
         classLoader.setDelegate(this.delegate); // 设置委托标志
         // 导入存储库
@@ -346,33 +279,6 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
         // 启动类加载器
         if (classLoader instanceof Lifecycle)
             ((Lifecycle) classLoader).start(); // 起飞！
-
-        // 启动一个新的线程来支持自动重载
-        if (reloadable) {
-            log("开启一个新的线程来支持自动重载！");
-            threadStart();
-        }
-
-    }
-
-    /**
-     * 启动一个重载线程
-     */
-    private void threadStart() {
-        if (thread != null)
-            return;
-
-        if (!reloadable)
-            throw new IllegalStateException("进入threadStart()之前说能重载，进入后又说不能重载了，GNM！");
-        if (!(container instanceof Context))
-            throw new IllegalStateException("container不是Context类型的容器！");
-
-        log("重载线程启动中。。。");
-        threadDone = false;
-        threadName = "WebappLoader[" + container.getName() + "]";
-        thread = new Thread(this, threadName);
-        thread.setDaemon(true);
-        thread.start();
     }
 
 
@@ -428,6 +334,7 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
 
         servletContext.setAttribute(Globals.CLASS_PATH_ATTR, classpath.toString());
     }
+    
 
     /**
      * 设置仓库，主要完成下面两个操作
@@ -540,6 +447,7 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
         }
 
     }
+    
 
     /**
      * 将srcDir中的类文件拷贝到desDir对象的目录下
@@ -605,16 +513,30 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
 
         return true;
     }
+    
 
     /**
-     * 停止掉此加载器
+     * 停止此加载器
      *
      * @throws Exception
      */
     @Override
-    public void stop() throws Exception {
-        if (started) throw new LifecycleException("此WebappLoader实例已经停止！");
+    public void stop() throws LifecycleException {
+        if (!started) throw new LifecycleException("此WebappLoader实例已经停止！");
+        
+        started = false;
+        
+        if (container instanceof Context) {
+            ServletContext servletContext = ((Context) container).getServletContext();
+            servletContext.removeAttribute(Globals.CLASS_PATH_ATTR);
+        }
+        
+        if (classLoader instanceof Lifecycle)
+            classLoader.stop();
+        
+        classLoader = null;
     }
+    
 
     /**
      * 记录到日志文件
@@ -636,6 +558,7 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
             System.out.println("WebappLoader[" + containerName + "]: " + msg);
         }
     }
+    
 
     /**
      * 记录到日志文件
@@ -661,6 +584,7 @@ public class WebappLoader implements Loader, Runnable, Lifecycle {
         }
 
     }
+    
 
     /**
      * 创建类载入器

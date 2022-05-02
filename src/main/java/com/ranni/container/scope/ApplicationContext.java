@@ -281,4 +281,24 @@ public class ApplicationContext implements ServletContext {
 
         return facade;
     }
+
+
+    /**
+     * 清空全部属性
+     */
+    public void clearAttributes() {
+        ArrayList list = new ArrayList();
+        synchronized (attributes) {
+            Iterator iter = attributes.keySet().iterator();
+            while (iter.hasNext()) {
+                list.add(iter.next());
+            }
+        }
+        
+        Iterator keys = list.iterator();
+        while (keys.hasNext()) {
+            String key = (String) keys.next();
+            removeAttribute(key);
+        }
+    }
 }

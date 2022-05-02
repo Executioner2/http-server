@@ -3,8 +3,9 @@ package com.ranni.container.pip;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.Container;
-import com.ranni.lifecycle.Lifecycle;
-import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.lifecycle.LifecycleListener;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
@@ -125,12 +126,12 @@ public class StandardPipeline implements Pipeline, Contained, Lifecycle {
     }
 
     @Override
-    public void start() throws Exception {
+    public void start() throws LifecycleException {
 
     }
 
     @Override
-    public void stop() throws Exception {
+    public void stop() throws LifecycleException {
 
     }
 }

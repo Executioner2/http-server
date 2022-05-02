@@ -66,23 +66,7 @@ public interface Loader {
      * @return
      */
     String getInfo();
-
-
-    /**
-     * 返回是否可重新载入标志
-     *
-     * @return
-     */
-    boolean getReloadable();
-
-
-    /**
-     * 设置重新载入标志
-     *
-     * @param reloadable
-     */
-    void setReloadable(boolean reloadable);
-
+    
 
     /**
      * 添加属性更改监听器

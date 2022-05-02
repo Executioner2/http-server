@@ -11,9 +11,9 @@ import com.ranni.connector.socket.DefaultServerSocketFactory;
 import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
 import com.ranni.container.Context;
-import com.ranni.exception.LifecycleException;
-import com.ranni.lifecycle.Lifecycle;
-import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
 import com.ranni.util.LifecycleSupport;
 
@@ -351,7 +351,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      * @throws Exception
      */
     @Override
-    public synchronized void start() throws Exception {
+    public synchronized void start() throws LifecycleException {
         if (started) throw new LifecycleException("此connector连接器实例已经启动！");
         log("启动连接器！");
 
@@ -388,7 +388,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      * @throws Exception
      */
     @Override
-    public synchronized void stop() throws Exception {
+    public synchronized void stop() throws LifecycleException {
         if (!started) throw new LifecycleException("此connector连接器实例已经停止！");
 
         // 连接器停止
@@ -406,7 +406,11 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         // 此请求不会被处理，但会使得serverSocket的accept()暂时接触阻塞
         // 到while的循环中会得知stooped为true，便可以跳出循环，无异常结束关闭serverSocket
         Socket socket = new Socket();
-        socket.connect(new InetSocketAddress(DefaultServerSocketFactory.ipaddress, DefaultServerSocketFactory.port));
+        try {
+            socket.connect(new InetSocketAddress(DefaultServerSocketFactory.ipaddress, DefaultServerSocketFactory.port));
+        } catch (IOException e) {
+            log("HttpConnector.stoppingSocket", e);
+        }
 
         // 连接器停止后
         lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);

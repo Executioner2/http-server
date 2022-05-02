@@ -43,6 +43,9 @@ public class Bootstrap3 {
         context.addServletMapping("/Primitive", "Primitive");
         context.addServletMapping("/Modern", "Modern");
         context.addServletMapping("/Session", "Session");
+        
+        context.setReloadable(true);
+        context.setBackgroundProcessorDelay(1);
 //        context.setLoader(loader);
 
         try {

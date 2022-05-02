@@ -8,6 +8,7 @@
 |---|---|---|
 |接口|Lifecycle|生命周期管理接口|
 |接口|LifecycleListener|生命周期监听器接口|
+|实现类|LifecycleException|生命周期异常|
 |实现类|LifecycleEvent|触发事件的类（被观察的类的包装）|
    
 注：  

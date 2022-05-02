@@ -2,11 +2,11 @@ package com.ranni.container;
 
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
+import com.ranni.container.lifecycle.Lifecycle;
 import com.ranni.container.loader.Loader;
 import com.ranni.container.pip.Pipeline;
 import com.ranni.container.pip.StandardPipeline;
 import com.ranni.container.pip.Valve;
-import com.ranni.lifecycle.Lifecycle;
 import com.ranni.logger.Logger;
 import com.ranni.naming.ProxyDirContext;
 import com.ranni.session.Manager;
@@ -30,6 +30,8 @@ import java.util.Map;
  * @Date 2022-03-27 14:59
  */
 public abstract class ContainerBase implements Container, Pipeline {
+    protected boolean threadDone; // 后台线程   
+    protected int backgroundProcessorDelay; // 后台线程的休眠因子    
     protected Loader loader; // 加载器
     protected Logger logger; // 日志记录器
     protected Pipeline pipeline = new StandardPipeline(this); // 管道
@@ -41,9 +43,29 @@ public abstract class ContainerBase implements Container, Pipeline {
     protected boolean started; // 启动标志
     protected DirContext resources; // 容器资源
     protected Manager manager; // session管理器
-    protected int debug = Logger.INFORMATION; // 日志级别
+    protected int debug = Logger.WARNING; // 日志级别
     protected ClassLoader parentClassLoader; // 父容器的类加载器
-    
+    protected Thread thread; // 后台任务线程
+
+
+    /**
+     * 获取父容器，如果没有就返回自身
+     * 
+     * @return
+     */
+    @Deprecated // XXX 此方法可能存在未知问题
+    @Override
+    public Container getMappingObject() {
+        Container container = this;
+        Container parent = null;
+        
+        while (container != null && parent != this) {
+            parent = container;
+            container.getParent();            
+        }
+        
+        return parent;
+    }
     
     
     /**
@@ -562,14 +584,29 @@ public abstract class ContainerBase implements Container, Pipeline {
      * @param message
      */
     protected void log(String message) {
-
         Logger logger = getLogger();
         if (logger != null)
             logger.log(logName() + ": " + message);
         else
             System.out.println(logName() + ": " + message);
-
     }
+
+
+    /**
+     * 写入日志文件
+     *
+     * @param message
+     */
+    protected void log(String message, Throwable throwable) {
+        Logger logger = getLogger();
+        if (logger != null)
+            logger.log(logName() + ": " + message, throwable);
+        else {
+            System.out.println(logName() + ": " + message + ": " + throwable);
+            throwable.printStackTrace(System.out);
+        }
+    }
+    
 
     /**
      * 取得简短类名
@@ -583,6 +620,7 @@ public abstract class ContainerBase implements Container, Pipeline {
             className = className.substring(period + 1);
         return (className + "[" + getName() + "]");
     }
+    
 
     /**
      * 添加默认的映射器
@@ -610,4 +648,124 @@ public abstract class ContainerBase implements Container, Pipeline {
             log("containerBase.addDefaultMapper  " + e.getMessage());
         }
     }
+
+
+    /**
+     * 后台任务间隔因子
+     * 小于等于0表示无后台任务线程
+     * 
+     * @return
+     */
+    @Override
+    public int getBackgroundProcessorDelay() {
+        return backgroundProcessorDelay;
+    }
+
+    
+    /**
+     * 后台任务间隔因子
+     * 值小于等于0表示没有单独的后台任务线程
+     * 
+     * @param backgroundProcessorDelay
+     */
+    @Override
+    public void setBackgroundProcessorDelay(int backgroundProcessorDelay) {
+        this.backgroundProcessorDelay = backgroundProcessorDelay;
+    }
+
+
+    /**
+     * 设置后台任务线程
+     * @param thread
+     */
+    @Override
+    public void setThread(Thread thread) {
+        this.thread = thread;
+    }
+    
+
+    /**
+     * 启动后台任务线程
+     */
+    @Override
+    public void threadStart() {        
+        if (getBackgroundProcessorDelay() <= 0)
+            return;
+        
+        if (thread == null)
+            thread = new Thread(new ContainerBackgroundProcessor());
+        
+        threadDone = false;
+        String threadName = "ContainerBackgroundProcessor["+ toString() +"]";
+        thread.setName(threadName);
+        thread.setDaemon(true);
+        thread.start();
+        log("后台线程启动成功！");
+    }
+
+
+    /**
+     * 关闭后台任务线程
+     */
+    @Override
+    public synchronized void threadStop() {
+        threadDone = true;
+    }
+    
+
+    /**
+     * 容器的后台任务线程
+     */
+    protected class ContainerBackgroundProcessor implements Runnable {
+
+        @Override
+        public void run() {
+            while (!threadDone) {
+                try {
+                    Thread.sleep(backgroundProcessorDelay * 1000L);
+                } catch (InterruptedException e) {
+                    ;
+                }
+                
+                if (!threadDone) {
+                    Container parent = getMappingObject(); // XXX 此方法可能存在未知问题
+                    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                    if (parent.getLoader() != null)
+                        cl = parent.getLoader().getClassLoader();
+                    processChild(parent, cl);
+                }
+            }
+        }
+
+        
+        /**
+         * 处理子容器的后台任务
+         * 
+         * @param container
+         * @param cl
+         */
+        protected void processChild(Container container, ClassLoader cl) {
+            // 执行父容器的后台任务
+            try {
+                if (container.getLoader() != null) {
+                    Thread.currentThread().setContextClassLoader(container.getLoader().getClassLoader());
+                }
+                container.backgroundProcessor();
+            } catch (Throwable t) {
+                log("后台任务执行异常！" + t);
+            } finally {
+                Thread.currentThread().setContextClassLoader(cl);
+            }
+            
+            // 执行父容器的子容器的后台任务
+            for (Container item : container.findChildren()) {
+                if (item.getBackgroundProcessorDelay() <= 0)
+                    item.backgroundProcessor();
+            }
+        }
+        
+        
+    } 
+    
+    
 }

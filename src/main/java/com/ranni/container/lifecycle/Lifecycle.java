@@ -1,4 +1,4 @@
-package com.ranni.lifecycle;
+package com.ranni.container.lifecycle;
 
 /**
  * Title: HttpServer
@@ -72,7 +72,7 @@ public interface Lifecycle {
      *
      * @throws Exception
      */
-    void start() throws Exception;
+    void start() throws LifecycleException;
 
 
 
@@ -81,6 +81,6 @@ public interface Lifecycle {
      *
      * @throws Exception
      */
-    void stop() throws Exception;
+    void stop() throws LifecycleException;
 
 }

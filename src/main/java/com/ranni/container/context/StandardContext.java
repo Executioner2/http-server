@@ -2,16 +2,18 @@ package com.ranni.container.context;
 
 import com.ranni.common.Globals;
 import com.ranni.common.SystemProperty;
+import com.ranni.connector.http.request.Request;
+import com.ranni.connector.http.response.Response;
 import com.ranni.container.*;
 import com.ranni.container.host.StandardHost;
+import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.lifecycle.LifecycleListener;
 import com.ranni.container.loader.WebappLoader;
 import com.ranni.container.scope.ApplicationContext;
 import com.ranni.core.ApplicationFilterConfig;
 import com.ranni.core.FilterDef;
 import com.ranni.deploy.*;
-import com.ranni.exception.LifecycleException;
-import com.ranni.lifecycle.Lifecycle;
-import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.naming.BaseDirContext;
 import com.ranni.naming.FileDirContext;
 import com.ranni.naming.ProxyDirContext;
@@ -24,6 +26,7 @@ import com.ranni.util.RequestUtil;
 import javax.naming.directory.DirContext;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -65,6 +68,9 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private FilterMap[] filterMaps = new FilterMap[0]; // 过滤器映射集合
     private CharsetMapper charsetMapper; // 字符集
     private String charsetMapperClass = "com.ranni.util.CharsetMapper"; // 默认的字符集类
+    private int count; // 正式进行Session回收任务的倒计时
+    private int managerChecksFrequency = 15; // Session回收频率，默认15
+    private boolean reloadable; // 容器的重载标志位
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
@@ -78,6 +84,26 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         namingResources.setContainer(this);
     }
 
+
+    /**
+     * 返回Session回收频率
+     * 
+     * @return
+     */
+    public int getManagerChecksFrequency() {
+        return managerChecksFrequency;
+    }
+
+
+    /**
+     * 设置Session回收频率
+     * 
+     * @param managerChecksFrequency
+     */
+    public void setManagerChecksFrequency(int managerChecksFrequency) {
+        this.managerChecksFrequency = managerChecksFrequency;
+    }
+    
 
     /**
      * 返回默认的映射器
@@ -132,7 +158,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
      *
      * @return
      */
-    public boolean isPaused() {
+    public boolean getPaused() {
         return paused;
     }
 
@@ -240,6 +266,28 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         // 将此目录容器存入Servlet的全局作用域中
         if (started)
             postResources();
+    }
+
+
+    /**
+     * 接收处理请求
+     * 
+     * @param request
+     * @param response
+     * @throws IOException
+     * @throws ServletException
+     */
+    @Override
+    public void invoke(Request request, Response response) throws IOException, ServletException {
+        // 容器暂停中
+        while (getPaused()) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                ;
+            }
+        }
+        super.invoke(request, response);
     }
 
 
@@ -503,14 +551,26 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
     }
 
+
+    /**
+     * 返回重载标志位
+     * 
+     * @return
+     */
     @Override
     public boolean getReloadable() {
-        return false;
+        return this.reloadable;
     }
 
+
+    /**
+     * 设置容器的重载标志位
+     * 
+     * @param reloadable
+     */
     @Override
     public void setReloadable(boolean reloadable) {
-
+        this.reloadable = reloadable;
     }
 
     @Override
@@ -1049,7 +1109,22 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     }
 
     /**
-     * TODO 容器重载
+     * 容器重载
+     * 要做的事情：
+     *  停止Session管理器
+     *  停止子容器
+     *  停止监听器
+     *  清空全局作用域属性
+     *  停止过滤器
+     *  停止加载器
+     *  启动加载器
+     *  启动监听器
+     *  启动过滤器
+     *  重新将资源实例添加到全局作用域中
+     *  设置欢迎文件
+     *  启动子容器
+     *  启动Session管理器
+     *  
      */
     @Override
     public synchronized void reload() {
@@ -1059,9 +1134,117 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         log("开始重载容器！");
 
         // 停止接收请求
-//        setPaused(true);
+        setPaused(true);
 
+        // 停止Session管理器
+        if (manager != null && manager instanceof Lifecycle) {
+            try {
+                ((Lifecycle) manager).stop();
+            } catch (LifecycleException e) {
+                log("StandardContext.stoppingManager", e);
+            }
+        }
+        
+        // 停止子容器
+        for (Container wrapper : findChildren()) {
+            if (wrapper instanceof Lifecycle) {
+                try {
+                    ((Lifecycle) wrapper).stop();
+                } catch (LifecycleException e) {
+                    log("StandardContext.stoppingWrapper", e);
+                }
+            }
+        }
+        
+        // 停止监听器
+        listenerStop();
+        
+        // 清空全局作用域属性
+        if (context != null)
+            context.clearAttributes();
+        
+        // 停止过滤器
+        filterStop();
+        
+        // 停止加载器
+        if (loader != null && loader instanceof Lifecycle) {
+            try {
+                ((Lifecycle) loader).stop();
+            } catch (LifecycleException e) {
+                log("StandardContext.stoppingLoader", e);
+            }
+        }
+        
+        // 启动加载器
+        if (loader != null && loader instanceof Lifecycle) {
+            try {
+                ((Lifecycle) loader).start();
+            } catch (LifecycleException e) {
+                log("StandardContext.startingLoader", e);
+            }
+        }
+        
+        boolean ok = true;
+        
+        // 启动监听器
+        if (ok) {
+            if (!(ok = listenerStart())) {
+                log("StandardContext.listenerStartFailed");
+                ok = false;
+            }
+        }
+        
+        // 启动过滤器
+        if (ok) {
+            if (!(ok = filterStart())) {
+                log("StandardContext.filterStartFailed");
+                ok = false;
+            }
+        }
+        
+        // 重新将资源实例添加到全局作用域中
+        postResources();
+        
+        // 设置欢迎文件
+        postWelcomeFiles();
+        
+        // 启动子容器
+        for (Container wrapper : findChildren()) {
+            if (!ok) break;
+            
+            if (wrapper instanceof Lifecycle) {
+                try {
+                    ((Lifecycle) wrapper).start();
+                } catch (LifecycleException e) {
+                    log("StandardContext.wrapperStartFailed");
+                    ok = false;
+                }
+            }
+        }
 
+        // TODO 初始化时载入并启动的Servlet
+        
+        // 启动Session管理器
+        if (manager != null && manager instanceof Lifecycle) {
+            try {
+                ((Lifecycle) manager).start();
+            } catch (LifecycleException e) {
+                log("StandardContext.mangerStartFailed");
+                ok = false;
+            }
+        }
+        
+        // 重载失败则置为不可用
+        if (ok) {
+            log("StandardContext.reload  容器重载成功！");
+        } else {
+            setAvailable(false);
+            log("StandardContext.reload  容器重载失败！");
+        }
+        
+        setPaused(false);
+
+        lifecycle.fireLifecycleEvent(Context.RELOAD_EVENT, null);
     }
 
     @Override
@@ -1135,6 +1318,42 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     public String getInfo() {
         return null;
     }
+    
+    
+    /**
+     * 后台任务
+     */
+    @Override
+    public void backgroundProcessor() {
+        if (!started)
+            return;
+        
+        count = (count + 1) % managerChecksFrequency;
+        if (getManager() != null && count == 0) {
+            try {
+                getManager().backgroundProcess();
+            } catch (Exception e) {
+                log("Session回收异常！ " + e);
+            }
+        }
+        
+        // 重载检测
+        if (getLoader() != null) {
+            if (reloadable && getLoader().modified()) {
+                try {
+                    Thread.currentThread().setContextClassLoader(StandardContext.class.getClassLoader());
+                    reload();
+                } finally {
+                    if (getLoader() != null) {
+                        Thread.currentThread().setContextClassLoader(getLoader().getClassLoader());
+                    }
+                }
+            }
+        }
+        
+        // XXX 释放JAR资源
+    }
+    
 
     /**
      * 添加监听器
@@ -1186,18 +1405,19 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
      *  9、启动子容器
      *  10、启动管道对象
      *  11、启动Session管理器
-     *  12、触发START事件，在此监听器（ContextConfig实例）会进行一些配置操作，将配置结果返回给configured
-     *  13、检查configured属性的值：
+     *  12、开启后台线程
+     *  13、触发START事件，在此监听器（ContextConfig实例）会进行一些配置操作，将配置结果返回给configured
+     *  14、检查configured属性的值：
      *      如果为true则调用postWelcomePages()方法，并载入需要载入的子容器。将availability设置为true；
      *      若为false则调用stop()方法
-     *  14、触发AFTER_START事件
+     *  15、触发AFTER_START事件
      *  
      *  XXX 后续将Spring融入进来，Spring会有监听器会在此方法中监听START事件
      *
      * @throws Exception
      */
     @Override
-    public synchronized void start() throws Exception {
+    public synchronized void start() throws LifecycleException {
         if (started) throw new LifecycleException("此context容器实例已经启动！");
         
         if (debug >= 1)
@@ -1321,6 +1541,9 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
                 // 启动Session管理器
                 if (manager != null && manager instanceof Lifecycle)
                     ((Lifecycle) manager).start();
+                
+                // 启动后台线程
+                threadStart();
 
             } finally {
                 unbindThread(oldCCL);
@@ -1345,6 +1568,9 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         }
         
         // TODO 启动监听器
+        if (ok) {
+            ok = listenerStart();
+        }
 
         // 启动过滤器
         if (ok) {
@@ -1371,6 +1597,14 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
 
         // 容器启动后
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
+    }
+
+
+    /**
+     * TODO 启动监听器
+     */
+    private boolean listenerStart() {
+        return true;
     }
 
 
@@ -1446,6 +1680,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     protected void addDefaultMapper(String mapperClass) {
         super.addDefaultMapper(mapperClass);
     }
+    
 
     /**
      * 设置工作目录，把工作目录属性存入ServletContext中
@@ -1521,20 +1756,21 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     /**
      * 关闭当前容器
      * 关闭顺序
-     *  1、session管理器
-     *  2、管道
-     *  3、子容器
-     *  4、加载器
-     *  5、映射器
-     *  6、释放JNDI资源
-     *  7、监听器
-     *  8、记录器
-     *  9、加载器
+     *  1、后台线程
+     *  2、session管理器
+     *  3、管道
+     *  4、子容器
+     *  5、加载器
+     *  6、映射器
+     *  7、释放JNDI资源
+     *  8、监听器
+     *  9、记录器
+     *  10、加载器
      *
      * @throws Exception
      */
     @Override
-    public synchronized void stop() throws Exception {
+    public synchronized void stop() throws LifecycleException {
 
         if (!started) throw new LifecycleException("此context容器已处于关闭状态！");
         
@@ -1552,6 +1788,9 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         // 设置字符集为null
         setCharsetMapper(null);
 
+        // 关闭后台线程
+        threadStop();
+        
         // 停止Session管理器
         if (manager != null && manager instanceof Lifecycle)
             ((Lifecycle) manager).stop();

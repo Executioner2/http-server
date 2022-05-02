@@ -69,7 +69,8 @@ public class StandardContextMapper implements Mapper {
 
     /**
      * 返回要处理某个特定请求的子容器的实例
-     *
+     * XXX 目前只能全匹配
+     * 
      * @param request
      * @param update
      * @return

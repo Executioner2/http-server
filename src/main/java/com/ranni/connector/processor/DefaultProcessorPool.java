@@ -1,8 +1,9 @@
 package com.ranni.connector.processor;
 
 import com.ranni.connector.Connector;
-import com.ranni.lifecycle.Lifecycle;
-import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.lifecycle.LifecycleListener;
 import com.ranni.util.LifecycleSupport;
 
 import java.util.Stack;
@@ -226,7 +227,7 @@ public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
      * @throws Exception
      */
     @Override
-    public synchronized void start() throws Exception {
+    public synchronized void start() throws LifecycleException {
 
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, this); // 处理器池启动前
 
@@ -248,7 +249,7 @@ public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
      * @throws Exception
      */
     @Override
-    public synchronized void stop() throws Exception {
+    public synchronized void stop() throws LifecycleException {
         System.out.println("处理器池开始关闭！");
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_STOP_EVENT, this); // 处理器池关闭前
         lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, this); // 处理器池关闭
@@ -258,14 +259,17 @@ public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
 
         // 等待所有处理器都完成任务
         while (stopped < curProcessors) {
-//            System.out.println("1");
             while (!pool.isEmpty()) {
                 // 将所有空闲的处理器线程弹出栈然后关闭
                 Processor processor = pool.pop();
                 processor.stop();
                 stopped++;
             }
-            Thread.sleep(2000); // 每间隔两秒扫描一次
+            try {
+                Thread.sleep(2000); // 每间隔两秒扫描一次
+            } catch (InterruptedException e) {
+                ;
+            }
         }
 
         lifecycle.fireLifecycleEvent(Lifecycle.AFTER_STOP_EVENT, this); // 处理器池关闭后

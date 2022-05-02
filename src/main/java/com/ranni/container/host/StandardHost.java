@@ -177,6 +177,11 @@ public class StandardHost extends ContainerBase implements Host {
     }
 
     @Override
+    public void backgroundProcessor() {
+        
+    }
+
+    @Override
     public Container getParent() {
         return null;
     }

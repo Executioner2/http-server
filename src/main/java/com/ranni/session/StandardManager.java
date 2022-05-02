@@ -2,8 +2,9 @@ package com.ranni.session;
 
 import com.ranni.container.Container;
 import com.ranni.container.Context;
-import com.ranni.lifecycle.Lifecycle;
-import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.lifecycle.LifecycleListener;
 import com.ranni.util.LifecycleSupport;
 
 import java.io.IOException;
@@ -17,11 +18,12 @@ import java.io.IOException;
  * @Email 1205878539@qq.com
  * @Date 2022-04-20 16:34
  */
-public class StandardManager extends ManagerBase implements Lifecycle, Runnable {
+public class StandardManager extends ManagerBase implements Lifecycle {
     protected static String name = "StandardManager"; // 类名
 
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具
 
+    private boolean sessionRecycle; // Session回收标志位
     private boolean started; // 启动标志位
     private int checkInterval = 60; // 会话检查间隔时间，单位秒
     private int maxActiveSessions = -1; // 允许的活动session最大数量，-1为不限制
@@ -70,7 +72,7 @@ public class StandardManager extends ManagerBase implements Lifecycle, Runnable 
      * @throws Exception
      */
     @Override
-    public void start() throws Exception {
+    public void start() throws LifecycleException {
         if (started)
             throw new IllegalStateException("StandardManager.start  此session管理器已经启动！ " + this);
         log("StandardManager.start  启动session管理器中");
@@ -101,7 +103,7 @@ public class StandardManager extends ManagerBase implements Lifecycle, Runnable 
      * @throws Exception
      */
     @Override
-    public void stop() throws Exception {
+    public void stop() throws LifecycleException {
         if (!started)
             throw new IllegalStateException("StandardManager.stop  此session管理器已经停止！ " + this);
 
@@ -141,16 +143,7 @@ public class StandardManager extends ManagerBase implements Lifecycle, Runnable 
      */
     private void threadStart() {
     }
-
-
-    /**
-     * 回收失效的session
-     */
-    @Override
-    public void run() {
-
-    }
-
+    
 
     /**
      * TODO 从存储器载入到内存中
@@ -172,6 +165,39 @@ public class StandardManager extends ManagerBase implements Lifecycle, Runnable 
     @Override
     public void unload() throws IOException {
 
+    }
+
+    
+    /**
+     * 失效session回收任务
+     */
+    @Override
+    public void backgroundProcess() {
+        if (!sessionRecycle)
+            return;
+        
+        // TODO 进行Session回收任务处理
+    }
+    
+
+    /**
+     * 设置是否进行失效Session的回收任务标志位
+     * 
+     * @param sessionRecycle
+     */
+    @Override
+    public void setSessionRecycle(boolean sessionRecycle) {
+       this.sessionRecycle = sessionRecycle; 
+    }
+
+
+    /**
+     * 返回Session回收标志位
+     * @return
+     */
+    @Override
+    public boolean getSessionRecycle() {
+        return this.sessionRecycle;
     }
 
 

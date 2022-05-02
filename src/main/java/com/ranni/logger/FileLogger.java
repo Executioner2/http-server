@@ -1,8 +1,8 @@
 package com.ranni.logger;
 
-import com.ranni.exception.LifecycleException;
-import com.ranni.lifecycle.Lifecycle;
-import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleListener;
 import com.ranni.util.LifecycleSupport;
 
 import java.io.*;
@@ -106,7 +106,7 @@ public class FileLogger extends LoggerBase implements Lifecycle {
      * @throws Exception
      */
     @Override
-    public void start() throws Exception {
+    public void start() throws LifecycleException {
         if (started) throw new LifecycleException("此FileLogger实例已经启动！");
         lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
         started = true;
@@ -118,7 +118,7 @@ public class FileLogger extends LoggerBase implements Lifecycle {
      * @throws Exception
      */
     @Override
-    public void stop() throws Exception {
+    public void stop() throws LifecycleException {
         if (!started) throw new LifecycleException("此FileLogger实例已经停止！");
         lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
         started = false;

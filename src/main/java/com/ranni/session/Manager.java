@@ -136,4 +136,25 @@ public interface Manager {
      * @param session
      */
     void remove(Session session);
+
+
+    /**
+     * 后台任务
+     */
+    void backgroundProcess();
+
+
+    /**
+     * 设置Session回收标志位
+     * 
+     * @param sessionRecycle
+     */
+    void setSessionRecycle(boolean sessionRecycle);
+
+
+    /**
+     * 返回Session回收标志位
+     * @return
+     */
+    boolean getSessionRecycle();
 }

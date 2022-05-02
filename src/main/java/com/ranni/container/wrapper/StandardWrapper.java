@@ -7,9 +7,9 @@ import com.ranni.connector.http.response.HttpResponseBase;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.*;
 import com.ranni.container.loader.Loader;
-import com.ranni.exception.LifecycleException;
-import com.ranni.lifecycle.Lifecycle;
-import com.ranni.lifecycle.LifecycleListener;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
 import com.ranni.util.Enumerator;
 import com.ranni.util.InstanceSupport;
@@ -547,6 +547,11 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         return null;
     }
 
+    @Override
+    public void backgroundProcessor() {
+        
+    }
+
 
     /**
      * 进入管道依次执行阀
@@ -663,7 +668,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
      * @throws Exception
      */
     @Override
-    public synchronized void start() throws Exception {
+    public synchronized void start() throws LifecycleException {
         if (started) throw new LifecycleException("此wrapper容器实例已经启动！");
         System.out.println("启动wrapper容器：" + this); // TODO sout
 
@@ -697,9 +702,12 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
      * @throws Exception
      */
     @Override
-    public synchronized void stop() throws Exception {
+    public synchronized void stop() throws LifecycleException {
         if (!started) throw new LifecycleException("此wrapper容器实例已经停止！");
-        System.out.println("停止wrapper容器：" + this); // TODO sout
+        
+        if (debug >= 3)
+            log("StandardWrapper.stoppingWrapper  " + this);
+        
         try {
             // 执行servlet的destroy()
             instance.destroy();

@@ -71,6 +71,7 @@ public class FileDirContext extends BaseDirContext {
 
     /**
      * 先取得资源，再取得资源属性
+     * 此方法返回的也是得到的文件的新的属性，故不存在文件被修改了，但是程序不知道的情况
      *
      * @param name
      * @param attrIds
@@ -89,6 +90,7 @@ public class FileDirContext extends BaseDirContext {
 
     /**
      * 取得文件
+     * 每次返回的都是一个新的文件对象，所以此方法不存在文件被修改了，但是程序还不知道的情况
      *
      * @see {@link File#getCanonicalPath()} 关于此方法的说明如下：
      *      假设有个index.html文件的绝对路径为 E:\JavaProject\project\HttpServer\processor\index.html
