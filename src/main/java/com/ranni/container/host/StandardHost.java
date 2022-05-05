@@ -30,7 +30,7 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     public StandardHost() {
-        pipeline.setBasic(new StandardHostValve());
+        pipeline.setBasic(new StandardHostValve(this));
     }
 
 
@@ -275,8 +275,8 @@ public class StandardHost extends ContainerBase implements Host {
             context = (Context) findChild(prefixUri);
             if (context != null) break;
             int pos = prefixUri.lastIndexOf('/');
-            if (pos < 0) break;                
-            prefixUri.substring(0, pos);
+            if (pos < 0) break;
+            prefixUri = prefixUri.substring(0, pos);
         }
 
         if (context == null) {
@@ -344,7 +344,7 @@ public class StandardHost extends ContainerBase implements Host {
      */
     @Override
     protected void addDefaultMapper(String mapperClass) {
-        super.addDefaultMapper(mapperClass);
+        super.addDefaultMapper(this.mapperClass); // 传自己的mapperClass
     }
 
 

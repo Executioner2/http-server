@@ -9,7 +9,7 @@ import java.io.IOException;
 /**
  * Title: HttpServer
  * Description:
- * 错误报告阀
+ * TODO 错误报告阀
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -23,6 +23,6 @@ public class ErrorReportValve extends ValveBase {
 
     @Override
     public void invoke(Request request, Response response, ValveContext valveContext) throws IOException, ServletException {
-
+        valveContext.invokeNext(request, response);
     }
 }

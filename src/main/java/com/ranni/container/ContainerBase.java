@@ -50,7 +50,7 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
     protected ClassLoader parentClassLoader; // 父容器的类加载器
     protected Thread thread; // 后台任务线程
     protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
-    protected String mapperClass = ""; // 映射器全限定类名
+    protected String mapperClass; // 映射器全限定类名
 
 
     /**
@@ -635,7 +635,7 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
      */
     protected void addDefaultMapper(String mapperClass) {
         if (mapperClass == null || mapperClass.isBlank())
-            throw new IllegalArgumentException("mapperClass不能为空！");
+            return;
         if (mappers.size() >= 1)
             return;
 

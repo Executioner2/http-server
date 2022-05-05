@@ -428,8 +428,7 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
      */
     @Override
     public void setStatus(int i) {
-        if (isCommitted()) return;
-        this.status = i;
+        setStatus(i, getStatusMessage(i));
     }
 
     /**

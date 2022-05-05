@@ -24,6 +24,10 @@ import java.io.IOException;
  */
 public class StandardHostValve extends ValveBase {
 
+    public StandardHostValve(StandardHost standardHost) {
+        setContainer(standardHost);
+    }
+
     /**
      * 此实现类的信息
      * 
@@ -52,7 +56,7 @@ public class StandardHostValve extends ValveBase {
             return;
         }
 
-        // 取得对饮的Context容器
+        // 取得对应的Context容器
         StandardHost host = (StandardHost) getContainer();
         Context context = (Context) host.map(request, true);
         

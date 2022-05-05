@@ -1,7 +1,7 @@
 package com.ranni.connector.http.request;
 
 import com.ranni.connector.http.ParameterMap;
-import com.ranni.container.Context;
+import com.ranni.container.Container;
 import com.ranni.session.Manager;
 import com.ranni.session.Session;
 import com.ranni.util.Enumerator;
@@ -57,7 +57,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
 
     }
 
-    public HttpRequestBase(Context context) {
+    public HttpRequestBase(Container container) {
         this.context = context;
     }
 

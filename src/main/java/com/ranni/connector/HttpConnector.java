@@ -1,8 +1,8 @@
 package com.ranni.connector;
 
-import com.ranni.connector.http.request.HttpRequestBase;
+import com.ranni.connector.http.request.HttpRequestImpl;
 import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.HttpResponseBase;
+import com.ranni.connector.http.response.HttpResponseImpl;
 import com.ranni.connector.http.response.Response;
 import com.ranni.connector.processor.DefaultProcessorPool;
 import com.ranni.connector.processor.Processor;
@@ -10,9 +10,8 @@ import com.ranni.connector.processor.ProcessorPool;
 import com.ranni.connector.socket.DefaultServerSocketFactory;
 import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
-import com.ranni.container.Context;
-import com.ranni.container.lifecycle.LifecycleException;
 import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleException;
 import com.ranni.container.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
 import com.ranni.util.LifecycleSupport;
@@ -191,7 +190,9 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      */
     @Override
     public Request createRequest() {
-        return new HttpRequestBase((Context) this.container);
+        HttpRequestImpl request = new HttpRequestImpl();
+        request.setConnector(this);
+        return request;
     }
 
     /**
@@ -200,7 +201,9 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      */
     @Override
     public Response createResponse() {
-        return new HttpResponseBase();
+        HttpResponseImpl response = new HttpResponseImpl();
+        response.setConnector(this);
+        return response;
     }
 
     /**

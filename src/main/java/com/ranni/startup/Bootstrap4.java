@@ -4,18 +4,19 @@ import com.ranni.common.SystemProperty;
 import com.ranni.connector.HttpConnector;
 import com.ranni.container.Wrapper;
 import com.ranni.container.context.StandardContext;
+import com.ranni.container.host.StandardHost;
 import com.ranni.container.wrapper.StandardWrapper;
 
 /**
  * Title: HttpServer
  * Description:
- * 此启动类测试了基本的Servlet请求，Session基本功能，以及部分热启动功能
+ * 此启动类在Bootstrap3的基础上实现了Host容器启动服务器
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
- * @Date 2022-04-13 19:04
+ * @Date 2022/5/5 14:13
  */
-public class Bootstrap3 {
+public class Bootstrap4 {
     public static void main(String[] args) {
         System.setProperty(SystemProperty.SERVER_BASE, System.getProperty("user.dir"));
 
@@ -44,13 +45,20 @@ public class Bootstrap3 {
         context.addServletMapping("/Primitive", "Primitive");
         context.addServletMapping("/Modern", "Modern");
         context.addServletMapping("/Session", "Session");
-        
+
+        context.setPath("/app1");
         context.setReloadable(true);
         context.setBackgroundProcessorDelay(1);
+
+        StandardHost standardHost = new StandardHost();
+        standardHost.addChild(context);
+        standardHost.setName("Host");
+        
+//        context.setParent(standardHost);
 //        context.setLoader(loader);
 
         try {
-            connector.setContainer(context);
+            connector.setContainer(standardHost);
             connector.setDebug(4);
             connector.initialize();
             connector.start();
