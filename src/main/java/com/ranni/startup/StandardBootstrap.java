@@ -26,7 +26,6 @@ public class StandardBootstrap {
         HttpConnector connector = new HttpConnector();
 
         StandardContext context = new StandardContext();
-//        WebappLoader loader = new WebappLoader();
         context.setPath("/myApp");
         context.setDocBase("myApp");
 
@@ -66,8 +65,9 @@ public class StandardBootstrap {
             connector.setDebug(4);
             connector.initialize();
             connector.start();
-
+            
             System.in.read();
+            
             connector.stop();
         } catch (Exception exception) {
             exception.printStackTrace();
