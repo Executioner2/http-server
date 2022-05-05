@@ -38,7 +38,7 @@ import java.util.*;
  * @Email 1205878539@qq.com
  * @Date 2022-03-28 17:29
  */
-public class StandardContext extends ContainerBase implements Context, Lifecycle {
+public class StandardContext extends ContainerBase implements Context {
     private ApplicationContext context; // servlet的全局作用域
     private String docBase; // web应用程序文档根目录（相对路径）
     private boolean crossContext; // 跨servlet访问

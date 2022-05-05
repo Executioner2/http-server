@@ -10,16 +10,35 @@ package com.ranni.container;
  */
 public interface Engine extends Container {
 
-    // 返回这个引擎容器的默认主机名
+    /**
+     * 返回这个引擎容器的默认主机名
+     * 
+     * @return
+     */
     String getDefaultHost();
 
-    // 设置这个引擎容器的默认主机名
+    
+    /**
+     * 设置这个引擎容器的默认主机名
+     * 
+     * @param defaultHost
+     */
     void setDefaultHost(String defaultHost);
 
-    // 检索此引擎的jvm路由id
+    
+    /**
+     * 检索此引擎的jvm路由id
+     * 
+     * @return
+     */
     String getJvmRoute();
 
-    // 设置jvm路由id，集群中的每个引擎都必须具有一个唯一的jvm路由id
+    
+    /**
+     * 设置jvm路由id，集群中的每个引擎都必须具有一个唯一的jvm路由id
+     * 
+     * @param jvmRouteId
+     */
     void setJvmRoute(String jvmRouteId);
 
 
@@ -38,27 +57,25 @@ public interface Engine extends Container {
 
 
     /**
-     * Set the DefaultContext
-     * for new web applications.
-     *
-     * @param defaultContext The new DefaultContext
+     * 设置默认Context容器
+     * 
+     * @param defaultContext
      */
-//    public void addDefaultContext(DefaultContext defaultContext);
+    void addDefaultContext(DefaultContext defaultContext);
 
 
     /**
-     * Retrieve the DefaultContext for new web applications.
+     * 返回默认的Context容器
+     * 
+     * @return
      */
-//    public DefaultContext getDefaultContext();
-
-
-    // --------------------------------------------------------- Public Methods
+    DefaultContext getDefaultContext();
 
 
     /**
-     * Import the DefaultContext config into a web application context.
-     *
-     * @param context web application context to import default context
+     * 导入Context容器
+     * 
+     * @param context
      */
-//    public void importDefaultContext(Context context);
+    void importDefaultContext(Context context);
 }

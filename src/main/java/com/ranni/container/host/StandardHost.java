@@ -1,9 +1,6 @@
 package com.ranni.container.host;
 
-import com.ranni.container.ContainerBase;
-import com.ranni.container.Context;
-import com.ranni.container.DefaultContext;
-import com.ranni.container.Host;
+import com.ranni.container.*;
 import com.ranni.container.lifecycle.LifecycleException;
 import com.ranni.container.pip.ErrorDispatcherValve;
 import com.ranni.container.pip.Valve;
@@ -196,8 +193,24 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
+     * 添加子容器，只能添加Context做子容器
+     * 
+     * @param child
+     */
+    @Override
+    public void addChild(Container child) {
+        if (!(child instanceof Context))
+            throw new IllegalArgumentException("StandardHost.addChild  只能添加Context做子容器！");
+        
+        super.addChild(child);
+    }
+
+
+    /**
      * 导入Context容器
-     *
+     * 
+     * @see {@link com.ranni.container.StandardDefaultContext#importDefaultContext(Context)}
+     * 
      * @param context
      */
     @Override
@@ -339,12 +352,13 @@ public class StandardHost extends ContainerBase implements Host {
     
     /**
      * 添加默认的映射器
+     * 固定为StandardHost中的mapperClass属性（该属性可以修改）
      * 
      * @param mapperClass
      */
     @Override
     protected void addDefaultMapper(String mapperClass) {
-        super.addDefaultMapper(this.mapperClass); // 传自己的mapperClass
+        super.addDefaultMapper(this.mapperClass);
     }
 
 

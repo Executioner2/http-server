@@ -19,7 +19,7 @@ import javax.servlet.http.HttpServletRequest;
  * @Date 2022-03-28 17:13
  */
 public class StandardContextMapper implements Mapper {
-    protected Container container; // 此映射器关联的servlet容器（wrapper）
+    protected Container container; // 此映射器关联的Context容器
     protected String protocol; // 该映射器负责处理的协议
 
     /**

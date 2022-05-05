@@ -3,7 +3,6 @@ package com.ranni.container.context;
 import com.ranni.connector.http.request.HttpRequest;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
-import com.ranni.container.Container;
 import com.ranni.container.Context;
 import com.ranni.container.Wrapper;
 import com.ranni.container.pip.ValveBase;
@@ -26,8 +25,8 @@ import java.io.IOException;
  */
 public class StandardContextValve extends ValveBase {
 
-    public StandardContextValve(Container container) {
-        setContainer(container);
+    public StandardContextValve(Context context) {
+        setContainer(context);
     }
 
     @Override

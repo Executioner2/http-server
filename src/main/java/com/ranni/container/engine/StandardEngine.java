@@ -1,17 +1,7 @@
 package com.ranni.container.engine;
 
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
-import com.ranni.container.Container;
-import com.ranni.container.ContainerBase;
-import com.ranni.container.Engine;
-import com.ranni.container.Mapper;
-import com.ranni.container.loader.Loader;
-
-import javax.servlet.ServletException;
-import java.awt.event.ContainerListener;
-import java.beans.PropertyChangeListener;
-import java.io.IOException;
+import com.ranni.container.*;
+import com.ranni.container.lifecycle.LifecycleException;
 
 /**
  * Title: HttpServer
@@ -23,143 +13,183 @@ import java.io.IOException;
  * @Date 2022-03-27 15:01
  */
 public class StandardEngine extends ContainerBase implements Engine {
+    private String mapperClass = "com.ranni.container.engine.StandardEngineMapper"; // 标准的Engine映射器
+    private String defaultHost; // 默认Host容器
+    private DefaultContext defaultContext; // 默认Context容器
+    private String jvmRouteId; // 用于集群标识
+    
+
+
+    public StandardEngine() {
+        pipeline.setBasic(new StandardEngineValve(this));
+    }
+
+
+    /**
+     * 返回默认的Host容器
+     * 
+     * @return
+     */
     @Override
     public String getDefaultHost() {
-        return null;
+        return this.defaultHost;
     }
 
+
+    /**
+     * 设置默认的Host容器
+     * 转小写
+     * 
+     * @param defaultHost
+     */
     @Override
     public void setDefaultHost(String defaultHost) {
-
+        if (defaultHost == null) 
+            this.defaultHost = null;
+        else
+            this.defaultHost = defaultHost.toLowerCase();
     }
 
+
+    /**
+     * 返回JvmRouteId
+     * @return
+     */
     @Override
     public String getJvmRoute() {
-        return null;
+        return this.jvmRouteId;
     }
 
+
+    /**
+     * 设置JvmRouteId
+     * 
+     * @param jvmRouteId
+     */
     @Override
     public void setJvmRoute(String jvmRouteId) {
-
+        this.jvmRouteId = jvmRouteId;
     }
 
+
+    /**
+     * 添加默认的Context容器
+     * 
+     * @param defaultContext
+     */
+    @Override
+    public void addDefaultContext(DefaultContext defaultContext) {
+        this.defaultContext = defaultContext; 
+    }
+
+
+    /**
+     * 返回默认的Context容器
+     * 
+     * @return
+     */
+    @Override
+    public DefaultContext getDefaultContext() {
+        return this.defaultContext;
+    }
+
+
+    /**
+     * 如果默认Context不为空，那么导入传入的Context容器
+     * 
+     * @see {@link com.ranni.container.StandardDefaultContext#importDefaultContext(Context)}
+     * 
+     * @param context
+     */
+    @Override
+    public void importDefaultContext(Context context) {
+        if (this.defaultContext != null)
+            this.defaultContext.importDefaultContext(context);
+    }
+
+
+    /**
+     * 实现类信息
+     * 
+     * @return
+     */
     @Override
     public String getInfo() {
         return null;
     }
 
-    @Override
-    public Loader getLoader() {
-        return null;
-    }
-
-    @Override
-    public void setLoader(Loader loader) {
-
-    }
-
+    
     @Override
     public void backgroundProcessor() {
         
     }
 
-    @Override
-    public String getName() {
-        return null;
-    }
 
-    @Override
-    public void setName(String name) {
-
-    }
-
-    @Override
-    public Container getParent() {
-        return null;
-    }
-
-    @Override
-    public void setParent(Container container) {
-
-    }
-
-    @Override
-    public ClassLoader getParentClassLoader() {
-        return null;
-    }
-
-    @Override
-    public void setParentClassLoader(ClassLoader parent) {
-
-    }
-
+    /**
+     * 添加子容器
+     * 只能添加Host作为子容器
+     * 
+     * @param child
+     */
     @Override
     public void addChild(Container child) {
-
+        if (!(child instanceof Host))
+            throw new IllegalArgumentException("StandardEngine.addChild  只能添加Host做子容器！");
+        
+        super.addChild(child);
     }
 
-    @Override
-    public void addContainerListener(ContainerListener listener) {
 
+    /**
+     * 不可添加父容器
+     * 
+     * @param container
+     */
+    @Override
+    public void setParent(Container container) {
+        throw new IllegalArgumentException("StandardEngine.setParent  Engine容器不可添加父容器！");
     }
 
-    @Override
-    public void addMapper(Mapper mapper) {
 
+    /**
+     * 启动Engine
+     * 
+     * @throws LifecycleException
+     */
+    @Override
+    public synchronized void start() throws LifecycleException {
+        super.start();
     }
 
-    @Override
-    public void addPropertyChangeListener(PropertyChangeListener listener) {
 
+    /**
+     * 返回mapper全限定类名
+     * 
+     * @return
+     */
+    public String getMapperClass() {
+        return mapperClass;
     }
 
-    @Override
-    public Container findChild(String name) {
-        return null;
+    
+    /**
+     * 设置mapper全限定类名
+     * 
+     * @param mapperClass
+     */
+    public void setMapperClass(String mapperClass) {
+        this.mapperClass = mapperClass;
     }
 
+
+    /**
+     * 添加默认的映射器
+     * 固定为StandardEngine中的mapperClass属性（该属性可以修改）
+     * 
+     * @param mapperClass
+     */
     @Override
-    public Container[] findChildren() {
-        return new Container[0];
-    }
-
-    @Override
-    public ContainerListener[] findContainerListeners() {
-        return new ContainerListener[0];
-    }
-
-    @Override
-    public Mapper findMapper(String protocol) {
-        return null;
-    }
-
-    @Override
-    public Mapper[] findMappers() {
-        return new Mapper[0];
-    }
-
-    @Override
-    public void invoke(Request request, Response response) throws IOException, ServletException {
-
-    }
-
-    @Override
-    public void removeChild(Container child) {
-
-    }
-
-    @Override
-    public void removeContainerListener(ContainerListener listener) {
-
-    }
-
-    @Override
-    public void removeMapper(Mapper mapper) {
-
-    }
-
-    @Override
-    public void removePropertyChangeListener(PropertyChangeListener listener) {
-
+    protected void addDefaultMapper(String mapperClass) {
+        super.addDefaultMapper(this.mapperClass);
     }
 }

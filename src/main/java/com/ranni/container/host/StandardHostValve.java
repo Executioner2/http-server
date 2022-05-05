@@ -3,6 +3,7 @@ package com.ranni.container.host;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.Context;
+import com.ranni.container.Host;
 import com.ranni.container.pip.ValveBase;
 import com.ranni.container.pip.ValveContext;
 import com.ranni.session.Manager;
@@ -16,7 +17,7 @@ import java.io.IOException;
 /**
  * Title: HttpServer
  * Description:
- * TODO 标准的Host基础阀实现
+ * 标准的Host基础阀实现
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -24,8 +25,8 @@ import java.io.IOException;
  */
 public class StandardHostValve extends ValveBase {
 
-    public StandardHostValve(StandardHost standardHost) {
-        setContainer(standardHost);
+    public StandardHostValve(Host host) {
+        setContainer(host);
     }
 
     /**
