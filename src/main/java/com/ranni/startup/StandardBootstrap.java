@@ -25,7 +25,7 @@ public class StandardBootstrap {
         // 设置服务器根目录
         System.setProperty(SystemProperty.SERVER_BASE, System.getProperty("user.dir"));
 
-        // 创建两个wrapper
+        // 创建三个wrapper并分别设置名字和关联的Servlet类名
         Wrapper wrapper1 = new StandardWrapper();
         Wrapper wrapper2 = new StandardWrapper();
         Wrapper wrapper3 = new StandardWrapper();
