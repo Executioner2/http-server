@@ -24,6 +24,7 @@ public class StandardHostMapper implements Mapper {
         return null;
     }
 
+    
     /**
      * 设置容器
      *
@@ -37,6 +38,7 @@ public class StandardHostMapper implements Mapper {
         this.host = (StandardHost) container;
     }
 
+    
     /**
      * 取得协议
      *
@@ -47,6 +49,7 @@ public class StandardHostMapper implements Mapper {
         return this.protocol;
     }
 
+    
     /**
      * 设置协议
      *
@@ -57,6 +60,7 @@ public class StandardHostMapper implements Mapper {
         this.protocol = protocol;
     }
 
+    
     /**
      * 取得子容器
      *
@@ -73,7 +77,7 @@ public class StandardHostMapper implements Mapper {
         String uri = ((HttpRequest) request).getDecodedRequestURI();
         Context context = host.map(uri);
 
-        // 是否更新容器，即使context为null
+        // 是否更新容器，就算context为null
         if (update) {
             request.setContext(context);
             if (context == null) {

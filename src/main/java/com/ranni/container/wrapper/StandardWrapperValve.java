@@ -339,25 +339,5 @@ public class StandardWrapperValve extends ValveBase {
         if (servletResponse instanceof HttpServletResponse)
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
     }
-
-
-    /**
-     * 返回与此容器关联的阀
-     * 
-     * @return
-     */
-    @Override
-    public Container getContainer() {
-        return this.container;
-    }
-
-    /**
-     * 设置与此阀关联的容器
-     * 
-     * @param container
-     */
-    @Override
-    public void setContainer(Container container) {
-        this.container = container;
-    }
+    
 }

@@ -70,25 +70,4 @@ public class StandardContextValve extends ValveBase {
         response.setContext(context);
         wrapper.invoke(request, response);
     }
-
-    /**
-     * 返回与此阀关联的容器
-     *
-     * @return
-     */
-    @Override
-    public Container getContainer() {
-        return this.container;
-    }
-
-
-    /**
-     * 设置与此阀关联的容器
-     *
-     * @param container
-     */
-    @Override
-    public void setContainer(Container container) {
-        this.container = container;
-    }
 }
