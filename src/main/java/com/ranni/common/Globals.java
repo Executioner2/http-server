@@ -24,4 +24,7 @@ public final class Globals {
     
     // JSP文件属性
     public static final String JSP_FILE_ATTR = "com.ranni.jsp_file";
+
+    // 写入到Cookie中的sessionId属性
+    public static final String SESSION_COOKIE_NAME = "JSESSIONID";
 }

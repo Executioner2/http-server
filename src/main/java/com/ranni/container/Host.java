@@ -102,7 +102,16 @@ public interface Host extends Container {
 
 
     /**
-     * 返回此虚拟机所有别名
+     * 查询此别名是否存在
+     * 
+     * @param server
+     * @return
+     */
+    boolean findAliases(String server);
+
+    
+    /**
+     * 返回此虚拟主机所有别名
      *
      * @return
      */

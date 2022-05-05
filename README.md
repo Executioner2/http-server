@@ -5,6 +5,7 @@
 #
 ## 计划
 + 解决响应包中文乱码问题
++ 实现keepAlive和100状态码
 + session id目前没有同router id（router id每个服务器一个，用于实现负载均衡）一起组成复合型session id。计划选择性加入这个，因为session可能会被设计为一个独立于服务器的session池
 + 请求对象和响应对象也要有集合，要实现复用
 + 多用户请求同一个servlet，提供单线程或多线程开关
@@ -60,8 +61,6 @@ System.arraycopy()。至于为什么不用ArrayList，是因为数组和ArrayLis
 - 连接器线程只有一个
 - Request部分方法未能实现（因为暂时还用不上）
 - Response部分方法未能实现
-- Session没做
-- Context没做
 - keepAlive和100状态码未实现
 - CookieTools和DateTool为Tomcat源码文件  
 

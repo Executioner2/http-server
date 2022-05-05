@@ -157,7 +157,7 @@ public class StandardEngine extends ContainerBase implements Engine {
      * @throws LifecycleException
      */
     @Override
-    public synchronized void start() throws LifecycleException {
+    public void start() throws LifecycleException {
         super.start();
     }
 

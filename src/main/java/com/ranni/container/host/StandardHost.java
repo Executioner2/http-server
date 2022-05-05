@@ -5,6 +5,9 @@ import com.ranni.container.lifecycle.LifecycleException;
 import com.ranni.container.pip.ErrorDispatcherValve;
 import com.ranni.container.pip.Valve;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Title: HttpServer
  * Description:
@@ -20,7 +23,7 @@ public class StandardHost extends ContainerBase implements Host {
     private String errorReportValveClass = "com.ranni.container.pip.ErrorReportValve"; // 默认的错误报告阀
     private String configClass = "com.ranni.startup.ContextConfig"; // 配置类全限定类名
     private String mapperClass = "com.ranni.container.host.StandardHostMapper"; // 默认的Host映射器
-    private String[] aliases = new String[0]; // 别名
+    private Set<String> aliases = new HashSet<>(); // 以HashSet来存取，方便请求查询对应的Host
 
     protected String appBase = "."; // 根路径
     protected boolean autoDeploy = true; // 自动部署
@@ -230,28 +233,33 @@ public class StandardHost extends ContainerBase implements Host {
         alias = alias.toLowerCase();
 
         synchronized (aliases) {
-            for (int i = 0; i < aliases.length; i++) {
-                if (aliases[i].equals(alias))
-                    return;
-            }
-
-            String[] newArs = new String[aliases.length + 1];
-            System.arraycopy(aliases, 0, newArs, 0, aliases.length);
-            newArs[aliases.length] = alias;
-            aliases = newArs;
+            aliases.add(alias);
         }
     }
 
+    /**
+     * 查询此别名是否存在
+     * 
+     * @param server
+     * @return
+     */
+    @Override
+    public boolean findAliases(String server) {
+        synchronized (aliases) {
+            return aliases.contains(server);
+        }
+    }
+    
 
     /**
-     * 返回所有的别名
+     * 返回此虚拟主机所有别名
      *
      * @return
      */
     @Override
     public String[] findAliases() {
         synchronized (aliases) {
-            return this.aliases;
+            return this.aliases.toArray(new String[aliases.size()]);
         }
     }
 
@@ -318,22 +326,7 @@ public class StandardHost extends ContainerBase implements Host {
         alias = alias.toLowerCase();
 
         synchronized (aliases) {
-            int i = 0;
-            for (; i < aliases.length; i++) {
-                if (aliases[i].equals(alias))
-                    break;
-            }
-
-            if (i == aliases.length)
-                return;
-
-            String[] newArs = new String[aliases.length - 1];
-            for (int j = 0, k = 0; j < aliases.length; j++) {
-                if (j != i)
-                    newArs[k++] = aliases[j];
-            }
-
-            aliases = newArs;
+            aliases.remove(alias);
         }
     }
 

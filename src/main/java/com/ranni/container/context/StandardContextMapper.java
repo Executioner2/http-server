@@ -19,7 +19,7 @@ import javax.servlet.http.HttpServletRequest;
  * @Date 2022-03-28 17:13
  */
 public class StandardContextMapper implements Mapper {
-    protected Container container; // 此映射器关联的Context容器
+    protected Context context; // 此映射器关联的Context容器
     protected String protocol; // 该映射器负责处理的协议
 
     /**
@@ -29,7 +29,7 @@ public class StandardContextMapper implements Mapper {
      */
     @Override
     public Container getContainer() {
-        return this.container;
+        return this.context;
     }
 
     /**
@@ -44,7 +44,7 @@ public class StandardContextMapper implements Mapper {
         if (!(container instanceof StandardContext))
             throw new IllegalArgumentException("该容器不是DefaultContext的实例对象！");
 
-        this.container = container;
+        this.context = (Context) container;
     }
 
     /**
@@ -88,9 +88,9 @@ public class StandardContextMapper implements Mapper {
 
         // 根据URI取得对应的wrapper
         Wrapper wrapper = null;
-        String name = ((Context)container).findServletMapping(relativeURI);
+        String name = context.findServletMapping(relativeURI);
 
-        if (name != null) wrapper = (Wrapper) container.findChild(name);
+        if (name != null) wrapper = (Wrapper) context.findChild(name);
 
         return wrapper;
     }

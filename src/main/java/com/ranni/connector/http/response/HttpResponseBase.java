@@ -1,5 +1,6 @@
 package com.ranni.connector.http.response;
 
+import com.ranni.common.Globals;
 import com.ranni.connector.Constants;
 import com.ranni.connector.http.request.HttpRequestBase;
 import com.ranni.util.CookieTools;
@@ -7,6 +8,7 @@ import com.ranni.util.CookieTools;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -192,7 +194,29 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
             }
         }
 
-        // TODO 添加session id
+        // 将SessionId写入到Cookie中返回
+        HttpServletRequest hsr = (HttpServletRequest) request.getRequest();
+        HttpSession session = hsr.getSession(false);
+        if (session != null && session.isNew()
+            && getContext() != null && getContext().getCookies()) {
+            
+            Cookie cookie = new Cookie(Globals.SESSION_COOKIE_NAME, session.getId());
+            
+            cookie.setMaxAge(-1);
+            String contextPath = null;
+            if (context == null)
+                contextPath = context.getPath();
+            
+            if (contextPath != null && contextPath.isBlank())
+                cookie.setPath(contextPath);
+            else 
+                cookie.setPath("/");
+            
+            if (hsr.isSecure())
+                cookie.setSecure(true);
+            
+            addCookie(cookie);
+        }
 
         // 写入cookies信息
         synchronized (cookies) {
@@ -212,8 +236,10 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
 
     /**
      * 发送错误消息
+     * 
      * @param i
      * @param s
+     * 
      * @throws IOException
      */
     @Override

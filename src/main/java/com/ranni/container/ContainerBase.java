@@ -583,12 +583,13 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
         return pipeline.getValves();
     }
 
+    
     /**
      * 写入日志文件
      *
      * @param message
      */
-    protected void log(String message) {
+    public void log(String message) {
         Logger logger = getLogger();
         if (logger != null)
             logger.log(logName() + ": " + message);
@@ -602,7 +603,7 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
      *
      * @param message
      */
-    protected void log(String message, Throwable throwable) {
+    public void log(String message, Throwable throwable) {
         Logger logger = getLogger();
         if (logger != null)
             logger.log(logName() + ": " + message, throwable);
@@ -652,6 +653,16 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
         } catch (Exception e) {
             log("containerBase.addDefaultMapper  " + e.getMessage());
         }
+    }
+    
+
+    /**
+     * 返回日志输出级别
+     *
+     * @return
+     */
+    public int getDebug() {
+        return this.debug;
     }
 
 
