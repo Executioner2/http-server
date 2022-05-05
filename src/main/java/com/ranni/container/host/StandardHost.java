@@ -1,15 +1,12 @@
 package com.ranni.container.host;
 
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
-import com.ranni.container.*;
-import com.ranni.container.loader.Loader;
-import com.ranni.logger.Logger;
-
-import javax.servlet.ServletException;
-import java.awt.event.ContainerListener;
-import java.beans.PropertyChangeListener;
-import java.io.IOException;
+import com.ranni.container.ContainerBase;
+import com.ranni.container.Context;
+import com.ranni.container.DefaultContext;
+import com.ranni.container.Host;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.pip.ErrorDispatcherValve;
+import com.ranni.container.pip.Valve;
 
 /**
  * Title: HttpServer
@@ -23,10 +20,59 @@ import java.io.IOException;
 public class StandardHost extends ContainerBase implements Host {
     private String workDir; // 工作目录
     private DefaultContext defaultContext; // 默认容器配置
+    private String errorReportValveClass = "com.ranni.container.pip.ErrorReportValve"; // 默认的错误报告阀
+    private String configClass = "com.ranni.startup.ContextConfig"; // 配置类全限定类名
+    private String mapperClass = "com.ranni.container.host.StandardHostMapper"; // 默认的Host映射器
+    private String[] aliases = new String[0]; // 别名
 
-    protected int debug; // 日志输出等级
-    protected String appBase; // 根路径
-    protected boolean autoDeploy; // 自动部署
+    protected String appBase = "."; // 根路径
+    protected boolean autoDeploy = true; // 自动部署
+
+
+    public StandardHost() {
+        pipeline.setBasic(new StandardHostValve());
+    }
+
+
+
+    /**
+     * 返回错误报告阀全限定类名
+     *
+     * @return
+     */
+    public String getErrorReportValveClass() {
+        return errorReportValveClass;
+    }
+
+
+    /**
+     * 设置错误的报告阀全限定类名
+     *
+     * @param errorReportValveClass
+     */
+    public void setErrorReportValveClass(String errorReportValveClass) {
+        this.errorReportValveClass = errorReportValveClass;
+    }
+
+
+    /**
+     * 返回默认的映射器全限定类名
+     *
+     * @return
+     */
+    public String getMapperClass() {
+        return mapperClass;
+    }
+
+
+    /**
+     * 设置默认的映射器类名
+     *
+     * @param mapperClass
+     */
+    public void setMapperClass(String mapperClass) {
+        this.mapperClass = mapperClass;
+    }
 
 
     /**
@@ -38,6 +84,7 @@ public class StandardHost extends ContainerBase implements Host {
         return workDir;
     }
 
+
     /**
      * 设置工作路径
      *
@@ -46,6 +93,7 @@ public class StandardHost extends ContainerBase implements Host {
     public void setWorkDir(String workDir) {
         this.workDir = workDir;
     }
+
 
     /**
      * 取得根路径
@@ -57,6 +105,7 @@ public class StandardHost extends ContainerBase implements Host {
         return this.appBase;
     }
 
+
     /**
      * 设置根路径
      *
@@ -66,6 +115,7 @@ public class StandardHost extends ContainerBase implements Host {
     public void setAppBase(String appBase) {
         this.appBase = appBase;
     }
+
 
     /**
      * 返回自动部署标志
@@ -77,6 +127,7 @@ public class StandardHost extends ContainerBase implements Host {
         return this.autoDeploy;
     }
 
+
     /**
      * 设置自动部署标志
      *
@@ -85,6 +136,48 @@ public class StandardHost extends ContainerBase implements Host {
     @Override
     public void setAutoDeploy(boolean autoDeploy) {
         this.autoDeploy = autoDeploy;
+    }
+
+
+    /**
+     * 设置默认Context容器
+     * 如果默认容器不为空，则要先停掉原来的
+     *
+     * @param defaultContext
+     */
+    @Override
+    public void addDefaultContext(DefaultContext defaultContext) {
+        this.defaultContext = defaultContext;
+//        if (this.defaultContext != null) {
+//            if (started && this.defaultContext instanceof Lifecycle) {
+//                try {
+//                    ((Lifecycle) this.defaultContext).stop();
+//                } catch (LifecycleException e) {
+//                    log("StandardHost.stoppingDefaultContext", e);
+//                }
+//            }
+//        }
+//
+//        this.defaultContext = defaultContext;
+//
+//        if (started && this.defaultContext instanceof Lifecycle) {
+//            try {
+//                ((Lifecycle) this.defaultContext).start();
+//            } catch (LifecycleException e) {
+//                log("StandardHost.defaultContextStartingFail", e);
+//            }
+//        }
+    }
+
+
+    /**
+     * 返回默认的Context容器
+     *
+     * @return
+     */
+    @Override
+    public DefaultContext getDefaultContext() {
+        return this.defaultContext;
     }
 
 
@@ -101,23 +194,65 @@ public class StandardHost extends ContainerBase implements Host {
         this.name = name.toLowerCase();
     }
 
-    @Override
-    public void importDefaultContext(Context context) {
-
-    }
-
-    @Override
-    public void addAlias(String alias) {
-
-    }
-
-    @Override
-    public String[] findAliases() {
-        return new String[0];
-    }
 
     /**
-     * 请求取得uri中对应的context容器
+     * 导入Context容器
+     *
+     * @param context
+     */
+    @Override
+    public void importDefaultContext(Context context) {
+        if (this.defaultContext != null)
+            this.defaultContext.importDefaultContext(context);
+    }
+
+
+    /**
+     * 添加别名
+     *
+     * @param alias
+     */
+    @Override
+    public void addAlias(String alias) {
+        alias = alias.toLowerCase();
+
+        synchronized (aliases) {
+            for (int i = 0; i < aliases.length; i++) {
+                if (aliases[i].equals(alias))
+                    return;
+            }
+
+            String[] newArs = new String[aliases.length + 1];
+            System.arraycopy(aliases, 0, newArs, 0, aliases.length);
+            newArs[aliases.length] = alias;
+            aliases = newArs;
+        }
+    }
+
+
+    /**
+     * 返回所有的别名
+     *
+     * @return
+     */
+    @Override
+    public String[] findAliases() {
+        synchronized (aliases) {
+            return this.aliases;
+        }
+    }
+
+
+    /**
+     * 请求取得URI中对应的context容器
+     * 从请求的URI中获取容器名。
+     * 从最后一个'/'开始，依次往前截取URI尝试匹配，如果URI中没有匹配到，就返回默认Context容器（如果有的话）
+     * 
+     * 例如：/myweb/user/find?id=123
+     * 依次匹配：
+     *  1、/myweb/user/find?id=123
+     *  2、/myweb/user
+     *  3、/myweb
      *
      * @param uri
      * @return
@@ -126,6 +261,7 @@ public class StandardHost extends ContainerBase implements Host {
     public Context map(String uri) {
         if (debug > 0)
             log("请求URI  " + uri);
+        
         if (uri == null)
             return null;
 
@@ -134,10 +270,12 @@ public class StandardHost extends ContainerBase implements Host {
 
         Context context = null;
         String prefixUri = uri;
-        int pos;
-        while ((pos = prefixUri.lastIndexOf('/')) != -1) {
+        
+        while (true) {
             context = (Context) findChild(prefixUri);
             if (context != null) break;
+            int pos = prefixUri.lastIndexOf('/');
+            if (pos < 0) break;                
             prefixUri.substring(0, pos);
         }
 
@@ -156,191 +294,78 @@ public class StandardHost extends ContainerBase implements Host {
         return context;
     }
 
+
+    /**
+     * 移除别名
+     *
+     * @param alias
+     */
     @Override
     public void removeAlias(String alias) {
+        alias = alias.toLowerCase();
 
+        synchronized (aliases) {
+            int i = 0;
+            for (; i < aliases.length; i++) {
+                if (aliases[i].equals(alias))
+                    break;
+            }
+
+            if (i == aliases.length)
+                return;
+
+            String[] newArs = new String[aliases.length - 1];
+            for (int j = 0, k = 0; j < aliases.length; j++) {
+                if (j != i)
+                    newArs[k++] = aliases[j];
+            }
+
+            aliases = newArs;
+        }
     }
+
 
     @Override
     public String getInfo() {
         return null;
     }
-
-    @Override
-    public Loader getLoader() {
-        return null;
-    }
-
-    @Override
-    public void setLoader(Loader loader) {
-
-    }
+    
 
     @Override
     public void backgroundProcessor() {
         
     }
 
-    @Override
-    public Container getParent() {
-        return null;
-    }
-
-    @Override
-    public void setParent(Container container) {
-
-    }
-
-    @Override
-    public ClassLoader getParentClassLoader() {
-        return null;
-    }
-
-    @Override
-    public void setParentClassLoader(ClassLoader parent) {
-
-    }
-
-    @Override
-    public void addChild(Container child) {
-
-    }
-
-    @Override
-    public void addContainerListener(ContainerListener listener) {
-
-    }
-
-    @Override
-    public void addMapper(Mapper mapper) {
-
-    }
-
-    @Override
-    public void addPropertyChangeListener(PropertyChangeListener listener) {
-
-    }
-
+    
     /**
-     * 根据name取得子容器
-     *
-     * @param name
-     * @return
+     * 添加默认的映射器
+     * 
+     * @param mapperClass
      */
     @Override
-    public Container findChild(String name) {
-        if (name == null) return null;
-
-        synchronized (children) {
-            return children.get(name);
-        }
+    protected void addDefaultMapper(String mapperClass) {
+        super.addDefaultMapper(mapperClass);
     }
+
 
     /**
-     * 返回所有子容器
+     * 启动Host容器
      *
-     * @return
+     * @throws LifecycleException
      */
     @Override
-    public Container[] findChildren() {
-        synchronized (children) {
-            return children.values().toArray(new Container[children.values().size()]);
-        }
-    }
-
-    @Override
-    public ContainerListener[] findContainerListeners() {
-        return new ContainerListener[0];
-    }
-
-    /**
-     * 根据协议取得映射器
-     *
-     * @param protocol
-     * @return
-     */
-    @Override
-    public Mapper findMapper(String protocol) {
-        if (mapper != null) {
-            return mapper;
-        } else {
-            synchronized (mappers) {
-                return mappers.get(protocol);
+    public synchronized void start() throws LifecycleException {
+        if (errorReportValveClass != null && !("".equals(errorReportValveClass))) {
+            try {
+                Valve valve = (Valve) Class.forName(errorReportValveClass).getConstructor().newInstance();
+                addValve(valve);
+            } catch (Throwable e) {
+                log("StandardHost.start  实例化错误报告阀失败！" + errorReportValveClass, e);
             }
         }
+
+        addValve(new ErrorDispatcherValve());
+        super.start();
     }
-
-    /**
-     * 返回所有映射器
-     *
-     * @return
-     */
-    @Override
-    public Mapper[] findMappers() {
-        synchronized (mappers) {
-            return mappers.values().toArray(new Mapper[mappers.values().size()]);
-        }
-    }
-
-    /**
-     * 调用管道
-     *
-     * @param request
-     * @param response
-     * @throws IOException
-     * @throws ServletException
-     */
-    @Override
-    public void invoke(Request request, Response response) throws IOException, ServletException {
-        pipeline.invoke(request, response);
-    }
-
-    @Override
-    public void removeChild(Container child) {
-
-    }
-
-    @Override
-    public void removeContainerListener(ContainerListener listener) {
-
-    }
-
-    @Override
-    public void removeMapper(Mapper mapper) {
-
-    }
-
-    @Override
-    public void removePropertyChangeListener(PropertyChangeListener listener) {
-
-    }
-
-    /**
-     * 日志输出
-     *
-     * @param msg
-     */
-    protected void log(String msg) {
-        Logger logger = getLogger();
-        if (logger != null)
-            logger.log(logName() + ": " + msg);
-        else
-            System.out.println(logName() + ": " + msg);
-    }
-
-    /**
-     * 日志输出
-     *
-     * @param msg
-     */
-    protected void log(String msg, Throwable t) {
-        Logger logger = getLogger();
-        if (logger != null)
-            logger.log(logName() + ": " + msg + ": " + t);
-        else {
-            System.out.println(logName() + ": " + msg + ": " + t);
-            t.printStackTrace(System.out);
-        }
-
-    }
+    
 }

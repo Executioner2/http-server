@@ -6,14 +6,12 @@ import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.HttpResponseBase;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.*;
-import com.ranni.container.loader.Loader;
-import com.ranni.container.lifecycle.LifecycleException;
 import com.ranni.container.lifecycle.Lifecycle;
-import com.ranni.container.lifecycle.LifecycleListener;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.loader.Loader;
 import com.ranni.logger.Logger;
 import com.ranni.util.Enumerator;
 import com.ranni.util.InstanceSupport;
-import com.ranni.util.LifecycleSupport;
 
 import javax.servlet.*;
 import java.io.IOException;
@@ -29,7 +27,7 @@ import java.util.*;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 21:44
  */
-public class StandardWrapper extends ContainerBase implements ServletConfig, Wrapper, Lifecycle {
+public class StandardWrapper extends ContainerBase implements ServletConfig, Wrapper {
     private Servlet instance; // servlet 实例
     private StandardWrapperFacade facade = new StandardWrapperFacade(this);
     private Map<String, String> parameters = new HashMap(); // 参数列表
@@ -46,7 +44,6 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     private long available; // 此wrapper什么时候可用，为0L则表示永久可用，为Long.MAX_VALUE则表示永久不可用
 
     protected String servletClass; // servlet类全限定类名
-    protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
     protected InstanceSupport instanceSupport = new InstanceSupport(this); // 实例监听器工具实例
 
 
@@ -616,45 +613,6 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     @Override
     public void removeChild(Container child) {
         throw new IllegalStateException ("标准wrapper没有child");
-    }
-
-
-    /**
-     * 添加生命周期监听器
-     *
-     * @see {@link LifecycleSupport#addLifecycleListener(LifecycleListener)} 该方法是线程安全的方法
-     *
-     * @param listener
-     */
-    @Override
-    public void addLifecycleListener(LifecycleListener listener) {
-        lifecycle.addLifecycleListener(listener);
-    }
-
-
-    /**
-     * 返回所有生命周期监听器
-     *
-     * @see {@link LifecycleSupport#findLifecycleListeners()} 该方法是线程安全的方法
-     *
-     * @return
-     */
-    @Override
-    public LifecycleListener[] findLifecycleListeners() {
-        return lifecycle.findLifecycleListeners();
-    }
-
-
-    /**
-     * 移除生命周期监听器
-     *
-     * @see {@link LifecycleSupport#removeLifecycleListener(LifecycleListener)} 该方法是线程安全的方法
-     *
-     * @param listener
-     */
-    @Override
-    public void removeLifecycleListener(LifecycleListener listener) {
-        lifecycle.removeLifecycleListener(listener);
     }
 
 

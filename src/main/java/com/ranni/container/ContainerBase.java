@@ -3,6 +3,8 @@ package com.ranni.container;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.lifecycle.Lifecycle;
+import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.container.lifecycle.LifecycleListener;
 import com.ranni.container.loader.Loader;
 import com.ranni.container.pip.Pipeline;
 import com.ranni.container.pip.StandardPipeline;
@@ -10,6 +12,7 @@ import com.ranni.container.pip.Valve;
 import com.ranni.logger.Logger;
 import com.ranni.naming.ProxyDirContext;
 import com.ranni.session.Manager;
+import com.ranni.util.LifecycleSupport;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletException;
@@ -29,7 +32,7 @@ import java.util.Map;
  * @Email 1205878539@qq.com
  * @Date 2022-03-27 14:59
  */
-public abstract class ContainerBase implements Container, Pipeline {
+public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
     protected boolean threadDone; // 后台线程   
     protected int backgroundProcessorDelay; // 后台线程的休眠因子    
     protected Loader loader; // 加载器
@@ -46,6 +49,8 @@ public abstract class ContainerBase implements Container, Pipeline {
     protected int debug = Logger.WARNING; // 日志级别
     protected ClassLoader parentClassLoader; // 父容器的类加载器
     protected Thread thread; // 后台任务线程
+    protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
+    protected String mapperClass = ""; // 映射器全限定类名
 
 
     /**
@@ -711,7 +716,139 @@ public abstract class ContainerBase implements Container, Pipeline {
     public synchronized void threadStop() {
         threadDone = true;
     }
-    
+
+
+    /**
+     * 添加生命周期监听
+     *
+     * @see {@link LifecycleSupport#addLifecycleListener(LifecycleListener)} 该方法是线程安全的方法
+     *
+     * @param listener
+     */
+    @Override
+    public void addLifecycleListener(LifecycleListener listener) {
+        lifecycle.addLifecycleListener(listener);
+    }
+
+
+    /**
+     * 返回所有生命周期监听器
+     *
+     * @see {@link LifecycleSupport#findLifecycleListeners()} 该方法是线程安全的方法
+     *
+     * @return
+     */
+    @Override
+    public LifecycleListener[] findLifecycleListeners() {
+        return lifecycle.findLifecycleListeners();
+    }
+
+
+    /**
+     * 移除指定的生命周期监听实例
+     *
+     * @see {@link LifecycleSupport#removeLifecycleListener(LifecycleListener)} 该方法是线程安全的方法
+     *
+     * @param listener
+     */
+    @Override
+    public void removeLifecycleListener(LifecycleListener listener) {
+        lifecycle.removeLifecycleListener(listener);
+    }
+
+
+    /**
+     * 通用容器启动方法
+     *
+     * @throws LifecycleException
+     */
+    @Override
+    public synchronized void start() throws LifecycleException {
+        if (started)
+            throw new LifecycleException("ContainerBase.start  容器已经启动！");
+
+        lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, null);
+        
+        addDefaultMapper(this.mapperClass);
+        started = true;
+        
+        // 启动组件
+        if (loader != null && loader instanceof Lifecycle)
+            ((Lifecycle) loader).start();
+        if (logger != null && logger instanceof Lifecycle)
+            ((Lifecycle) logger).start();
+        if (manager != null && manager instanceof Lifecycle)
+            ((Lifecycle) manager).start();
+        if (resources != null && resources instanceof Lifecycle)
+            ((Lifecycle) resources).start();
+        
+        // 启动所有的映射器
+        for (Mapper mapper : findMappers()) {
+            if (mapper instanceof Lifecycle)
+                ((Lifecycle) mapper).start();
+        }
+        
+        // 启动子容器
+        for (Container container : findChildren()) {
+            if (container instanceof Lifecycle)
+                ((Lifecycle) container).start();
+        }
+        
+        // 启动管道
+        if (pipeline instanceof Lifecycle)
+            ((Lifecycle) pipeline).start();
+        
+        lifecycle.fireLifecycleEvent(START_EVENT, null);
+        
+        lifecycle.fireLifecycleEvent(AFTER_START_EVENT, null);
+        
+    }
+
+
+    /**
+     * 通用容器停止方法
+     *
+     * @throws LifecycleException
+     */
+    @Override
+    public synchronized void stop() throws LifecycleException {
+        if (!started)
+            throw new LifecycleException("ContainerBase.stop  容器已经停止！");
+        
+        lifecycle.fireLifecycleEvent(BEFORE_STOP_EVENT, null);
+        
+        lifecycle.fireLifecycleEvent(STOP_EVENT, null);
+        started = false;
+        
+        // 关闭管道
+        if (pipeline instanceof Lifecycle)
+            ((Lifecycle) pipeline).stop();
+        
+        // 关闭所有子容器
+        for (Container container : findChildren()) {
+            if (container instanceof Lifecycle) 
+                ((Lifecycle) container).stop();
+        }
+        
+        // 关闭所有映射器
+        for (Mapper mapper : findMappers()) {
+            if (mapper instanceof Lifecycle) 
+                ((Lifecycle) mapper).stop();
+        }
+        
+        // 关闭组件
+        if (resources != null && resources instanceof Lifecycle)
+            ((Lifecycle) resources).stop();
+        if (manager != null && manager instanceof Lifecycle) 
+            ((Lifecycle) manager).stop();
+        if (logger != null && logger instanceof Lifecycle)
+            ((Lifecycle) logger).stop();
+        if (loader != null && loader instanceof Lifecycle)
+            ((Lifecycle) loader).stop();
+        
+        lifecycle.fireLifecycleEvent(AFTER_STOP_EVENT, null);
+    }
+
 
     /**
      * 容器的后台任务线程

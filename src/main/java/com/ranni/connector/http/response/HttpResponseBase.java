@@ -98,6 +98,7 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
 
     /**
      * TODO 对URL进行编码
+     *
      * @param s
      * @return
      */
@@ -108,6 +109,7 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
 
     /**
      * TODO 对重定向url进行编码
+     *
      * @param s
      * @return
      */

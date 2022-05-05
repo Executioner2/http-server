@@ -8,7 +8,6 @@ import com.ranni.container.*;
 import com.ranni.container.host.StandardHost;
 import com.ranni.container.lifecycle.Lifecycle;
 import com.ranni.container.lifecycle.LifecycleException;
-import com.ranni.container.lifecycle.LifecycleListener;
 import com.ranni.container.loader.WebappLoader;
 import com.ranni.container.scope.ApplicationContext;
 import com.ranni.core.ApplicationFilterConfig;
@@ -20,7 +19,6 @@ import com.ranni.naming.ProxyDirContext;
 import com.ranni.naming.WARDirContext;
 import com.ranni.session.StandardManager;
 import com.ranni.util.CharsetMapper;
-import com.ranni.util.LifecycleSupport;
 import com.ranni.util.RequestUtil;
 
 import javax.naming.directory.DirContext;
@@ -61,13 +59,13 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     private String namingContextName; // 命名容器全名
     private boolean paused; // 是否开始接收请求
     private String workDir; // 工作目录
-    private String mapperClass = "com.ranni.container.context.StandardContextMapper"; // 默认映射器
     private boolean privileged; // 此容器是否具备特权
     private boolean available; // 此WebApp是否可用
     private boolean configured; // TODO 此Context容器的配置标志，在start()通过生命周期事件触发配置监听器对此context容器进行配置，为true时WebApp才能启动
     private FilterMap[] filterMaps = new FilterMap[0]; // 过滤器映射集合
     private CharsetMapper charsetMapper; // 字符集
     private String charsetMapperClass = "com.ranni.util.CharsetMapper"; // 默认的字符集类
+    private String mapperClass = "com.ranni.container.context.StandardContextMapper"; // 默认映射器
     private int count; // 正式进行Session回收任务的倒计时
     private int managerChecksFrequency = 15; // Session回收频率，默认15
     private boolean reloadable; // 容器的重载标志位
@@ -75,8 +73,7 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
     protected Map<String, String> servletMappings = new HashMap<>(); // 请求servlet与wrapper容器的映射
-    protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
-    protected boolean filesystemBased; // 关联的目录容器是否是文件类型的目录容器    
+    protected boolean filesystemBased; // 关联的目录容器是否是文件类型的目录容器
 
 
     public StandardContext() {
@@ -1354,42 +1351,6 @@ public class StandardContext extends ContainerBase implements Context, Lifecycle
         // XXX 释放JAR资源
     }
     
-
-    /**
-     * 添加监听器
-     *
-     * @see {@link LifecycleSupport#addLifecycleListener(LifecycleListener)} 该方法是线程安全方法
-     *
-     * @param listener
-     */
-    @Override
-    public void addLifecycleListener(LifecycleListener listener) {
-        lifecycle.addLifecycleListener(listener);
-    }
-
-    /**
-     * 返回所有监听器
-     *
-     * @see {@link LifecycleSupport#findLifecycleListeners()}
-     *
-     * @return
-     */
-    @Override
-    public LifecycleListener[] findLifecycleListeners() {
-        return lifecycle.findLifecycleListeners();
-    }
-
-    /**
-     * 移除指定监听器
-     *
-     * @see {@link LifecycleSupport#removeLifecycleListener(LifecycleListener)} 该方法是线程安全的方法
-     *
-     * @param listener
-     */
-    @Override
-    public void removeLifecycleListener(LifecycleListener listener) {
-        lifecycle.removeLifecycleListener(listener);
-    }
 
     /**
      * context容器启动

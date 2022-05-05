@@ -10,7 +10,11 @@ abstract class ContainerBase
 class StandardPipeline
 class StandardValveContext
 class ValveImpl
+class ErrorDispatcherValve
+class ErrorReportValve
 
+ValveBase <|-- ErrorDispatcherValve
+ValveBase <|-- ErrorReportValve
 Contained <|.. ValveBase
 Valve <|.. ValveBase
 Valve <|.. ValveImpl

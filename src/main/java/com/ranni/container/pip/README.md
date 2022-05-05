@@ -12,6 +12,8 @@
 |接口|ValveContext|阀容器接口，提供一个invokeNext()方法自动往下执行阀，由管道对象（StandardPipeline）调用|
 |实现类|StandardPipeline|标准管道，管道中装有阀，从外面看阀就是通过管道依次执行|
 |实现类|StandardValveContext|阀容器，主要就是把基础阀和其它阀包装到了此类中，从内部看，管道调用了此类的invokeNext()方法依次执行阀|
+|实现类|ErrorDispatcherValve|错误调度阀，Host容器用到|
+|实现类|ErrorReportValve|错误报告阀，Host容器用到|
 |抽象类|ValveBase|基础阀抽象类，此抽象类实现Valve和Contained接口，基础阀必须继承这个抽象类|
 
 注：  
