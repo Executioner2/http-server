@@ -469,6 +469,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
         log("连接器启动完成！");
     }
+    
 
     /**
      * 停止连接器
@@ -490,10 +491,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
         if (processorPool instanceof Lifecycle)
             ((Lifecycle) processorPool).stop();
-
-        if (container instanceof Lifecycle)
-            ((Lifecycle) container).stop();
-
+        
         // 向本机的serverSocket发送一条空请求，由于已经关闭了处理器池
         // 此请求不会被处理，但会使得serverSocket的accept()暂时接触阻塞
         // 到while的循环中会得知stooped为true，便可以跳出循环，无异常结束关闭serverSocket
@@ -524,6 +522,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
             System.out.println(localName + " " + msg);
     }
 
+    
     /**
      * 记录信息到日志文件
      *
