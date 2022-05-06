@@ -1,5 +1,7 @@
 package com.ranni.container;
 
+import com.ranni.core.Service;
+
 /**
  * Title: HttpServer
  * Description:
@@ -43,17 +45,19 @@ public interface Engine extends Container {
 
 
     /**
-     * Return the <code>Service</code> with which we are associated (if any).
+     * 返回此容器关联的服务
+     * 
+     * @return
      */
-//    public Service getService();
+    Service getService();
 
 
     /**
-     * Set the <code>Service</code> with which we are associated (if any).
-     *
-     * @param service The service that owns this Engine
+     * 设置此容器关联的服务
+     * 
+     * @param service
      */
-//    public void setService(Service service);
+    void setService(Service service);
 
 
     /**

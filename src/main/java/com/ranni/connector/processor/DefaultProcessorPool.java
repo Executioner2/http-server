@@ -53,7 +53,7 @@ public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
      *
      * @return
      */
-    public static ProcessorPool getProcessorPool() {
+    public static ProcessorPool getProcessorPool() throws IllegalArgumentException {
         return getProcessorPool(INITIAL_MIN_PROCESSORS, INITIAL_MAX_PROCESSORS);
     }
 
@@ -65,7 +65,7 @@ public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
      * @param max
      * @return
      */
-    public static ProcessorPool getProcessorPool(int min, int max) {
+    public static ProcessorPool getProcessorPool(int min, int max) throws IllegalArgumentException {
         if (min < 1) throw new IllegalArgumentException("最小处理器数不能小于1！");
 
         if (max >= 0 && max < min) throw new IllegalArgumentException("最大处理器数不能小于最小数量！");

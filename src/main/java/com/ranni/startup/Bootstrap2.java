@@ -15,6 +15,7 @@ import com.ranni.test.valves.HeaderLoggerValve;
  * @Email 1205878539@qq.com
  * @Date 2022-03-29 21:17
  */
+@Deprecated // FIXME - 已经不能通过连接器自动启动容器了
 public class Bootstrap2 {
     public static void main(String[] args) {
         HttpConnector connector = new HttpConnector();

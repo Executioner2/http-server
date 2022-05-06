@@ -1,12 +1,13 @@
 package com.ranni.container.engine;
 
 import com.ranni.container.*;
+import com.ranni.core.Service;
 import com.ranni.lifecycle.LifecycleException;
 
 /**
  * Title: HttpServer
  * Description:
- * TODO StandardEngine
+ * 标准的Engine实现
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -17,7 +18,7 @@ public class StandardEngine extends ContainerBase implements Engine {
     private String defaultHost; // 默认Host容器
     private DefaultContext defaultContext; // 默认Context容器
     private String jvmRouteId; // 用于集群标识
-    
+    private Service service; // 此容器关联的服务
 
 
     public StandardEngine() {
@@ -69,6 +70,28 @@ public class StandardEngine extends ContainerBase implements Engine {
     @Override
     public void setJvmRoute(String jvmRouteId) {
         this.jvmRouteId = jvmRouteId;
+    }
+
+
+    /**
+     * 返回此容器关联的服务
+     * 
+     * @return
+     */
+    @Override
+    public Service getService() {
+        return this.service;
+    }
+
+    
+    /**
+     * 设置此容器关联的服务
+     * 
+     * @param service
+     */
+    @Override
+    public void setService(Service service) {
+        this.service = service;
     }
 
 

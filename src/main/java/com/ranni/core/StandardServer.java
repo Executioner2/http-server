@@ -6,6 +6,13 @@ import com.ranni.lifecycle.LifecycleException;
 import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.util.LifecycleSupport;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.Random;
+
 /**
  * Title: HttpServer
  * Description:
@@ -24,6 +31,7 @@ public class StandardServer implements Lifecycle, Server {
     private Service[] services = new Service[0]; // 服务集合
     private int port = 8085; // 服务器的端口
     private String shutdown = "SHUTDOWN"; // 关服务器的指令
+    private Random random; // 如果shutdown超过1024个字节，那么每次随机延长一段不超过1024的字节长度
     
     
     @Override
@@ -127,10 +135,84 @@ public class StandardServer implements Lifecycle, Server {
 
     /**
      * 等待收到关机指令
+     * 创建一个ServerSocket实现关闭服务器
      */
     @Override
     public void await() {
+        ServerSocket serverSocket = null;
+        StringBuffer command = null;
+        
+        try {
+            serverSocket = new ServerSocket(port, 1, InetAddress.getByName("127.0.0.1"));
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        
+        while (true) {
+            InputStream input = null;
+            Socket socket = null;
+            
+            try {
+                socket = serverSocket.accept();
+                socket.setSoTimeout(10 * 1000); // 设置10s的超时
+                input = socket.getInputStream();
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
 
+            if (command == null)
+                command = new StringBuffer();
+            else
+                command.setLength(0);
+
+            // 设置最大长度防止DOS攻击
+            int maxLength = 1024; 
+            while (maxLength < shutdown.length()) {
+                if (random == null)
+                    random = new Random(System.currentTimeMillis());
+                maxLength += random.nextInt() % 1024;
+            }
+            
+            while (maxLength > 0) {
+                int ch = -1;
+                try {
+                    ch = input.read();
+                } catch (IOException e) {
+                    System.err.println("字符读取异常：" + e);
+                    e.printStackTrace();
+                    ch = -1;
+                }
+                
+                // 32以下的都算终止符
+                if (ch < 32)
+                    break;
+                
+                command.append((char) ch);
+                maxLength--;
+            }
+
+            try {
+                socket.close();
+            } catch (IOException e) {
+                ;
+            }
+            
+            if (shutdown.equals(command.toString())) {
+                break;
+            } else {
+                System.err.println("非法的关闭指令：" + command.toString());
+            }
+        }
+
+        // 关闭ServerSocket
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
+            ;
+        }
+        
     }
 
 
@@ -281,7 +363,7 @@ public class StandardServer implements Lifecycle, Server {
     public void start() throws LifecycleException {
         
         if (started)
-            throw new LifecycleException("StandardServer.start  服务器已经启动！");
+            throw new LifecycleException("StandardServer.start  服务器已启动！");
         
         lifecycle.fireLifecycleEvent(BEFORE_START_EVENT, null);
 
@@ -308,7 +390,7 @@ public class StandardServer implements Lifecycle, Server {
     @Override
     public void stop() throws LifecycleException {
         if (!started)
-            throw new LifecycleException("StandardServer.start  服务器已经停止！");
+            throw new LifecycleException("StandardServer.stop  服务器未启动！");
 
         lifecycle.fireLifecycleEvent(BEFORE_STOP_EVENT, null);
 

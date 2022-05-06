@@ -412,14 +412,13 @@ public class StandardContext extends ContainerBase implements Context {
     
 
     /**
-     * TODO 返回此容器是否正确配置的标志位
+     * 返回此容器是否正确配置的标志位
      * 
      * @return
      */
     @Override
     public boolean getConfigured() {
-//        return this.configured;
-        return true; // 暂时返回true
+        return this.configured;
     }
     
 

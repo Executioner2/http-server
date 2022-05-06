@@ -10,6 +10,7 @@ import com.ranni.connector.processor.ProcessorPool;
 import com.ranni.connector.socket.DefaultServerSocketFactory;
 import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
+import com.ranni.core.Service;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.lifecycle.LifecycleListener;
@@ -18,9 +19,7 @@ import com.ranni.util.LifecycleSupport;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 
 /**
  * Title: HttpServer
@@ -35,16 +34,29 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     private ServerSocketFactory factory; // 获取服务器socket的工厂
     private ServerSocket serverSocket; // 服务器socket
     private boolean stopped = false; // 连接器线程停止标签
+    private Thread thread; // 线程
     private String threadName; // 线程名
+    private boolean secure; // 安全标志位
     private int debug = Logger.INFORMATION; // 日志输出级别
+    private int port = 8080; // 端口号    
+    private boolean initialize; // 连接器初始化标志位
+    private boolean started; // 连接器启动标志
+    private LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具类实例
+    private String address; // IP地址
+    private int acceptCount = 10; // 最大连接数
+    private Service service; // 所属的服务实例
 
-    protected boolean started; // 连接器启动标志
-    protected LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具类实例
     protected String scheme; // 协议类型
     protected int redirectPort = 80; // 转发端口
     protected Container container; // 容器
     protected ProcessorPool processorPool; // 处理器池
 
+
+    public HttpConnector() {
+        threadName = "HttpConnector@" + this.hashCode();
+        thread = new Thread(this);
+    }
+    
 
     /**
      * 取得日志输出级别
@@ -55,6 +67,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         return debug;
     }
 
+    
     /**
      * 设置日志输出级别
      *
@@ -64,8 +77,10 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         this.debug = debug;
     }
 
+    
     /**
      * 返回容器
+     * 
      * @return
      */
     @Override
@@ -73,8 +88,10 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         return this.container;
     }
 
+    
     /**
      * 设置与此连接关联容器
+     * 
      * @param container
      */
     @Override
@@ -82,8 +99,10 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         this.container = container;
     }
 
+    
     /**
      * TODO 返回dns查询标志
+     * 
      * @return
      */
     @Override
@@ -91,8 +110,10 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         return false;
     }
 
+    
     /**
      * TODO 设置dns查询标志
+     * 
      * @param enableLookups
      */
     @Override
@@ -100,8 +121,10 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
     }
 
+    
     /**
      * 取得ServerSocketFactory对象
+     * 
      * @return
      */
     @Override
@@ -112,8 +135,10 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         return factory;
     }
 
+    
     /**
      * 设置ServerSocketFactory对象
+     * 
      * @param factory
      */
     @Override
@@ -121,8 +146,10 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         this.factory = factory;
     }
 
+    
     /**
      * TODO 返回此实现类的信息和版本号
+     * 
      * @return
      */
     @Override
@@ -130,23 +157,28 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         return null;
     }
 
+    
     /**
-     * TODO 返回转发端口
+     * 返回转发端口
+     * 
      * @return
      */
     @Override
     public int getRedirectPort() {
-        return 0;
+        return this.redirectPort;
     }
 
+    
     /**
-     * TODO 设置转发端口
+     * 设置转发端口
+     * 
      * @param redirectPort
      */
     @Override
     public void setRedirectPort(int redirectPort) {
-
+        this.redirectPort = redirectPort;
     }
+    
 
     /**
      * 返回协议类型
@@ -156,6 +188,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     public String getScheme() {
         return this.scheme;
     }
+    
 
     /**
      * 设置协议类型
@@ -165,24 +198,49 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     public void setScheme(String scheme) {
         this.scheme = scheme;
     }
+    
 
     /**
-     * TODO 返回安全标志
+     * 返回安全标志
+     * 
      * @return
      */
     @Override
     public boolean getSecure() {
-        return false;
+        return this.secure;
     }
+    
 
     /**
-     * TODO 设置安全标志
+     * 设置安全标志
+     * 
      * @param secure
      */
     @Override
     public void setSecure(boolean secure) {
-
+        this.secure = secure;
     }
+
+
+    /**
+     * 返回所属的服务实例
+     * 
+     * @return
+     */
+    @Override
+    public Service getService() {
+        return this.service;
+    }
+
+    /**
+     * 设置所属的服务实例
+     * @param service
+     */
+    @Override
+    public void setService(Service service) {
+        this.service = service;
+    }
+
 
     /**
      * 创建请求对象
@@ -194,6 +252,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         request.setConnector(this);
         return request;
     }
+    
 
     /**
      * 创建响应对象
@@ -205,26 +264,46 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         response.setConnector(this);
         return response;
     }
+    
 
     /**
      * 取得server socket
+     * 
      * @return
      */
-    private ServerSocket open() {
-        ServerSocketFactory f = getFactory();
-
-        if (f == null) throw new IllegalStateException("获取server socket失败!");
-
-        ServerSocket s = null;
-
-        try {
-            s = f.createSocket(8080);
-        } catch (IOException e) {
-            log("server socket创建失败，请检查端口是否被占用！" + e.getMessage());
+    private ServerSocket open() throws IOException, IllegalStateException {
+        
+        ServerSocketFactory factory = getFactory();
+        
+        if (address == null) {
+            log("创建0.0.0.0/0.0.0.0地址的ServerSocket");
+            try {
+                return factory.createSocket(port, acceptCount);
+            } catch (BindException be) {
+                throw new BindException(be.getMessage() + ":" + port);
+            }
         }
-
-        return s;
+            
+        try {
+            InetAddress ia = InetAddress.getByName(address);
+            log("创建指定地址的ServerSocket");
+            try {
+                return factory.createSocket(port, acceptCount, ia);
+            } catch (BindException be) {
+                throw new BindException(be.getMessage() + ":" + address + ":" + port);
+            }
+            
+        } catch (Exception e) {
+            log("创建0.0.0.0/0.0.0.0地址的ServerSocket");
+            try {
+                return factory.createSocket(port, acceptCount);
+            } catch (BindException be) {
+                throw new BindException(be.getMessage() + ":" + port);
+            }
+        }
+        
     }
+    
 
     /**
      * 启动前初始化
@@ -232,20 +311,30 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      * @throws Exception
      */
     @Override
-    public void initialize() throws Exception {
-        log("连接器初始化");
-        serverSocket = open();
-        if (serverSocket == null)
-            throw new IllegalStateException("创建server socket失败！");
-        setScheme("http");
+    public void initialize() throws LifecycleException {
+        if (initialize)
+            throw new LifecycleException("连接器已初始化！");
 
+        initialize = true;
+        if (debug >= Logger.WARNING)
+            log("连接器初始化");
+
+        try {
+            serverSocket = open();
+        } catch (IOException e) {
+            throw new LifecycleException(threadName + e);
+        }
+        
         // 创建处理器线程池，此时还不是启动状态
-        processorPool = DefaultProcessorPool.getProcessorPool();
-
-        if (processorPool == null) throw new IllegalStateException("创建processor pool失败！");
+        try {
+            processorPool = DefaultProcessorPool.getProcessorPool();
+        } catch (Exception e) {
+            throw new LifecycleException(threadName + e);   
+        }        
 
         processorPool.setConnector(this);
     }
+    
 
     /**
      * XXX 连接器线程入口
@@ -300,6 +389,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         log("连接器线程"+ Thread.currentThread().getName() +"关闭！");
     }
 
+    
     /**
      * 将用完的处理器压回栈
      * @param processor
@@ -307,6 +397,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     public void recycle(Processor processor) {
         processorPool.giveBackProcessor(processor);
     }
+    
 
     /**
      * 添加监听器
@@ -319,6 +410,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     public void addLifecycleListener(LifecycleListener listener) {
         lifecycle.addLifecycleListener(listener);
     }
+    
 
     /**
      * 返回所有监听器
@@ -331,6 +423,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     public LifecycleListener[] findLifecycleListeners() {
         return lifecycle.findLifecycleListeners();
     }
+    
 
     /**
      * 移除指定监听器
@@ -343,6 +436,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     public void removeLifecycleListener(LifecycleListener listener) {
         lifecycle.removeLifecycleListener(listener);
     }
+    
 
     /**
      * 启动连接器
@@ -358,21 +452,16 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         if (started) throw new LifecycleException("此connector连接器实例已经启动！");
         log("启动连接器！");
 
-        // 连接器启动前
-        lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, null);
-
-        started = true;
-
-        if (container instanceof Lifecycle)
-            ((Lifecycle) container).start();
-
-        if (processorPool instanceof Lifecycle)
-            ((Lifecycle) processorPool).start();
-
-        Thread thread = new Thread(this);
         // 连接器启动
         lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
-        thread.setName("HttpConnector@"+this.hashCode());
+        started = true;
+
+        // 启动处理器池
+        if (processorPool instanceof Lifecycle)
+            ((Lifecycle) processorPool).start();
+        
+        // 连接器启动
+        thread.setName(threadName);
         thread.start();
 
         // 连接器启动后
@@ -410,13 +499,13 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         // 到while的循环中会得知stooped为true，便可以跳出循环，无异常结束关闭serverSocket
         Socket socket = new Socket();
         try {
-            socket.connect(new InetSocketAddress(DefaultServerSocketFactory.ipaddress, DefaultServerSocketFactory.port));
+            socket.connect(new InetSocketAddress(serverSocket.getInetAddress(), serverSocket.getLocalPort()));
         } catch (IOException e) {
             log("HttpConnector.stoppingSocket", e);
         }
 
         // 连接器停止后
-        lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
+        lifecycle.fireLifecycleEvent(Lifecycle.AFTER_STOP_EVENT, null);
     }
 
     /**
@@ -455,4 +544,63 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
     }
 
+    
+    /**
+     * 返回端口号
+     * 
+     * @return
+     */
+    public int getPort() {
+        return port;
+    }
+
+
+    /**
+     * 设置端口号
+     * 
+     * @param port
+     */
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+
+    /**
+     * 返回连接器IP地址
+     * 
+     * @return
+     */
+    public String getAddress() {
+        return address;
+    }
+
+
+    /**
+     * 设置连接器IP地址
+     * 
+     * @param address
+     */
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+
+    /**
+     * 返回最大连接数
+     * 
+     * @return
+     */
+    public int getAcceptCount() {
+        return acceptCount;
+    }
+
+
+    /**
+     * 设置最大连接数
+     * 
+     * @param acceptCount
+     */
+    public void setAcceptCount(int acceptCount) {
+        this.acceptCount = acceptCount;
+    }
 }

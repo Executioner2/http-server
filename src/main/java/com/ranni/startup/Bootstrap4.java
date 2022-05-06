@@ -16,6 +16,7 @@ import com.ranni.container.wrapper.StandardWrapper;
  * @Email 1205878539@qq.com
  * @Date 2022/5/5 14:13
  */
+@Deprecated // FIXME - 已经不能通过连接器自动启动容器了
 public class Bootstrap4 {
     public static void main(String[] args) {
         System.setProperty(SystemProperty.SERVER_BASE, System.getProperty("user.dir"));
