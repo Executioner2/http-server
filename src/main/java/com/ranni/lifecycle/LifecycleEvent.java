@@ -1,4 +1,4 @@
-package com.ranni.container.lifecycle;
+package com.ranni.lifecycle;
 
 import java.util.EventObject;
 

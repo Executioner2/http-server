@@ -1,7 +1,7 @@
 package com.ranni.container.host;
 
 import com.ranni.container.*;
-import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.lifecycle.LifecycleException;
 import com.ranni.container.pip.ErrorDispatcherValve;
 import com.ranni.container.pip.Valve;
 

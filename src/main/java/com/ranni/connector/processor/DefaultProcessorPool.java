@@ -1,9 +1,9 @@
 package com.ranni.connector.processor;
 
 import com.ranni.connector.Connector;
-import com.ranni.container.lifecycle.Lifecycle;
-import com.ranni.container.lifecycle.LifecycleException;
-import com.ranni.container.lifecycle.LifecycleListener;
+import com.ranni.lifecycle.Lifecycle;
+import com.ranni.lifecycle.LifecycleException;
+import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.util.LifecycleSupport;
 
 import java.util.Stack;

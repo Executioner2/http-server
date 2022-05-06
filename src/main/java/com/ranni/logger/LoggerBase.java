@@ -1,7 +1,7 @@
 package com.ranni.logger;
 
 import com.ranni.container.Container;
-import com.ranni.container.lifecycle.LifecycleException;
+import com.ranni.lifecycle.LifecycleException;
 
 import javax.servlet.ServletException;
 import java.beans.PropertyChangeListener;

@@ -15,6 +15,7 @@
 + 日志记录
 + 注解式
 + 图形界面
++ 重构包结构，使接口与部分实现分包打包，各组件独立成包
 
 
 #
@@ -28,13 +29,13 @@
 |com.ranni.startup|此目录为HTTP服务器启动文件存放目录| 
 |com.ranni.logger|此目录为HTTP服务器日志记录器实现文件存放目录| 
 |com.ranni.naming|此目录为JNDI命名资源实现文件存放目录| 
-|com.ranni.container.lifecycle|此目录为生命周期定义文件存放目录| 
+|com.ranni.lifecycle|此目录为生命周期定义文件存放目录| 
 
 + [Request](./src/main/java/com/ranni/connector/http/request/README.md)
 + [Response](./src/main/java/com/ranni/connector/http/response/README.md)
 + [Container](./src/main/java/com/ranni/container/README.md)
 + [Naming](./src/main/java/com/ranni/naming/README.md)
-+ [Lifecycle](src/main/java/com/ranni/container/lifecycle/README.md)
++ [Lifecycle](src/main/java/com/ranni/lifecycle/README.md)
 
 **说明：**
 1. 在此服务器demo中，有使用大量的数组而非ArrayList，而且在删除和增加元素时也使用了大量的

@@ -3,8 +3,8 @@ package com.ranni.container;
 import com.ranni.container.context.StandardContext;
 import com.ranni.container.loader.Loader;
 import com.ranni.deploy.*;
-import com.ranni.container.lifecycle.LifecycleEvent;
-import com.ranni.container.lifecycle.LifecycleListener;
+import com.ranni.lifecycle.LifecycleEvent;
+import com.ranni.lifecycle.LifecycleListener;
 
 import javax.naming.directory.DirContext;
 import java.beans.PropertyChangeListener;
