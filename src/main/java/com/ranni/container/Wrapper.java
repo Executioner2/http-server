@@ -1,5 +1,7 @@
 package com.ranni.container;
 
+import com.ranni.monitor.InstanceListener;
+
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.UnavailableException;
@@ -12,13 +14,13 @@ import javax.servlet.UnavailableException;
  * @Email 1205878539@qq.com
  * @Date 2022-03-22 18:51
  */
-public interface Wrapper extends Container {
-
+public interface Wrapper extends Container {    
 
     /**
      * 返回此servlet在什么时候可用，返回的是毫秒
      * 如果是0则表示当前可用
      * 如果返回Long.MAX_VALUE则表示永久不可用
+     * 
      * @return
      */
     long getAvailable();
@@ -27,6 +29,7 @@ public interface Wrapper extends Container {
     /**
      * 设置此servlet什么时候可用
      * 和上面的方法是一对的
+     * 
      * @param available
      */
     void setAvailable(long available);
@@ -34,6 +37,7 @@ public interface Wrapper extends Container {
 
     /**
      * 返回此servlet的jsp文件路径
+     * 
      * @return
      */
     String getJspFile();
@@ -41,6 +45,7 @@ public interface Wrapper extends Container {
 
     /**
      * 设置此servlet jsp文件的路径
+     * 
      * @param jspFile
      */
     void setJspFile(String jspFile);
@@ -48,6 +53,7 @@ public interface Wrapper extends Container {
 
     /**
      * 返回启动时的加载顺序值，为负数时表示第一次调用时加载
+     * 
      * @return
      */
     int getLoadOnStartup();
@@ -55,6 +61,7 @@ public interface Wrapper extends Container {
 
     /**
      * 设置加载顺序
+     * 
      * @param value
      */
     void setLoadOnStartup(int value);
@@ -62,6 +69,7 @@ public interface Wrapper extends Container {
 
     /**
      * 返回此servlet的身份
+     * 
      * @return
      */
     String getRunAs();
@@ -69,6 +77,7 @@ public interface Wrapper extends Container {
 
     /**
      * 设置此servlet的身份
+     * 
      * @param runAs
      */
     void setRunAs(String runAs);
@@ -76,6 +85,7 @@ public interface Wrapper extends Container {
 
     /**
      * 返回servlet类名
+     * 
      * @return
      */
     String getServletClass();
@@ -83,6 +93,7 @@ public interface Wrapper extends Container {
 
     /**
      * 设置servlet类名
+     * 
      * @param servletClass
      */
     void setServletClass(String servletClass);
@@ -97,6 +108,7 @@ public interface Wrapper extends Container {
 
     /**
      * 为此servlet添加新的初始化参数
+     * 
      * @param name
      * @param value
      */
@@ -104,11 +116,11 @@ public interface Wrapper extends Container {
 
 
     /**
-     * Add a new listener interested in InstanceEvents.
-     *
-     * @param listener The new listener
+     * 添加实例监听器
+     * 
+     * @param listener
      */
-//    public void addInstanceListener(InstanceListener listener);
+    void addInstanceListener(InstanceListener listener);
 
 
     /**
@@ -125,6 +137,7 @@ public interface Wrapper extends Container {
     /**
      * 返回wrapper实例表示的servlet实例
      * 就是说，这个返回一个要被调用service方法的servlet
+     * 
      * @return
      * @throws ServletException
      */
@@ -134,6 +147,7 @@ public interface Wrapper extends Container {
     /**
      * 将之前分配servlet实例返回到可用实例池中
      * 把即拿去用了的servlet实例还回去
+     * 
      * @param servlet
      * @throws ServletException
      */
@@ -142,6 +156,7 @@ public interface Wrapper extends Container {
 
     /**
      * 返回指定初始化参数的值
+     * 
      * @param name
      * @return
      */
@@ -150,6 +165,7 @@ public interface Wrapper extends Container {
 
     /**
      * 返回所有初始化参数的name
+     * 
      * @return
      */
     String[] findInitParameters();
@@ -173,6 +189,7 @@ public interface Wrapper extends Container {
 
     /**
      * 加载并初始化这个servlet
+     * 
      * @throws ServletException
      */
     void load() throws ServletException;
@@ -187,11 +204,11 @@ public interface Wrapper extends Container {
 
 
     /**
-     * Remove a listener no longer interested in InstanceEvents.
-     *
-     * @param listener The listener to remove
+     * 移除实例监听器
+     * 
+     * @param listener
      */
-//    public void removeInstanceListener(InstanceListener listener);
+    void removeInstanceListener(InstanceListener listener);
 
 
     /**

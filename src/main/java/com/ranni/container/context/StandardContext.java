@@ -6,17 +6,14 @@ import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.*;
 import com.ranni.container.host.StandardHost;
-import com.ranni.lifecycle.Lifecycle;
-import com.ranni.lifecycle.LifecycleException;
 import com.ranni.container.loader.WebappLoader;
 import com.ranni.container.scope.ApplicationContext;
 import com.ranni.core.ApplicationFilterConfig;
 import com.ranni.core.FilterDef;
 import com.ranni.deploy.*;
-import com.ranni.naming.BaseDirContext;
-import com.ranni.naming.FileDirContext;
-import com.ranni.naming.ProxyDirContext;
-import com.ranni.naming.WARDirContext;
+import com.ranni.lifecycle.Lifecycle;
+import com.ranni.lifecycle.LifecycleException;
+import com.ranni.naming.*;
 import com.ranni.session.StandardManager;
 import com.ranni.util.CharsetMapper;
 import com.ranni.util.RequestUtil;
@@ -69,6 +66,8 @@ public class StandardContext extends ContainerBase implements Context {
     private int count; // 正式进行Session回收任务的倒计时
     private int managerChecksFrequency = 15; // Session回收频率，默认15
     private boolean reloadable; // 容器的重载标志位
+    private String publicId; // xml公共id
+    private String systemId; // xml系统id
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
@@ -537,14 +536,48 @@ public class StandardContext extends ContainerBase implements Context {
         setName(RequestUtil.URLDecode(path));
     }
 
+
+    /**
+     * 设置xml解析系统id
+     * 
+     * @param systemId
+     */
     @Override
-    public String getPublicId() {
-        return null;
+    public void setSystemId(String systemId) {
+        this.systemId = systemId;
     }
 
+
+    /**
+     * 返回xml解析系统id
+     * 
+     * @return
+     */
+    @Override
+    public String getSystemId() {
+        return this.systemId;
+    }
+
+
+    /**
+     * 返回xml解析所产生的公共id
+     * 
+     * @return
+     */
+    @Override
+    public String getPublicId() {
+        return this.publicId;
+    }
+
+
+    /**
+     * 设置xml解析所产生的公共id
+     * 
+     * @param publicId
+     */
     @Override
     public void setPublicId(String publicId) {
-
+        this.publicId = publicId;
     }
 
 
@@ -1469,9 +1502,9 @@ public class StandardContext extends ContainerBase implements Context {
                     ((Lifecycle) logger).start();
 
 
-//                // 重新绑定上下文类加载器
-//                unbindThread(oldCCL);
-//                oldCCL = bindThread();
+                // 重新绑定上下文类加载器
+                unbindThread(oldCCL);
+                oldCCL = bindThread();
                 
                 // 启动相关组件 （领域，簇，JNDI资源等）
                 if (resources != null && resources instanceof Lifecycle)
@@ -1581,6 +1614,9 @@ public class StandardContext extends ContainerBase implements Context {
      * @param oldCCL
      */
     private void unbindThread(ClassLoader oldCCL) {
+        Thread.currentThread().setContextClassLoader(oldCCL);
+        
+        DirContextURLStreamHandler.unbind();
     }
 
 
@@ -1598,7 +1634,9 @@ public class StandardContext extends ContainerBase implements Context {
             return contextClassLoader;
         
         Thread.currentThread().setContextClassLoader(getLoader().getClassLoader());
-        
+
+        DirContextURLStreamHandler.bind(getResources());
+                
         return contextClassLoader;
     }
     
@@ -1887,5 +1925,25 @@ public class StandardContext extends ContainerBase implements Context {
      */
     public void setCharsetMapperClass(String charsetMapperClass) {
         this.charsetMapperClass = charsetMapperClass;
+    }
+
+
+    /**
+     * 设置servlet的类名
+     * 
+     * @return
+     */
+    public String getServletClass() {
+        return servletClass;
+    }
+
+
+    /**
+     * 返回servlet的类名
+     * 
+     * @param servletClass
+     */
+    public void setServletClass(String servletClass) {
+        this.servletClass = servletClass;
     }
 }

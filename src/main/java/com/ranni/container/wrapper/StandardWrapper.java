@@ -10,6 +10,8 @@ import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.container.loader.Loader;
 import com.ranni.logger.Logger;
+import com.ranni.monitor.InstanceEvent;
+import com.ranni.monitor.InstanceListener;
 import com.ranni.util.Enumerator;
 import com.ranni.util.InstanceSupport;
 
@@ -41,7 +43,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     private int nInstances; // STM servlet的数量（STM SingleThreadModel）
     private boolean unloading; // 是否正在卸载中
     private boolean unavailable; // 此wrapper是否不可用
-    private long available; // 此wrapper什么时候可用，为0L则表示永久可用，为Long.MAX_VALUE则表示永久不可用
+    private long available; // 此wrapper什么时候可用，为0L则表示永久可用，为Long.MAX_VALUE则表示永久不可用)
 
     protected String servletClass; // servlet类全限定类名
     protected InstanceSupport instanceSupport = new InstanceSupport(this); // 实例监听器工具实例
@@ -206,6 +208,19 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
 
 
     /**
+     * 添加实例监听器
+     * 
+     * @see {@link InstanceSupport#addInstanceListener(InstanceListener)} 调用此方法，线程安全
+     * 
+     * @param listener
+     */
+    @Override
+    public void addInstanceListener(InstanceListener listener) {
+        instanceSupport.addInstanceListener(listener);
+    }
+
+
+    /**
      * 返回一个servlet
      * 先判断是否是单线程servlet模式
      * 如果不是：
@@ -226,12 +241,13 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
             throw new ServletException("StandardWrapper.allocate  正在卸载中，不能请求分配！");
         }
 
-
         if (!singleThreadModel) {
             // 非单线程servlet模式
             if (instance == null) {
                 synchronized (this) {
                     instance = loadServlet();
+                    // 插入实例获取事件，这里很重要，有个ControllerConfig将会监听此事件，然后对Controller实例进行扫描配置
+                    instanceSupport.fireInstanceEvent(InstanceEvent.INSTANCE_EVENT, instance);
                 }
             }
 
@@ -459,6 +475,19 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     @Override
     public synchronized void load() throws ServletException {
         this.instance = allocate();
+    }
+
+
+    /**
+     * 移除实例监听器
+     * 
+     * @see {@link InstanceSupport#removeInstanceListener(InstanceListener)} 调用此方法，线程安全
+     * 
+     * @param listener
+     */
+    @Override
+    public void removeInstanceListener(InstanceListener listener) {
+        instanceSupport.removeInstanceListener(listener);
     }
 
 

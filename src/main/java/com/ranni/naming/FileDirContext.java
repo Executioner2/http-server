@@ -618,7 +618,7 @@ public class FileDirContext extends BaseDirContext {
         }
 
         /**
-         * 是否是集合。
+         * 是否是目录。
          * 如果是目录，则将accessed标志位置为true
          *
          * @return

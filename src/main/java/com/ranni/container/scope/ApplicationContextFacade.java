@@ -27,121 +27,121 @@ public class ApplicationContextFacade implements ServletContext {
 
     @Override
     public ServletContext getContext(String s) {
-        return null;
+        return context.getContext(s);
     }
 
     @Override
     public int getMajorVersion() {
-        return 0;
+        return context.getMajorVersion();
     }
 
     @Override
     public int getMinorVersion() {
-        return 0;
+        return context.getMinorVersion();
     }
 
     @Override
     public String getMimeType(String s) {
-        return null;
+        return context.getMimeType(s);
     }
 
     @Override
     public Set getResourcePaths(String s) {
-        return null;
+        return context.getResourcePaths(s);
     }
 
     @Override
     public URL getResource(String s) throws MalformedURLException {
-        return null;
+        return context.getResource(s);
     }
 
     @Override
     public InputStream getResourceAsStream(String s) {
-        return null;
+        return context.getResourceAsStream(s);
     }
 
     @Override
     public RequestDispatcher getRequestDispatcher(String s) {
-        return null;
+        return context.getRequestDispatcher(s);
     }
 
     @Override
     public RequestDispatcher getNamedDispatcher(String s) {
-        return null;
+        return context.getNamedDispatcher(s);
     }
 
     @Override
     public Servlet getServlet(String s) throws ServletException {
-        return null;
+        return context.getServlet(s);
     }
 
     @Override
     public Enumeration getServlets() {
-        return null;
+        return context.getServlets();
     }
 
     @Override
     public Enumeration getServletNames() {
-        return null;
+        return context.getServletNames();
     }
 
     @Override
     public void log(String s) {
-
+        context.log(s);
     }
 
     @Override
     public void log(Exception e, String s) {
-
+        context.log(e, s);
     }
 
     @Override
     public void log(String s, Throwable throwable) {
-
+        context.log(s, throwable);
     }
 
     @Override
     public String getRealPath(String s) {
-        return null;
+        return context.getRealPath(s);
     }
 
     @Override
     public String getServerInfo() {
-        return null;
+        return context.getServerInfo();
     }
 
     @Override
     public String getInitParameter(String s) {
-        return null;
+        return context.getInitParameter(s);
     }
 
     @Override
     public Enumeration getInitParameterNames() {
-        return null;
+        return context.getInitParameterNames();
     }
 
     @Override
     public Object getAttribute(String s) {
-        return null;
+        return context.getAttribute(s);
     }
 
     @Override
     public Enumeration getAttributeNames() {
-        return null;
+        return context.getAttributeNames();
     }
 
     @Override
     public void setAttribute(String s, Object o) {
-
+        context.setAttribute(s, o);
     }
 
     @Override
     public void removeAttribute(String s) {
-
+        context.removeAttribute(s);
     }
 
     @Override
     public String getServletContextName() {
-        return null;
+        return context.getServletContextName();
     }
 }

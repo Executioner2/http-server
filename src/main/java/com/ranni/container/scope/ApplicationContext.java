@@ -4,8 +4,11 @@ import com.ranni.connector.Constants;
 import com.ranni.container.Context;
 import com.ranni.container.Host;
 import com.ranni.container.context.StandardContext;
+import com.ranni.naming.DirContextURLStreamHandler;
+import com.ranni.naming.Resource;
 import com.ranni.util.Enumerator;
 
+import javax.naming.directory.DirContext;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
@@ -103,13 +106,84 @@ public class ApplicationContext implements ServletContext {
         return null;
     }
 
+
+    /**
+     * 取得资源文件并以URL方式返回
+     * 
+     * @param s
+     * @return
+     * @throws MalformedURLException
+     */
     @Override
     public URL getResource(String s) throws MalformedURLException {
+
+        DirContext resources = context.getResources();
+        if (resources != null) {
+//            String fullPath = context.getName() + s;            
+            String fullPath = s;            
+            String hostName = context.getParent().getName();
+
+            try {
+                // 文件是否存在于JNDI容器中
+                resources.lookup(s);
+                
+                return new URL("jndi", null, 0, 
+                        getJNDIUri(hostName, fullPath), new DirContextURLStreamHandler(resources));
+                
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+        
         return null;
     }
 
+
+    /**
+     * 返回资源在JNDI容器中的uri
+     * FIXME - 虚拟主机名需要做区分
+     * 
+     * @param hostName
+     * @param path
+     * @return
+     */
+    public static String getJNDIUri(String hostName, String path) {
+//        if (!path.startsWith("/"))
+//            return "/" + hostName + "/" + path;
+//        else
+//            return "/" + hostName + path;
+        
+        if (!path.startsWith("/"))
+            return "/" + path;
+        
+        return path;
+    }
+    
+
+    /**
+     * 取得资源文件并以输入流的方式返回
+     * 
+     * @param s
+     * @return
+     */
     @Override
     public InputStream getResourceAsStream(String s) {
+        
+        DirContext resources = context.getResources();
+        if (resources != null) {
+            try {
+                Object lookup = resources.lookup(s);
+                if (lookup instanceof Resource) {
+                    // 是文件
+                    return ((Resource) lookup).streamContent();
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        
         return null;
     }
 

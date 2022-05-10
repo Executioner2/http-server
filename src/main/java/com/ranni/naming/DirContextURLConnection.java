@@ -46,6 +46,15 @@ public class DirContextURLConnection extends URLConnection {
         if (System.getSecurityManager() != null)
             this.permission = new JndiPermission(url.toString());
 
+        if (u != null) {
+            try {
+                Object lookup = context.lookup(u.getPath());
+                if (lookup instanceof Resource)
+                    resource = (Resource) lookup;
+            } catch (NamingException e) {
+                ;
+            }
+        }
         this.context = context;
     }
 

@@ -47,6 +47,9 @@ public final class InstanceEvent extends EventObject {
     // 过滤器执行后
     public static final String AFTER_FILTER_EVENT = "afterFilter";
 
+    // 实例化事件
+    public static final String INSTANCE_EVENT = "instance_even";
+    
 
     private Throwable exception;
     private Filter filter;

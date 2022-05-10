@@ -221,19 +221,32 @@ public interface Context extends Container {
 
 
     /**
-     * Return the public identifier of the deployment descriptor DTD that is
-     * currently being parsed.
+     * 设置xml解析产生的系统id
+     * 
+     * @param systemId
+     */
+    void setSystemId(String systemId);
+
+
+    /**
+     * 返回xml解析产生的系统id
+     * @return
+     */
+    String getSystemId();
+    
+
+    /**
+     * 返回xml解析产生的公共id
      */
     String getPublicId();
 
 
     /**
-     * Set the public identifier of the deployment descriptor DTD that is
-     * currently being parsed.
+     * 设置xml解析所产生的公共id
      *
-     * @param publicId The public identifier
+     * @param publicId
      */
-    public void setPublicId(String publicId);
+    void setPublicId(String publicId);
 
 
     /**

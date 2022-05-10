@@ -423,6 +423,7 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
         return isRequestedSessionIdFromURL();
     }
 
+    
     /**
      * 内部调用，解析参数
      * 在调用 getParameter、getParameterNames、getParameterValues 和 getParameterMap时会先调用该方法

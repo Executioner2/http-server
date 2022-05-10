@@ -7,6 +7,8 @@ import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
+import com.ranni.naming.DirContextURLStreamHandler;
+import com.ranni.naming.DirContextURLStreamHandlerFactory;
 import com.ranni.naming.Resource;
 import com.ranni.util.LifecycleSupport;
 
@@ -21,6 +23,7 @@ import java.io.*;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.URLStreamHandlerFactory;
 import java.util.jar.JarFile;
 
 /**
@@ -250,35 +253,37 @@ public class WebappLoader implements Loader, Lifecycle {
         if (container.getResources() == null)
             return;
 
-        // XXX  为JNDI协议注册流处理工厂   这个东西暂时还没用上，后续可能删除掉
-//        URLStreamHandlerFactory streamHandlerFactory = new DirContextURLStreamHandlerFactory();
-//        URL.setURLStreamHandlerFactory(streamHandlerFactory);
+        // 将JNDI协议注册到流处理工厂（在XML解析中有用到）
+        URLStreamHandlerFactory streamHandlerFactory = new DirContextURLStreamHandlerFactory();
+        URL.setURLStreamHandlerFactory(streamHandlerFactory);
 
         // 创建类载入器
         try {
             classLoader = createClassLoader();
+
+            classLoader.setResources(container.getResources());
+            classLoader.setDelegate(this.delegate); // 设置委托标志
+            // 导入存储库
+            for (int i = 0; i < repositories.length; i++) {
+                classLoader.addRepository(repositories[i]);
+            }
+
+            // 设置仓库
+            setRepositories();
+
+            // 设置类路径
+            setClassPath();
+
+            // 设置访问权限
+            setPermissions();
+
+            // 启动类加载器
+            if (classLoader instanceof Lifecycle)
+                ((Lifecycle) classLoader).start(); // 起飞！
         } catch (Exception e) {
             log("WebappLoader.createClassLoader", e);
         }
-        classLoader.setResources(container.getResources());
-        classLoader.setDelegate(this.delegate); // 设置委托标志
-        // 导入存储库
-        for (int i = 0; i < repositories.length; i++) {
-            classLoader.addRepository(repositories[i]);
-        }
-
-        // 设置仓库
-        setRepositories();
-
-        // 设置类路径
-        setClassPath();
-
-        // 设置访问权限
-        setPermissions();
-
-        // 启动类加载器
-        if (classLoader instanceof Lifecycle)
-            ((Lifecycle) classLoader).start(); // 起飞！
+        
     }
 
 
@@ -286,7 +291,7 @@ public class WebappLoader implements Loader, Lifecycle {
      * 设置类加载器的访问权限
      */
     private void setPermissions() {
-        // TODO 设置个鸡毛，ranni不需要安全
+        // FIXME - 暂不考虑安全问题
     }
 
 
@@ -534,6 +539,8 @@ public class WebappLoader implements Loader, Lifecycle {
         if (classLoader instanceof Lifecycle)
             classLoader.stop();
         
+        // 解绑JNDI协议流处理工厂
+        DirContextURLStreamHandler.unbind(classLoader);
         classLoader = null;
     }
     

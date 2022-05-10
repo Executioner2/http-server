@@ -18,12 +18,19 @@ import java.util.Map;
  * @Email 1205878539@qq.com
  * @Date 2022-04-06 17:35
  */
-@Deprecated // 暂时还用不到
+@Deprecated // 用到了，但是可能会重新设计
 public class DirContextURLStreamHandler extends URLStreamHandler {
     private static Map<ClassLoader, DirContext> clBindings = Collections.synchronizedMap(new HashMap<>()); // 绑定类加载器，key为线程的类加载器
     private static Map<Thread, DirContext> threadBindings = Collections.synchronizedMap(new HashMap<>()); // 与线程绑定的目录容器
 
     protected DirContext context; // 与此目录容器流处理器关联的目录容器
+
+    public DirContextURLStreamHandler() {
+    }
+    
+    public DirContextURLStreamHandler(DirContext context) {
+        this.context = context;
+    }
 
 
     /**
@@ -89,18 +96,13 @@ public class DirContextURLStreamHandler extends URLStreamHandler {
     /**
      * 给当前线程的类加载器绑定容器
      *
-     * @param dirContext 不允许空值
+     * @param dirContext
      */
     public static void bind(DirContext dirContext) {
-        if (dirContext == null)
-            throw new IllegalArgumentException("DirContext不能为空！");
-
         ClassLoader currentCL = Thread.currentThread().getContextClassLoader();
 
-        if (currentCL == null)
-            throw new IllegalArgumentException("此线程的ClassLoader为空！  " + Thread.currentThread().getName());
-
-        clBindings.put(currentCL, dirContext);
+        if (currentCL != null)
+            clBindings.put(currentCL, dirContext);
     }
 
 
