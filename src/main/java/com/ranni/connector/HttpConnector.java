@@ -73,6 +73,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      *
      * @param debug
      */
+    @Override
     public void setDebug(int debug) {
         this.debug = debug;
     }

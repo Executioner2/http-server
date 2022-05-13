@@ -9,6 +9,7 @@ package com.ranni.deploy;
  * @Email 1205878539@qq.com
  * @Date 2022-04-10 17:59
  */
+@Deprecated
 public final class ApplicationParameter {
     private String description; // 描述信息
     private String name; // 名字

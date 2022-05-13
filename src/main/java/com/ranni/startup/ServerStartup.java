@@ -1,6 +1,6 @@
 package com.ranni.startup;
 
-import com.ranni.container.Context;
+import com.ranni.core.Server;
 
 /**
  * Title: HttpServer
@@ -36,28 +36,20 @@ public interface ServerStartup {
 
 
     /**
-     * 设置服务器配置信息
+     * 设置服务器
      *
-     * @param serverConfigure
+     * @param server
      * @return
      */
-    ServerConfigure setServerConfigure(ServerConfigure serverConfigure);
+    Server setServer(Server server);
 
 
     /**
-     * 取得服务器配置信息
+     * 取得服务器
      *
      * @return
      */
-    ServerConfigure getServerConfigure();
-
-
-    /**
-     * 添加需要启动的容器
-     * 
-     * @param context
-     */
-    void addContext(Context context);
+    Server getServer();
 
 
     /**
@@ -70,4 +62,20 @@ public interface ServerStartup {
      * 返回启动标志位
      */
     boolean getStarted();
+
+
+    /**
+     * 配置文件解析实例
+     * 
+     * @param parse
+     */
+    void setConfigureParse(ConfigureParse parse);
+
+
+    /**
+     * 返回配置文件解析实例
+     * 
+     * @return
+     */
+    ConfigureParse getConfigureParse();
 }

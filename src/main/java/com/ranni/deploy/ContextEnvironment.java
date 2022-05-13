@@ -9,6 +9,7 @@ package com.ranni.deploy;
  * @Email 1205878539@qq.com
  * @Date 2022-04-10 17:15
  */
+@Deprecated
 public final class ContextEnvironment {
     private String description; // 描述信息
     private boolean override = true; // 是否允许覆盖此环境视图

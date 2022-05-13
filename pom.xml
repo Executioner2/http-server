@@ -71,6 +71,13 @@
         </exclusion>
       </exclusions>
     </dependency>
+
+    <!-- yaml解析工具 -->
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>1.30</version>
+    </dependency>
     
   </dependencies>
 

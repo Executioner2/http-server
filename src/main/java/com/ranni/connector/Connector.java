@@ -159,4 +159,12 @@ public interface Connector {
      * @throws LifecycleException
      */
     void initialize() throws LifecycleException;
+
+
+    /**
+     * 设置日志输出级别
+     * 
+     * @param debug
+     */
+    void setDebug(int debug);
 }

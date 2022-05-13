@@ -9,6 +9,7 @@ package com.ranni.deploy;
  * @Email 1205878539@qq.com
  * @Date 2022-04-10 17:39
  */
+@Deprecated
 public final class ContextResourceLink {
     private String name; // 此资源连接视图的名字
     private String type; // 类型

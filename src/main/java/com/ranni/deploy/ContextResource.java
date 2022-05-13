@@ -9,6 +9,7 @@ package com.ranni.deploy;
  * @Email 1205878539@qq.com
  * @Date 2022-04-10 17:31
  */
+@Deprecated
 public final class ContextResource {
     private String auth; // 认证
     private String description; // 这个资源的描述信息

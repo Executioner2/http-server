@@ -13,6 +13,7 @@ import java.util.Map;
  * @Email 1205878539@qq.com
  * @Date 2022-04-10 17:04
  */
+@Deprecated
 public final class NamingResources {
     private Object container; // 关联的执行容器，此容器非JNDI中的容器
     private Map<String, String> entries = Collections.synchronizedMap(new HashMap<>()); // 线程安全的map。key是资源名，value是条目类型

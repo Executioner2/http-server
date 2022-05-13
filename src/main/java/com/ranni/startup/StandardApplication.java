@@ -139,7 +139,6 @@ public final class StandardApplication {
 
         server.addService(service);
 
-
         if (server instanceof Lifecycle) {
             try {
                 server.initialize();

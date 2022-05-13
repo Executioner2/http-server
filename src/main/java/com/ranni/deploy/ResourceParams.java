@@ -13,6 +13,7 @@ import java.util.Map;
  * @Email 1205878539@qq.com
  * @Date 2022-04-10 17:24
  */
+@Deprecated
 public final class ResourceParams {
     private NamingResources namingResources; // 与此资源参数视图关联的命名资源
     private String name; // 此资源参数视图的名称
