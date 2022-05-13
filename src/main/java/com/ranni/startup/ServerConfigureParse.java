@@ -36,7 +36,7 @@ public class ServerConfigureParse implements ConfigureParse {
      * @return
      */
     @Override
-    public Server parse() throws Exception {
+    public ServerMap parse() throws Exception {
         String filePath = System.getProperty(SystemProperty.SERVER_BASE) + File.separator + Constants.DEFAULT_WEB_YAML;
         File file = new File(filePath);
         
@@ -44,6 +44,9 @@ public class ServerConfigureParse implements ConfigureParse {
         
         if (serverConfigure.getEngine().getHosts().isEmpty()) 
             throw new IllegalStateException("至少要有一个HOST容器！");
+        
+        if (serverConfigure.getServices().isEmpty())
+            throw new IllegalStateException("至少要有一个Service实例！");
 
         // 创建一个server
         Server server = (Server) getInstance(serverClass);
@@ -97,7 +100,7 @@ public class ServerConfigureParse implements ConfigureParse {
             server.addService(service);
         }
 
-        return server;
+        return new ServerMap(server, serverConfigure);
     }
 
 

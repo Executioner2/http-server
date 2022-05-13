@@ -12,8 +12,17 @@ import java.util.List;
  * @Date 2022/5/13 18:26
  */
 public final class ServerConfigure {
+    private boolean unpackWARS; // 是否自动解压war包
     private EngineConfigure engine; // 服务器引擎
     private List<ServiceConfigure> services; // 服务集合
+
+    public boolean isUnpackWARS() {
+        return unpackWARS;
+    }
+
+    public void setUnpackWARS(boolean unpackWARS) {
+        this.unpackWARS = unpackWARS;
+    }
 
     public EngineConfigure getEngine() {
         return engine;

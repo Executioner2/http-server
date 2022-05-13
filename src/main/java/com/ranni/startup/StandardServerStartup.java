@@ -1,9 +1,21 @@
 package com.ranni.startup;
 
 import com.ranni.common.SystemProperty;
+import com.ranni.container.Engine;
+import com.ranni.container.Host;
 import com.ranni.core.Server;
+import com.ranni.core.Service;
+import com.ranni.deploy.ServerConfigure;
+import com.ranni.deploy.ServerMap;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
+
+import javax.annotation.processing.FilerException;
+import java.io.File;
+import java.io.IOException;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.zip.ZipFile;
 
 
 /**
@@ -17,7 +29,7 @@ import com.ranni.lifecycle.LifecycleException;
 public class StandardServerStartup implements ServerStartup {
     protected boolean serverStartup; // 是否从服务器启动的标志位
     protected boolean started; // 服务器是否已启动
-    protected Server server; // 服务器
+    protected ServerMap serverMap; // 服务器实例与服务器实例映射
     protected ConfigureParse configureParse; // 配置文件解析实例
     
 
@@ -30,20 +42,23 @@ public class StandardServerStartup implements ServerStartup {
      * 启动服务器
      */
     @Override
-    public void startup() {
+    public void startup() throws Exception {
         if (started) 
             throw new IllegalStateException("服务器已启动！");
         
         started = true;
 
         // 解析服务器配置信息
-        Server server = getServer();
-        if (server == null)
+        ServerMap serverMap = getServerMap();
+        
+        if (serverMap == null)
             throw new IllegalArgumentException("无可用服务器！");
 
+        Server server = serverMap.getServer();
+        
         if (serverStartup) {
             // 通过服务器启动，扫描所有的webapp
-            scanContext(server);
+            scanContext();
         }
 
         if (server instanceof Lifecycle) {
@@ -76,12 +91,44 @@ public class StandardServerStartup implements ServerStartup {
      * webapp的启动类必须继承WebApplicationStartupBase
      * 
      * @see WebApplicationStartup
-     * 
-     * @param server
      */
-    protected void scanContext(Server server) {
-        // TODO 扫描所有的容器
+    protected void scanContext() throws IOException {
+        // TODO - 扫描所有的容器
         // 先扫描所有的host，再从host中扫描context
+        Server server = serverMap.getServer();
+        ServerConfigure serverConfigure = serverMap.getServerConfigure();
+        
+        Service[] services = server.findServices();
+        Engine engine = (Engine) services[0].getContainer();
+
+        Deque<ZipFile> wars = new LinkedList<>();
+        Deque<File> webapps = new LinkedList<>();
+        
+        for (Host host : (Host[]) engine.findChildren()) {
+            // XXX - 考虑要不要把webapp的遍历交给加载器
+            String path = System.getProperty(SystemProperty.SERVER_BASE) + File.separator + host.getAppBase();
+            File repository = new File(path);
+            if (!repository.isDirectory())
+                throw new FilerException("此路径应该是个目录！");
+            
+            // 把目录和war文件分离出来
+            for (File file : repository.listFiles()) {
+                if (file.isDirectory()) {
+                    webapps.push(file);
+                } else if (serverConfigure.isUnpackWARS() 
+                        && file.getName().endsWith(".war")) {
+                    
+                    wars.push(new ZipFile(file));
+                }
+            }
+            
+            // 解压war包
+            while (!wars.isEmpty()) {
+                ZipFile war = wars.pop();
+                // TODO - 明日继续
+            }
+        }
+
     }
 
 
@@ -90,7 +137,7 @@ public class StandardServerStartup implements ServerStartup {
      * 
      * @return
      */
-    protected Server parseServerConfigure() {
+    protected ServerMap parseServerConfigure() {
         if (started)
             throw new IllegalArgumentException("ServerStartupBase.parseServerConfigure  服务器已经启动，不能再解析配置文件！");
         
@@ -132,15 +179,14 @@ public class StandardServerStartup implements ServerStartup {
     /**
      * 设置服务器
      *
-     * @param server
-     * @return
+     * @param serverMap
      */
     @Override
-    public Server setServer(Server server) {
+    public void setServerMap(ServerMap serverMap) {
         if (started)
             throw new IllegalStateException("服务器已经启动，不能修改服务器！");
 
-        return this.server = server;
+        this.serverMap = serverMap;
     }
 
 
@@ -150,11 +196,11 @@ public class StandardServerStartup implements ServerStartup {
      * @return
      */
     @Override
-    public Server getServer() {
-        if (this.server == null) {
-            this.server = parseServerConfigure();
+    public ServerMap getServerMap() {
+        if (this.serverMap == null) {
+            this.serverMap = parseServerConfigure();
         }
-        return this.server;
+        return this.serverMap;
     }
 
 
@@ -164,7 +210,7 @@ public class StandardServerStartup implements ServerStartup {
     @Override
     public void recycle() {
         this.started = false;
-        this.server = null;
+        this.serverMap = null;
         this.serverStartup = false;
         this.configureParse = null;
     }

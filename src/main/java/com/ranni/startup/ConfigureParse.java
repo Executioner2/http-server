@@ -1,6 +1,6 @@
 package com.ranni.startup;
 
-import com.ranni.core.Server;
+import com.ranni.deploy.ServerMap;
 
 /**
  * Title: HttpServer
@@ -18,5 +18,5 @@ public interface ConfigureParse {
      * 
      * @return
      */
-    Server parse() throws Exception;
+    ServerMap parse() throws Exception;
 }

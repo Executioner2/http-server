@@ -1,6 +1,6 @@
 package com.ranni.startup;
 
-import com.ranni.core.Server;
+import com.ranni.deploy.ServerMap;
 
 /**
  * Title: HttpServer
@@ -15,7 +15,7 @@ public interface ServerStartup {
     /**
      * 启动服务器
      */
-    void startup();
+    void startup() throws Exception;
 
 
     /**
@@ -38,10 +38,9 @@ public interface ServerStartup {
     /**
      * 设置服务器
      *
-     * @param server
-     * @return
+     * @param serverMap
      */
-    Server setServer(Server server);
+    void setServerMap(ServerMap serverMap);
 
 
     /**
@@ -49,7 +48,7 @@ public interface ServerStartup {
      *
      * @return
      */
-    Server getServer();
+    ServerMap getServerMap();
 
 
     /**
