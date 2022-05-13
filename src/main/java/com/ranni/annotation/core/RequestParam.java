@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
  * @Date 2022/5/9 16:37
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
+@Target(ElementType.PARAMETER)
 public @interface RequestParam {
-    String value();
+    String value() default ""; // 别名
 }

@@ -12,9 +12,9 @@ import java.lang.annotation.*;
  * @Date 2022/5/9 14:08
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
+@Target(ElementType.METHOD)
 public @interface RequestMapping {
     
     String value(); // 映射的path
-    String method(); // 请求的方法
+    String method() default ""; // 请求的方法
 }

@@ -19,7 +19,6 @@ import com.ranni.core.StandardService;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.logger.Logger;
-import com.ranni.startup.core.ContextConfig;
 
 /**
  * Title: HttpServer
@@ -30,81 +29,7 @@ import com.ranni.startup.core.ContextConfig;
  * @Email 1205878539@qq.com
  * @Date 2022/5/5 21:59
  */
-public class StandardBootstrap {
-    public static void main(String[] args) {
-        // 设置服务器根目录
-        System.setProperty(SystemProperty.SERVER_BASE, System.getProperty("user.dir"));
-        
-        // 创建一个服务器并做配置
-        Server server = new StandardServer();
-//        config(server);
-        
-        // 创建连接器
-        HttpConnector connector = new HttpConnector();
-        connector.setDebug(Logger.DEBUG);
-
-        // 创建context容器
-        StandardContext context = new StandardContext();
-        context.addLifecycleListener(new ContextConfig()); // xml配置器
-        
-        // 给Context设置路径，可重载，后台线程间隔时间
-        context.setPath("/app1");
-        context.setDocBase("app1");
-        context.setReloadable(true);
-        context.setBackgroundProcessorDelay(1);
-
-        Loader loader = new WebappLoader();
-        context.setLoader(loader);
-
-        // 创建并配置host
-        Host host = new StandardHost();
-        host.setName("host");
-        host.setAppBase("webapps");
-        host.addChild(context);
-
-        // 创建并配置引擎
-        Engine engine = new StandardEngine();
-        engine.addChild(host);
-        engine.setDefaultHost("host");
-        
-        // 创建服务
-        Service service = new StandardService();
-        service.addConnector(connector);
-        service.setContainer(engine);
-        service.setName("StandardService");
-
-        server.addService(service);
-
-
-        if (server instanceof Lifecycle) {
-            try {
-                server.initialize();
-                ((Lifecycle) server).start(); // 启动服务器
-                
-                // 输出context的所有子容器
-                Thread.sleep(1000);
-                System.out.println("输出wrapper容器：");
-                for (Container container : context.findChildren()) {
-                    System.out.println("wrapper: " + container.getName() + "  " + container);
-                }
-                
-                server.await(); // 等待关闭
-            } catch (LifecycleException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        
-        if (server instanceof Lifecycle) {
-            try {
-                ((Lifecycle) server).stop(); // 关闭服务器
-            } catch (LifecycleException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
+public final class StandardApplication {
 
     /**
      * 通过代码配置
@@ -165,5 +90,82 @@ public class StandardBootstrap {
         service.addConnector(connector);
 
         server.addService(service);
+    }
+
+
+    public void startup() {
+        // 扫描
+        
+        // 设置服务器根目录
+        System.setProperty(SystemProperty.SERVER_BASE, System.getProperty("user.dir"));
+
+        // 创建一个服务器并做配置
+        Server server = new StandardServer();
+//        config(server);
+
+        // 创建连接器
+        HttpConnector connector = new HttpConnector();
+        connector.setDebug(Logger.DEBUG);
+
+        // 创建context容器
+        StandardContext context = new StandardContext();
+        context.addLifecycleListener(new ContextConfig()); // 配置器
+
+        // 给Context设置路径，可重载，后台线程间隔时间
+        context.setPath("/app1");
+        context.setDocBase("app1");
+        context.setReloadable(true);
+        context.setBackgroundProcessorDelay(1);
+
+        Loader loader = new WebappLoader();
+        context.setLoader(loader);
+
+        // 创建并配置host
+        Host host = new StandardHost();
+        host.setName("host");
+        host.setAppBase("webapps");
+        host.addChild(context);
+
+        // 创建并配置引擎
+        Engine engine = new StandardEngine();
+        engine.addChild(host);
+        engine.setDefaultHost("host");
+
+        // 创建服务
+        Service service = new StandardService();
+        service.addConnector(connector);
+        service.setContainer(engine);
+        service.setName("StandardService");
+
+        server.addService(service);
+
+
+        if (server instanceof Lifecycle) {
+            try {
+                server.initialize();
+                ((Lifecycle) server).start(); // 启动服务器
+
+                // 输出context的所有子容器
+                Thread.sleep(1000);
+                System.out.println("输出wrapper容器：");
+                for (Container container : context.findChildren()) {
+                    System.out.println("wrapper: " + container.getName() + "  " + container);
+                }
+
+                server.await(); // 等待关闭
+            } catch (LifecycleException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (server instanceof Lifecycle) {
+            try {
+                ((Lifecycle) server).stop(); // 关闭服务器
+            } catch (LifecycleException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

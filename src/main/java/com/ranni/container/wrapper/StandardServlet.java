@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -72,6 +74,7 @@ public final class StandardServlet extends HttpServlet {
 
     /**
      * 处理请求的入口方法
+     * XXX - 目标方法执行的前后插入监听
      * 
      * @param req
      * @param resp
@@ -96,7 +99,7 @@ public final class StandardServlet extends HttpServlet {
         RequestMapping requestMapping = method.getDeclaredAnnotation(RequestMapping.class);
         
         // 请求方法不对
-        if (requestMapping.method() != null && !requestMapping.method().equals(req.getMethod())) {
+        if (!("".equals(requestMapping.method())) && !requestMapping.method().equals(req.getMethod())) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "请求方法错误！  method：" + req.getMethod());
             return;
         }
@@ -127,6 +130,7 @@ public final class StandardServlet extends HttpServlet {
 
     /**
      * 解析请求参数
+     * FIXME - 存在编码问题
      * 
      * @param hsr
      * @param method
@@ -167,23 +171,19 @@ public final class StandardServlet extends HttpServlet {
                     // 将JSON字符串转为实例
                     Class<?> type = parameters[i].getType();
                     Object obj = null;
-
-                    try {
-                        obj = type.getConstructor().newInstance();
-                    } catch (Exception e) {
-                        e.printStackTrace(System.err);
-                    }
-
+                    
                     // 解析JSON字符串并填充到实例中
-                    if (obj != null) {
-                        JSONUtil.parseJSON(obj, hsr.getParameter(paramName).toCharArray());
+                    if (Collection.class.isAssignableFrom(type)) {
+                        // 是数组
+                        obj = JSONUtil.parseJSON(((RequestBody) annotation).value(), ArrayList.class, hsr.getParameter(paramName));
+                    } else {
+                        obj = JSONUtil.parseJSON(type, null, hsr.getParameter(paramName));
                     }
                     
                     res[i] = obj;
-                    break;
                     
+                    break;
                 }
-                
             }
             
         }

@@ -1,6 +1,5 @@
-package com.ranni.startup.core;
+package com.ranni.startup;
 
-import com.ranni.common.SystemProperty;
 import com.ranni.container.Container;
 import com.ranni.container.Context;
 import com.ranni.container.Engine;
@@ -13,14 +12,6 @@ import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleEvent;
 import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
-import com.ranni.startup.Constants;
-import org.apache.commons.digester3.Digester;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXParseException;
-
-import javax.servlet.ServletContext;
-import java.io.*;
-import java.net.URL;
 
 /**
  * Title: HttpServer
@@ -30,36 +21,12 @@ import java.net.URL;
  * @Email 1205878539@qq.com
  * @Date 2022/5/6 15:47
  */
-public class ContextConfig implements LifecycleListener {
-    private static Digester webDigester = createWebDigester(); // xml解析
-    
+public class ContextConfig implements LifecycleListener {    
     private Context context; // 关联的Context容器
     private int debug = Logger.INFORMATION; // 日志输出级别
     private boolean ok; // 是否配置成功标志位
     
     
-    /**
-     * 取得web的xml解析器
-     * 
-     * @return
-     */
-    private static Digester createWebDigester() {
-        URL url = null;
-        Digester webDigester = new Digester();
-        webDigester.setValidating(true);
-
-        // 设置约束文件
-        url = ContextConfig.class.getResource(Constants.WEB_DTD_RESOURCE_PATH_22); // 取得本地xml约束文件（2-2版本）的URL
-        webDigester.register(Constants.WEB_DTD_RESOURCE_PATH_22, url.toString()); // 将本地xml约束文件（2-2版本）注册到digester中（如果有的话）
-        url = ContextConfig.class.getResource(Constants.WEB_DTD_RESOURCE_PATH_23); // 取得本地xml约束文件（2-3版本）的URL
-        webDigester.register(Constants.WEB_DTD_RESOURCE_PATH_23, url.toString()); // 将本地xml约束文件（2-3版本）注册到digester中（如果有的话）       
-
-        webDigester.addRuleSet(new WebRuleSet()); // 添加规则实例
-        
-        return webDigester;
-    }
-
-
     /**
      * 触发生命周期事件
      * 
@@ -203,10 +170,10 @@ public class ContextConfig implements LifecycleListener {
         }
         
         // 解析服务器默认xml文件
-        defaultConfig();
+//        defaultConfig();
         
         // 解析webapp的xml文件
-        applicationConfig();
+//        applicationConfig();
         
         if (ok) {
             context.setConfigured(true);
@@ -216,107 +183,8 @@ public class ContextConfig implements LifecycleListener {
         }
         
     }
-
-
-    /**
-     * 解析webapp的xml文件
-     */
-    private void applicationConfig() {
-        // 取得webapp的xml文件的输入流（通过JNDI资源）
-        ServletContext servletContext = context.getServletContext();
-        InputStream input = null;
-        
-        if (servletContext != null) {
-            input = servletContext.getResourceAsStream(Constants.APPLICATION_WEB_XML);    
-        }
-        
-        if (input == null) {
-            log("ContextConfig.applicationConfig  未找到webapp的xml文件！");
-            return;
-        }
-        
-        synchronized (webDigester) {
-            try {
-                URL url = servletContext.getResource(Constants.APPLICATION_WEB_XML);
-                InputSource inputSource = new InputSource(url.toExternalForm());
-
-                // XXX 设置欢迎文件
-                
-                webDigester.clear();
-                webDigester.push(context);
-                webDigester.parse(inputSource);
-            } catch (SAXParseException e) {
-                log("ContextConfig.applicationParse  XML文件解析异常！", e);
-                ok = false;
-            } catch (Exception e) {
-                log("ContextConfig.applicationParse", e);
-                ok = false;
-            } finally {
-                if (input != null) {
-                    try {
-                        input.close();
-                    } catch (IOException e) {
-                        log("ContextConfig.applicationConfig  文件输入流关闭异常！", e);
-                    }
-                }
-            }
-        }
-
-    }
-
-
-    /**
-     * 解析服务器默认xml文件
-     */
-    private void defaultConfig() {
-        // 取得服务器的默认xml文件
-        File file = new File(System.getProperty(SystemProperty.SERVER_BASE), Constants.DEFAULT_WEB_XML);
-
-        FileInputStream fis = null;
-        
-        // 测试文件能否正常打开
-        try {
-            fis = new FileInputStream(file.getCanonicalPath());
-            fis.close();
-            fis = null;
-        } catch (FileNotFoundException e) {
-            log("ContextConfig.defaultConfig  文件未找到！", e);
-            return;
-        } catch (IOException e) {
-            log("ContextConfig.defaultConfig  文件不能正常打开！", e);
-            return;
-        }
-        
-        synchronized (webDigester) {
-            try {
-                InputSource inputSource = new InputSource("file://" + file.getAbsolutePath());
-                fis = new FileInputStream(file);
-                inputSource.setByteStream(fis);
-                
-                // XXX 设置欢迎文件
-                
-                webDigester.clear(); // 清空残留记录
-                webDigester.push(context); // 将context实例压入栈，使此context实例为根bean
-                webDigester.parse(inputSource);
-            } catch (SAXParseException e) {
-                log("ContextConfig.defaultParse  XML解析异常！", e);
-                ok = false;
-            } catch (Exception e) {
-                log("ContextConfig.defaultParse", e);
-                ok = false;
-            } finally {
-                if (fis != null) {
-                    try {
-                        fis.close();
-                    } catch (IOException e) {
-                        log("ContextConfig.defaultConfig  文件输入流关闭异常！", e);
-                    }
-                }
-            }
-        }
-                
-    }
-
+    
+    
 
     /**
      * 日志输出

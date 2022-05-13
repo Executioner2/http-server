@@ -1,10 +1,11 @@
 package com.ranni.handler;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 
 /**
  * Title: HttpServer
@@ -39,190 +40,338 @@ public final class JSONUtil {
             {"java.lang.String".hashCode()},
     };
 
+    
+    private static final int JSON_MAX_DEEP = 100; // json最大的嵌套深度
+    
+    private static final StringBuilder sb = new StringBuilder();
+
     private JSONUtil() {}
 
 
     /**
-     * 解析JSON字符串
-     *
-     * @param obj   要解析为的实例
-     * @param json  json字符串
+     * json值的实体
      */
-    public static void parseJSON(Object obj, String json) throws JSONException {
-        parseJSON(obj, json.toCharArray());
+    private static class ValueEntity {
+        Object val; // 返回的元素
+        int index; // 下标
+
+        public ValueEntity(Object val, int index) {
+            this.val = val;
+            this.index = index;
+        }
     }
     
 
     /**
      * 解析JSON字符串
      *
-     * @param obj   要解析为的实例
-     * @param json  json字符数组
+     * @param clazz1    要解析成的实例类型
+     * @param clazz2    集合最底层元素类型，为null表示不是json数组
+     * @param json      json字符串
+     * @return 
      */
-    public static void parseJSON(Object obj, char[] json) throws JSONException {
-        parseJSON(obj, json, 0);
+    public static Object parseJSON(Class clazz1, Class clazz2, String json) throws JSONException {
+        return parseJSON(clazz1, clazz2, json.toCharArray()); 
+    }
+
+
+    /**
+     * 解析JSON字符串
+     *
+     * @param clazz1    单个类型，如果是集合，那么这个就是集合中一个元素类型
+     * @param clazz2    如果是集合，此类不为null
+     * @param json      json字符数组
+     * @return 
+     */
+    public static Object parseJSON(Class clazz1, Class clazz2, char[] json) throws JSONException {
+        json = normalize(json);
+        ValueEntity ve = parseJSON(clazz1, clazz2, json, 0);
+        
+        if (ve == null)
+            return null;
+        
+        return ve.val;        
+    }
+    
+
+    /**
+     * 解析JSON字符串
+     *
+     * @param clazz1    单个类型，如果是集合，那么这个就是集合中一个元素类型
+     * @param clazz2    如果是集合，此类不为null
+     * @param json      json字符数组
+     * @param index     下标
+     * @return 
+     */
+    private static ValueEntity parseJSON(Class clazz1, Class clazz2, char[] json, int index) throws JSONException {
+        if (clazz1 == null) return new ValueEntity(null, index);
+
+        ValueEntity ve = null;
+        
+        if (clazz2 != null && Collection.class.isAssignableFrom(clazz2)) {
+            // 是JSON数组，clazz不能为空且obj必须是集合
+            if (json[index] != '[')
+                throw new IllegalArgumentException("JSONUtil.parseJSON  非集合类型");
+            
+            if (clazz1 == null)
+                throw new IllegalArgumentException("JSONUtil.parseJSON  必须指定元素类型");
+            
+            Class aClass = null;
+            if (json[index + 1] == '[')
+                aClass = ArrayList.class; 
+
+            Collection collection = null;
+            try {
+                collection = (Collection) getInstance(ArrayList.class); // XXX - 考虑要不要自定义集合
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            if (collection == null)
+                throw new JSONException("JSONUtil.getInstance  获取实例为空！");
+            
+            while (json[index] != ']') {
+                ve = parseJSON(clazz1, aClass, json, index + 1);
+
+                collection.add(ve.val);
+                index = ve.index;                
+            }
+
+            ve = new ValueEntity(collection, index + 1);
+            
+        } else if (json[index] == '{') {
+            // 是单个对象
+            ve = parseJSON(clazz1, json, index + 1);
+            
+        } else if (json[index] != '[') {
+            // 是普通值
+            ve = parseJSONValue(clazz1, json, index);
+       
+        } else {
+            throw new IllegalArgumentException("JSONUtil.parseJSON  非集合类型");
+        }
+        
+        return ve;
     }
     
     
     /**
-     * 解析JSON字符串
+     * 解析JSON
      * 用递归的方式
      *
-     * @param obj   要解析为的实例
-     * @param json  json字符数组
-     * @param start 解析的起始位置
+     * @param aClass    要解析为的实例
+     * @param json      json字符数组
+     * @param index     解析的下标位置
      *              
      * @return 返回解析到了json字符数组的位置
      */
-    private static int parseJSON(Object obj, char[] json, int start) throws JSONException {
-        if (obj == null) return start;
-        
-        json = normalize(json);
-        
-        if (json[start] != '{') {
-            throw new JSONException("StandardServlet.parseJson  json格式异常！");
-        }
+    private static ValueEntity parseJSON(Class aClass, char[] json, int index) throws JSONException {
+        Object obj = getInstance(aClass);
 
-        int i = start + 1;
-        boolean space; // 字段中间是否出现了空格
-        StringBuffer sb = new StringBuffer();
-
-        while (i < json.length && json[i] != '}') {
-            int j = i;
-            sb.setLength(0);
-            space = false;
-
-            if (json[j++] != '"') {
-                throw new JSONException("StandardServlet.parseJson  json格式异常！");
-            }
-
-            while (j < json.length && json[j] != '"') {
-                if (json[j] == ' ') {
-                    space = sb.length() > 0;
-                    continue;
-                } else if (space) {
-                    throw new JSONException("StandardServlet.parseJson  json字段名格式错误！");
-                }
-                sb.append(json[j++]);
-            }
-
-            // 消除空行
-            while (j < json.length && (json[j] == ' ' || json[j] == '\t')) j++;
-
-            if (j == json.length || json[j++] != ':') {
-                throw new JSONException("StandardServlet.parseJson  json格式异常！");
-            }
-
-            String key = sb.toString();
+        while (json[index] != '}') {
             Field field = null;
+            
+            clearStringBuilder();
+
+            if (json[index] == ',')
+                index++;
+            
+            // 取得key
+            while (json[index] != ':')
+                sb.append(json[index++]);
+
+            index++;
+
             try {
-                field = obj.getClass().getDeclaredField(key);
+                field = aClass.getDeclaredField(sb.toString());
+                field.setAccessible(true);
             } catch (NoSuchFieldException e) {
+                // XXX - 没匹配上的字段就跳过？
+                ;
+            }
+
+            // 遍历跳过这个value
+            if (field == null) {
+                index = skip(json, index);
+                if (json[index] == ',') index++;
                 continue;
             }
-
-            // 解析value
-            Object val = null;
             
-            // 消除空行
-            while (j < json.length && (json[j] == ' ' || json[j] == '\t')) j++;
+            // 取得字段的实例
+            Class<?> type = field.getType();
+            ValueEntity res = null;
 
-            if (j == json.length) {
-                throw new JSONException("StandardServlet.parseJson  json格式异常！");
-            }
-            
-            if (json[j] == '"') {
-                // 是字符串
-                sb.setLength(0);
-                j++;
-                
-                while (j < json.length && !(json[j - 1] != '\\' && json[j] == '"')) {
-                    sb.append(json[j++]);
-                }
-
-                // 消除空行
-                while (j < json.length && (json[j] == ' ' || json[j] == '\t')) j++;
-                if (j < json.length && json[j++] != ',') {
-                    throw new JSONException("StandardServlet.parseJson  json格式异常！");
-                }
-                
-                val = sb.toString();
-                
-            } else if (json[j] == '[') {
-                // 需求分析：
-                //  1、可以自动推断出数组元素的类型
-                //  2、可以
-                // 是数组
-                // 先取得数组元素的类型
-                Type type = field.getGenericType();
-                Class aClass = null;
-                
-                if (type instanceof ParameterizedType) {
-                    
-                    try {
-                        aClass = (Class) ((ParameterizedType) type).getActualTypeArguments()[0];    
-                    } catch (Throwable t) {
-                        t.printStackTrace(System.err);
-                    }         
-                    
-                } else {
-                    System.err.println("集合类型字段应该指明泛型！ filed: " + field);
-                }
-
-                // 消除空行
-                while (j < json.length && (json[j] == ' ' || json[j] == '\t')) j++;
-                if (j == json.length) {
-                    throw new JSONException("StandardServlet.parseJson  json格式异常！");
-                }
-                
-                if (aClass != null) {
-                    try {
-                        val = aClass.getDeclaredConstructor().newInstance();
-                    } catch (Exception e) {
-                        e.printStackTrace(System.err);
-                    } 
-                }
-                val = new JSONArrayList<>(); // XXX - 这里考虑自定义集合
-                
-                if (val != null) {
-                    // 找得到集合元素的类型，开始解析
-//                    List<>
-                } else {
-                    // 找不到，那么就跳过这个字段的值
-                    while (j < json.length && json[j++] != ']');
-                }
-
-                // 消除空行
-                while (j < json.length && (json[j] == ' ' || json[j] == '\t')) j++;
-                if (j < json.length && json[j++] != ',') {
-                    throw new JSONException("StandardServlet.parseJson  json格式异常！");
-                }
-                
-            } else if (json[j] == '{') {
-                // 是嵌套的json
+            // 是集合，尝试获取集合元素的类型
+            if (Collection.class.isAssignableFrom(type)) {
+                Class clazz = inferElementClass(field, json[index + 1]);
+                res = parseJSON(clazz, type, json, index);
             } else {
-                // 是基本数据类型，根据字段类型进行转换
-
-            }
-
-            try {
-                field.set(obj, val);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace(System.err);
+                res = parseJSON(type, null, json, index);
             }
             
-            i = j;
+            try {
+                field.set(obj, res.val);
+                index = res.index;
+            } catch (Exception e) {
+                // 可能产生obj为null的情况，这时返回的ValueEntity实例的val为null也行
+                e.printStackTrace();
+            }
 
         }
         
-        return i;
-        
+        return new ValueEntity(obj, index + 1);
     }
 
 
     /**
+     * 解析值
+     * 
+     * @param clazz
+     * @param json
+     * @param index
+     * @return
+     */
+    private static ValueEntity parseJSONValue(Class clazz, char[] json, int index) {
+               
+        clearStringBuilder();
+        
+        // 把value剪出来
+        boolean isStr = json[index] == '"'; // 先判断是否是字符串，如果是，那么直到字符串结尾的'}', ']' , ',' 都不作数
+
+        if (isStr)
+            index++;
+        
+        while (true) {
+            if (isStr) {
+                if (json[index] == '"' && json[index - 1] != '\\') {
+                    isStr = false;
+                    index++;
+                    continue;
+                }
+            
+            } else if (json[index] == '}' || json[index] == ']' || json[index] == ',') {
+                break;
+            }
+            
+            sb.append(json[index++]);
+        }
+
+        if (json[index] == ',')
+            index++;
+        
+        Object obj = getInstance(clazz, sb.toString());
+
+        return new ValueEntity(obj, index);
+    }
+
+
+    /**
+     * 实例化
+     * 
+     * @param clazz     要实例化的类
+     * @param params    构造方法的形参
+     * @return
+     */
+    private static Object getInstance(Class clazz, Object... params) {
+        Class<?>[] classes = null;
+
+        if (params != null && params.length > 0) {
+            classes = new Class[params.length];
+            for (int i = 0; i < params.length; i++) {
+                classes[i] = params[i].getClass();
+            }
+        }
+
+        try {
+            return getConstructor(clazz, classes).newInstance(params);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+
+    /**
+     * 实例化
+     * @param clazz     要实例化的类
+     * @return
+     */
+    private static Constructor getConstructor(Class clazz, Class... classes) {
+        if (clazz.isPrimitive()) {
+            // 是基本数据类型
+            if (clazz == char.class)
+                clazz = Character.class;
+            if (clazz == byte.class)
+                clazz = Byte.class;
+            else if (clazz == short.class) 
+                clazz = Short.class;
+            else if (clazz == int.class)
+                clazz = Integer.class;
+            else if (clazz == long.class)
+                clazz = Long.class;
+            else if (clazz == float.class)
+                clazz = Float.class;
+            else 
+                clazz = Double.class;
+        }
+        
+        try {
+            return clazz.getDeclaredConstructor(classes);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+    
+
+    /**
+     * 需要跳过的部分
+     * 默认传入的json是正确的，压缩过的json
+     * 
+     * @param json
+     * @param index
+     * @return
+     */
+    private static int skip(char[] json, int index) {
+        int bracket = 0, brace = 0; // 中括号和花括号的数量
+        boolean isStr = false; // 遇到字符串要跳过匹配
+        
+        if (json[index] == '[')
+            bracket++;
+        else if (json[index] == '{')
+            brace++;
+        
+        while (bracket > 0 || brace > 0) {
+            index++;
+            
+            if (json[index] == '"') {
+                if (isStr) {
+                    if (json[index - 1] == '\\')
+                        isStr = false;
+                } else {
+                    isStr = true;
+                }
+            } else if (json[index] == ']' && !isStr) {
+                bracket--;
+            } else if (json[index] == '}' && !isStr) {
+                brace--;
+            } else if (json[index] == '[' && !isStr) {
+                bracket++;
+            } else if (json[index] == '{' && !isStr) {
+                brace++;
+            }
+        }
+         
+        return index;
+    }
+    
+
+    /**
      * 标准化json字符串格式
-     * 消除那些智障空格，空行
+     * 消除那些智障空格，空行，回车，tab
+     * 消除key的双引号
      * 让json字符串变为一行紧凑的json字符串
      *
      * @param json
@@ -231,110 +380,188 @@ public final class JSONUtil {
     public static char[] normalize(String json) throws JSONException {
         return normalize(json.toCharArray());
     }
-    
+
 
     /**
      * 标准化json字符串格式
-     * 消除那些智障空格，空行
+     * 消除那些智障空格，空行，回车，tab
+     * 消除key的双引号
      * 让json字符串变为一行紧凑的json字符串
-     * 
+     *
      * @param json
      * @return
      */
     public static char[] normalize(char[] json) throws JSONException {
-        int len = normalize(json, 0, 0, false)[0];
+        int[] len = normalize(json, 0, 0, 0);
+        if (len[1] < json.length || (json[0] != '[' && json[0] != '{'))
+            throw new JSONException("JSONUtil.normalize  json格式异常！");
+
+        char[] res = new char[len[0]];
+        System.arraycopy(json, 0, res, 0, len[0]);
         
-        char[] res = new char[len];
-        System.arraycopy(json, 0, res, 0, len);
-        
-        return res;
+        return res; 
     }
 
 
     /**
      * 标准化json字符串格式
-     * 返回覆盖到的位置
+     * 如果传入的json是个单个实例，那么直接调用{@link JSONUtil#normalize(char[], int, int, boolean, int)}进行标准化
+     * 如果传入的json是个json数组，那么需要递归调用此方法进行解析
      * 
      * @param json
      * @param slowPtr
      * @param fastPtr
-     * @param isCommon 是否是基本数据类型或字符串
+     * @param deep      深度
      * @return
      * @throws JSONException
      */
-    public static int[] normalize(char[] json, int slowPtr, int fastPtr, boolean isCommon) throws JSONException {
+    private static int[] normalize(char[] json, int slowPtr, int fastPtr, int deep) throws JSONException {
+        if (deep >= JSON_MAX_DEEP) // 限制最大深度，避免栈溢出
+            throw new JSONException("JSONUtil JSON嵌套过长！");
+        
+        int[] len = null;
+        
+        // 消除前导空白
+        while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
 
+        // 先判断是否是'['开头，如果是，则表示是json数组，如果是'{'则是普通json
+        if (fastPtr == json.length)
+            throw new JSONException("JSONUtil.normalize  json格式异常！");
+        
+        if (json[fastPtr] == '{') {
+            len = normalize(json, slowPtr, fastPtr, false, deep + 1);
+        } else if (json[fastPtr] == '[') {
+            json[slowPtr++] = json[fastPtr++];
+            while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
+            
+            while (true) {
+                len = normalize(json, slowPtr, fastPtr, deep + 1);
+                slowPtr = len[0]; fastPtr = len[1];
+
+                while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
+                
+                if (fastPtr == json.length)
+                    throw new JSONException("JSONUtil.normalize  json格式异常！");
+                
+                if (json[fastPtr] == ']') {
+                    json[slowPtr++] = json[fastPtr++];
+                    while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
+                    len[0] = slowPtr; len[1] = fastPtr;
+                    break;
+                } else if (json[fastPtr] == ',') {
+                    json[slowPtr++] = json[fastPtr++];
+                } else {
+                    throw new JSONException("JSONUtil.normalize  json格式异常！");
+                }
+            }
+        } else {
+            len = normalize(json, slowPtr, fastPtr, true, deep + 1);
+        }
+        
+        return len;
+    }
+
+
+    /**
+     * 标准化json字符串格式
+     * 与 {@link JSONUtil#normalize(char[], int, int, int)} 配合使用
+     * 
+     * XXX - 可靠性有待考证
+     * 
+     * @param json
+     * @param slowPtr
+     * @param fastPtr
+     * @param isCommon              是否是基本数据类型或字符串              
+     * @return {slowPtr, fastPtr}   覆盖到的位置
+     * @throws JSONException
+     */
+    private static int[] normalize(char[] json, int slowPtr, int fastPtr, boolean isCommon, int deep) throws JSONException {
+        if (deep >= JSON_MAX_DEEP) // 限制最大深度，避免栈溢出
+            throw new JSONException("JSONUtil JSON嵌套过长！");
+        
+        boolean hasLeftBrace = false;
+        
         while (fastPtr < json.length && json[fastPtr] != '}') {
+            
             if (isCommon) {
                 // 消除前导空白
                 while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
 
                 boolean isStr = fastPtr < json.length && json[fastPtr] == '"';
                 
+                if (fastPtr < json.length && json[fastPtr] == '"')
+                    json[slowPtr++] = json[fastPtr++];
+                
                 while (fastPtr < json.length && !isEnd(isStr, json[fastPtr - 1], json[fastPtr])) {
                     json[slowPtr++] = json[fastPtr++];
                 }
                 
                 if (fastPtr < json.length && json[fastPtr] == '"') 
-                    fastPtr++;
+                    json[slowPtr++] = json[fastPtr++];
                 
                 // 消除后导空白
                 while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
                 
-                if (fastPtr < json.length && json[fastPtr] == ',')
-                    json[slowPtr++] = json[fastPtr++];
-                
-                return new int[]{slowPtr, fastPtr};
-                
+                return new int[]{slowPtr, fastPtr};                
             } else {
+                int state = 0;
+
+                // 消除空白
+                while (fastPtr < json.length && state < 2) {
+                    if (isBlank(json[fastPtr])) {
+                        fastPtr++;
+                    } else if (json[fastPtr] == '{' && state == 0) {
+                        if (!hasLeftBrace) {
+                            hasLeftBrace = true;
+                        } else {
+                            throw new JSONException("JSONUtil.normalize  json格式异常！");
+                        }
+                        
+                        json[slowPtr++] = json[fastPtr++];
+                        state = 1;
+                    } else if (json[fastPtr] == '"' && (state == 1 || hasLeftBrace)) {
+                        fastPtr++;
+                        state = 2;
+                    } else {
+                        throw new JSONException("JSONUtil.normalize  json格式异常！");
+                    }
+                }
+                
+                if (fastPtr == json.length && state != 0)
+                    throw new JSONException("JSONUtil.normalize  json格式异常！");
+                
                 // key
-                while (fastPtr < json.length && json[fastPtr] != ':') {
-                    if (!isBlank(json[fastPtr]) && json[fastPtr] != '"') {
+                while (fastPtr < json.length && json[fastPtr] != '"') {
+                    if (!isBlank(json[fastPtr])) {
                         json[slowPtr++] = json[fastPtr];
                     }
                     fastPtr++;
                 }
+                
+                if (fastPtr < json.length)
+                    fastPtr++;
 
+                // 消除后导空白
+                while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
+
+                if (fastPtr < json.length && json[fastPtr] != ':')
+                    throw new JSONException("JSONUtil.normalize  json格式异常！");
+                
                 if (fastPtr == json.length)
                     return new int[]{slowPtr, fastPtr};
                 
                 json[slowPtr++] = json[fastPtr++];
             }
-
-            // 消除中间空白
+            
+            // value
+            int[] ptr = normalize(json, slowPtr, fastPtr, deep + 1);
+            slowPtr = ptr[0]; fastPtr = ptr[1];
+            
+            // 如果有','，则覆盖过去
             while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
-
-            if (json[fastPtr] == '{') {
-                int[] ptr = normalize(json, slowPtr, fastPtr, false);
-                slowPtr = ptr[0]; fastPtr = ptr[1];
-            } else if (json[fastPtr] == '[') {
+            if (fastPtr < json.length && json[fastPtr] == ',') {
                 json[slowPtr++] = json[fastPtr++];
-                
-                while (fastPtr < json.length) {
-                    // 消除中间空白
-                    while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
-                    
-                    if (fastPtr == json.length)
-                        throw new JSONException("JSONUtil.normalize  json格式异常！");
-                    
-                    if (json[fastPtr] == ']') {
-                        json[slowPtr++] = json[fastPtr++];
-                        break;
-                    } else if (json[fastPtr] == ',') {
-                        json[slowPtr++] = json[fastPtr++];
-                        // 消除中间空白
-                        while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
-                    } else {
-                        throw new JSONException("JSONUtil.normalize  json格式异常！");
-                    }
-
-                    int[] ptr = normalize(json, slowPtr, fastPtr, json[fastPtr] != '{');
-                    slowPtr = ptr[0]; fastPtr = ptr[1];
-                }                
-            } else {
-                // 是普通值
-                int[] ptr = normalize(json, slowPtr, fastPtr, true);
-                slowPtr = ptr[0]; fastPtr = ptr[1];
+                while (fastPtr < json.length && isBlank(json[fastPtr])) fastPtr++;
             }
         }
         
@@ -366,93 +593,80 @@ public final class JSONUtil {
      * @return
      */
     public static boolean isEnd(boolean isStr, char ch1, char ch2) {
-        if (isStr && ch2 == '"' && ch1 != '\\')
-            return true;
-        else if (!isStr && ch2 == ',')
-            return true;
+        if (isStr) {
+            if (ch2 == '"' && ch1 != '\\')
+                return true;
+        
+        } else {
+            if (ch2 == ',' || isBlank(ch2) || ch2 == ']' || ch2 == '}')
+                return true;
+        }
         
         return false;
-    }
+    }    
     
 
     /**
-     * 类型匹配
+     * 推断集合元素的类型
      *
-     * @param field
-     * @param sb
+     * @param ch
      * @return
      */
-    public static Object typeMatching(Field field, StringBuffer sb) {
-        return typeMatching(field, sb,true); 
+    private static Class inferElementClass(Field field, char ch) throws JSONException {
+        Class clazz = null;
+        Type genericType = field.getGenericType();
+        
+        if (genericType instanceof ParameterizedType) {
+            // 有指定泛型
+            try {
+                clazz = (Class) ((ParameterizedType) genericType).getActualTypeArguments()[0];
+            } catch (ClassCastException cce) {
+                // 泛型设定了上下限定的，尝试通过全限定类名加载
+                String className = ((ParameterizedType) genericType).getActualTypeArguments()[0].toString();
+                className = className.substring(className.lastIndexOf(' ') + 1);
+                ClassLoader ccl = Thread.currentThread().getContextClassLoader();
+
+                try {
+                    clazz = ccl.loadClass(className);
+                } catch (ClassNotFoundException e) {
+                    // 设定了上下限定，但是找不到限定的类就抛出异常
+                    e.printStackTrace();
+                    throw new JSONException("JSONUtil.classNotFound  找不到集合泛型的上下限定边界类！");
+                }
+            }
+        }
+
+        if (clazz == null) {
+            // 没有指定泛型，尝试从json数组元素类型解析成对应的类型
+            clazz = inferClass(ch);
+        }
+        
+        return clazz;
     }
     
 
     /**
-     * 类型匹配
+     * 从json字符推断出实例类型
      * 
-     * @param field 类型判断依据的字段。只有当flag为false时，这个值才能为空
-     * @param sb
-     * @param flag 是否需要进行是否是集合的判断
+     * @param ch
      * @return
      */
-    public static Object typeMatching(Field field, StringBuffer sb, boolean flag) {
-        Object obj = null;
-        Class clazz = null;
-
-        if (flag && field == null)
-            return null;
-        
-        if (flag && Collection.class.isAssignableFrom(field.getType())) {
-            // 是集合，取得元素类型
-            Type type = field.getGenericType();
-            if (type instanceof ParameterizedType) {
-                // 指明了泛型，通过泛型推断出元素类型                
-                try {
-                    clazz = (Class) ((ParameterizedType) type).getActualTypeArguments()[0];                    
-                } catch (ClassCastException cce) {
-                    // 设置了上下限定界符，需要手动取得全限定类名
-                    ClassLoader ccl = Thread.currentThread().getContextClassLoader();                    
-                    String className = ((ParameterizedType) type).getActualTypeArguments()[0].toString();
-                    className = className.substring(className.lastIndexOf(' ') + 1);
-
-                    try {
-                        clazz = ccl.loadClass(className);
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
-                        return null;
-                    }
-                }
-
-            } else {
-                // 不能推断出元素的类型，那么尝试从json值来推断数据类型
-                return typeMatching(null, sb, false);
-            }
-
-        } else if (sb.charAt(0) == '{') {
-            // 是复杂类型
-            if (field == null) {
-                // 不能根据字段推断属性的类型，那么将其搞成map
-                return new HashMap<>();
-            }
-
-            clazz = field.getType();
-            
-        } else {
-            // 按基本类型或者字符串转
-            if (field == null) {
-                // 根据json来判断数据类型
-//                if (ch1 >= '')
-            }
+    private static Class inferClass(char ch) {
+        if (ch == '{') {
+            return JSONArrayEntity.class;
+        } else if (ch == '[') {
+            return ArrayList.class; // XXX - 考虑要不要自定义一个集合
+        } else { // 统统都为字符串
+            return String.class;
         }
+    }
 
-        // 实例化
-        try {
-            obj = clazz.getDeclaredConstructor().newInstance();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        return obj;
+    /**
+     * 清空字符串
+     */
+    private static void clearStringBuilder() {
+        sb.setLength(0);
     }
     
 }

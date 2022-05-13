@@ -18,4 +18,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface Controller {
     String value(); // 映射的path
+    
+    String alias() default ""; // 别名
 }
