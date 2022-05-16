@@ -36,7 +36,7 @@ import java.util.jar.JarFile;
  * @Date 2022-04-06 15:45
  */
 public class WebappLoader implements Loader, Lifecycle {
-    private String loaderClass = "com.ranni.container.loader.WebappClassLoader"; // 加载器的全限定类名，默认为com.ranni.container.loader.WebappClassLoader
+    private String loaderClass = "com.ranni.loader.WebappClassLoader"; // 加载器的全限定类名，默认为com.ranni.container.loader.WebappClassLoader
     private ClassLoader parentLoader; // 类载入器（父）
     private WebappClassLoader classLoader; // 类载入器
     private boolean started; // 启动标志位
