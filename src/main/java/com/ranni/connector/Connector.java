@@ -151,7 +151,7 @@ public interface Connector {
      * @return
      */
     Response createResponse();
-
+        
     
     /**
      * 初始化连接器

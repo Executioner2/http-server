@@ -21,7 +21,8 @@ engine:
 
 services:
   - name: StandardService # 服务名
-    connectorClass: com.ranni.connector.HttpConnector
-    connectors:
-      - clazz: com.ranni.connector.HttpConnector # 连接器实现类名
-        debug: 4
+    # 不推荐在这里配置连接器，应该交给webapp的application.yaml配置文件
+#    connectorClass: com.ranni.connector.HttpConnector 
+#    connectors: 
+#      - clazz: com.ranni.connector.HttpConnector # 连接器实现类名
+#        debug: 4

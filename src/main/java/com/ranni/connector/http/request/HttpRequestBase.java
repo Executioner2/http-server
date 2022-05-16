@@ -2,8 +2,8 @@ package com.ranni.connector.http.request;
 
 import com.ranni.connector.http.ParameterMap;
 import com.ranni.container.Container;
-import com.ranni.session.Manager;
-import com.ranni.session.Session;
+import com.ranni.container.session.Manager;
+import com.ranni.container.session.Session;
 import com.ranni.util.Enumerator;
 import com.ranni.util.RequestUtil;
 

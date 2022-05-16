@@ -1,6 +1,9 @@
 package com.ranni.startup;
 
-import com.ranni.deploy.ServerMap;
+import com.ranni.deploy.ConfigureMap;
+
+import java.io.File;
+import java.io.InputStream;
 
 /**
  * Title: HttpServer
@@ -11,12 +14,38 @@ import com.ranni.deploy.ServerMap;
  * @Email 1205878539@qq.com
  * @Date 2022/5/13 20:41
  */
-public interface ConfigureParse {
+public interface ConfigureParse<T, E> {
 
     /**
      * 解析
      * 
      * @return
+     * @param file
      */
-    ServerMap parse() throws Exception;
+    ConfigureMap<T, E> parse(File file) throws Exception;
+
+
+    /**
+     * 解析
+     *
+     * @return
+     * @param input
+     */
+    ConfigureMap<T, E> parse(InputStream input) throws Exception;
+
+
+    /**
+     * 设置要被解析为什么类
+     * 
+     * @param clazz
+     */
+    void setClazz(Class clazz);
+
+
+    /**
+     * 返回要被解析的类
+     * 
+     * @return
+     */
+    Class getClazz();
 }

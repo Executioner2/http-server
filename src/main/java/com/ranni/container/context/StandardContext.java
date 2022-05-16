@@ -14,7 +14,7 @@ import com.ranni.deploy.*;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.naming.*;
-import com.ranni.session.StandardManager;
+import com.ranni.container.session.StandardManager;
 import com.ranni.util.CharsetMapper;
 import com.ranni.util.RequestUtil;
 

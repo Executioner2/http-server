@@ -11,7 +11,7 @@ import com.ranni.container.pip.StandardPipeline;
 import com.ranni.container.pip.Valve;
 import com.ranni.logger.Logger;
 import com.ranni.naming.ProxyDirContext;
-import com.ranni.session.Manager;
+import com.ranni.container.session.Manager;
 import com.ranni.util.LifecycleSupport;
 
 import javax.naming.directory.DirContext;
@@ -284,6 +284,16 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
     public void addChild(Container child) {
         child.setParent(this);
         synchronized (children) {
+            log("ContainerBase.addChild  有容器加入！  " + child);
+            
+            if (started && child instanceof Lifecycle) {
+                try {
+                    ((Lifecycle) child).start();
+                } catch (LifecycleException e) {
+                    e.printStackTrace();
+                }
+            }
+            
             children.put(child.getName(), child);
         }
     }
@@ -498,6 +508,16 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
     @Override
     public void removeChild(Container child) {
         synchronized (children) {
+            log("ContainerBase.removeChild  有容器被删除！  " + child);
+            
+            if (started && child instanceof Lifecycle) {
+                try {
+                    ((Lifecycle) child).stop();
+                } catch (LifecycleException e) {
+                    e.printStackTrace();
+                }
+            }
+            
             children.remove(child.getName());
         }
     }

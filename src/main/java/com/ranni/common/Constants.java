@@ -14,6 +14,6 @@ import java.io.File;
 public class Constants {
     public static final String LIB = File.separator + "lib"; // 依赖库路径
     public static final String BIN = File.separator + "bin"; // 服务器核心文件路径
-    public static final String CONF = File.separator + "CONF"; // 配置文件路径
+    public static final String CONF = File.separator + "conf"; // 配置文件路径
     public static final String WEBAPP_BASE = File.separator + "WEB-INF" + File.separator + "classes"; // webapp的执行目录
 }

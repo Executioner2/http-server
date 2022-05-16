@@ -9,7 +9,8 @@ package com.ranni.deploy;
  * @Email 1205878539@qq.com
  * @Date 2022/5/13 21:05
  */
-final class ContextConfigure {
+@Deprecated
+public final class ContextConfigure {
     private String bootstrap; // 启动类
     private String configureClass = "com.ranni.startup.ContextConfig"; // 配置器类名
     private String path; // 路径

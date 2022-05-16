@@ -33,7 +33,7 @@ import java.net.*;
 public class HttpConnector implements Connector, Runnable, Lifecycle {
     private ServerSocketFactory factory; // 获取服务器socket的工厂
     private ServerSocket serverSocket; // 服务器socket
-    private boolean stopped = false; // 连接器线程停止标签
+    private boolean stopped = false; // 连接器线程停止标志位
     private Thread thread; // 线程
     private String threadName; // 线程名
     private boolean secure; // 安全标志位

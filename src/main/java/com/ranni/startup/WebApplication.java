@@ -1,5 +1,16 @@
 package com.ranni.startup;
 
+import com.ranni.common.SystemProperty;
+import com.ranni.container.Context;
+import com.ranni.container.Engine;
+import com.ranni.container.Host;
+import com.ranni.deploy.ApplicationConfigure;
+import com.ranni.deploy.ConfigureMap;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+
 /**
  * Title: HttpServer
  * Description:
@@ -19,13 +30,14 @@ package com.ranni.startup;
  * @Date 2022/5/15 15:25
  */
 public final class WebApplication {
+    private static final ServerStartup serverStartup = StandardServerStartup.getInstance();
     
     private WebApplication() {}
 
 
     /**
      * 运行webapp
-     * 可以通过WebApplication的类加载器判断是哪种启动方式
+     * 通过资源定位协议来判断启动方式
      * 
      * 若是方式一： 
      * 需要先创建服务器的类加载器com.ranni.loader.CommonClassLoader
@@ -33,7 +45,7 @@ public final class WebApplication {
      * 注意：被打成jar包后，webapp路径应该为/BOOT-INF/classes而非/WEB-INF/classes
      * 
      * 若是方式二：
-     * 同样需要创建服务器的类加载器com.ranni.loader.CommonClassLoader
+     * 只用创建服务器的类加载器com.ranni.loader.WebappClassLoader
      * 然后启动服务器。
      * 注意：方式二启动的根路径为webapp的项目路径，而非服务器的根路径。需要先进入target目录
      * 
@@ -41,52 +53,88 @@ public final class WebApplication {
      * @param args
      */
     public static void run(Class<?> clazz, String[] args) {
-        System.out.println(System.getProperty("user.dir"));
-        
-        // 通过WebApplication的类加载器判断是哪种启动方式
-        // FIXME - 需要更改判定方式
-        if (WebApplication.class.getClassLoader().getClass().toString().equals("class jdk.internal.loader.ClassLoaders$AppClassLoader")) {
+        URL url = clazz.getResource("");
+        String protocol = url.getProtocol();
+
+        // 通过url协议判断是哪种方式启动
+        if ("file".equals(protocol)) {            
+            // 通过webapp启动类取得webapp所在的路径
+            String packagePath = "/classes/" + clazz.getPackageName().replaceAll("\\.", "/") + "/";
+            String path = url.toString().substring(6, url.toString().lastIndexOf(packagePath));
+            String docBase = path.substring(path.lastIndexOf("/") + 1);
+            path = path.substring(0, path.lastIndexOf("/"));
+            String appBase = path.substring(path.lastIndexOf("/"));
+            path = path.substring(0, path.lastIndexOf("/"));
             
+            System.setProperty(SystemProperty.SERVER_BASE, path);
             
+            // 解析配置文件
+            try {
+                
+                if (serverStartup.getConfigureParse() == null)
+                    serverStartup.setConfigureParse(new ServerConfigureParse());
+                
+                if (!serverStartup.getInitialized())
+                    serverStartup.initialize();
+                
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
             
-        } else if (WebApplication.class.getClassLoader().getClass().toString().equals("class org.springframework.boot.loader.LaunchedURLClassLoader")) {
+            // 解析application.yaml配置文件
+            ConfigureMap<Context, ApplicationConfigure> configureMap = null;
+            try {
+                ClassLoader ccl = Thread.currentThread().getContextClassLoader();
+                URL resource = ccl.getResource(Constants.APPLICATION_YAML);
+                ConfigureParse parse = new ApplicationConfigureParse();
+                configureMap = parse.parse(new File(resource.toURI()));
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
+            }
             
+            // Context容器初始化
+            try {
+                ApplicationConfigure configure = configureMap.getConfigure();
+                
+                if (configure.getHost() == null) 
+                    configure.setHost(appBase.substring(1));
+                if (configure.getAppBase() == null)
+                    configure.setAppBase(appBase);
+                if (configure.getDocBase() == null)
+                    configure.setDocBase(docBase);
+                if (configure.getPath() == null)
+                    configure.setPath("/" + docBase);
+                
+                Context context = serverStartup.initializeApplication(configure);                
+                Engine engine = serverStartup.getEngine();
+                Host host = (Host) engine.findChild(configure.getHost());
+                host.addChild(context);                
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
+            }
             
+            // 启动服务器（如果服务器没有启动的话）
+            if (!serverStartup.getStarted()) {
+                try {
+                    serverStartup.startup();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return;
+                }    
+            }            
+
+        } else if ("jar".equals(protocol)) {
+            // 通过jar取得
+            System.out.println("jar");
+            // TODO 待实现
             
         } else {
-            throw new IllegalStateException("不合法的类加载器！");
+            throw new IllegalStateException("不合法的启动方式！");
         }
-        
-        
-//        for (int i = 0; i < 10; i++) {
-//            try {
-//                System.out.println("sleep 10s, left time: " + (10 - i));
-//                Thread.sleep(1000);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        }
-        // 启动服务器，如果服务器未启动的话
-//        Bootstrap.startup();
-//
-//        Engine engine = Bootstrap.getEngine();
-//        
-//        // 取得host路径和context路径
-//        System.out.println("AMD YES");
-//        String path = clazz.getResource("/").getPath();
-//        path = path.substring(0, path.lastIndexOf("/WEB-INF/classes/"));
-//        String docBase = path.substring(path.lastIndexOf("/") + 1);
-//        path = path.substring(0, path.lastIndexOf("/"));
-//        String appBase = path.substring(path.lastIndexOf("/") + 1);
-//
-//        // 创建一个属于该webapp的类加载器
-//        WebappLoader webappLoader = new WebappLoader();
-//        StandardContext context = new StandardContext();
-//
-//        ServerConfigure serverConfigure = Bootstrap.getServerConfigure();
-//        EngineConfigure engineConfigure = serverConfigure.getEngine();
-//        List<HostConfigure> hosts = engineConfigure.getHosts();
-        
-        
+          
     }
+
 }

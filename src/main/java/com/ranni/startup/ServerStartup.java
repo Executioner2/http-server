@@ -1,7 +1,13 @@
 package com.ranni.startup;
 
+import com.ranni.container.Context;
 import com.ranni.container.Engine;
-import com.ranni.deploy.ServerMap;
+import com.ranni.core.Server;
+import com.ranni.deploy.ApplicationConfigure;
+import com.ranni.deploy.ConfigureMap;
+import com.ranni.deploy.ServerConfigure;
+
+import java.io.IOException;
 
 /**
  * Title: HttpServer
@@ -38,18 +44,34 @@ public interface ServerStartup {
 
     /**
      * 设置服务器
-     *
-     * @param serverMap
+     * 
+     * @param server
      */
-    void setServerMap(ServerMap serverMap);
+    void setServer(Server server);
 
 
+    /**
+     * 返回服务器
+     * 
+     * @return
+     */
+    Server getServer();
+    
+
+    /**
+     * 设置服务器
+     *
+     * @param configureMap
+     */
+    void setConfigureMap(ConfigureMap<Server, ServerConfigure> configureMap);
+    
+    
     /**
      * 取得服务器
      *
      * @return
      */
-    ServerMap getServerMap();
+    ConfigureMap<Server, ServerConfigure> getConfigureMap();
 
 
     /**
@@ -65,19 +87,19 @@ public interface ServerStartup {
 
 
     /**
-     * 配置文件解析实例
+     * 设置配置文件解析器
      * 
      * @param parse
      */
-    void setConfigureParse(ConfigureParse parse);
+    void setConfigureParse(ConfigureParse<Server, ServerConfigure> parse);
 
 
     /**
-     * 返回配置文件解析实例
+     * 返回配置文件解析器
      * 
      * @return
      */
-    ConfigureParse getConfigureParse();
+    ConfigureParse<Server, ServerConfigure> getConfigureParse();
 
 
     /**
@@ -94,5 +116,29 @@ public interface ServerStartup {
      * @return
      */
     Engine getEngine();
+
+
+    /**
+     * 初始化，解析服务器配置
+     * 要在调用startup()之前调用此方法
+     */
+    void initialize() throws IOException;
+
+
+    /**
+     * 返回初始化标志位
+     * 
+     * @return
+     */
+    boolean getInitialized();
+        
+
+    /**
+     * 初始化webapp
+     * 
+     * @param applicationConfigure
+     * @return
+     */
+    Context initializeApplication(ApplicationConfigure applicationConfigure) throws Exception;
     
 }

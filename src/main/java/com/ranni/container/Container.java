@@ -4,7 +4,7 @@ import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.loader.Loader;
 import com.ranni.logger.Logger;
-import com.ranni.session.Manager;
+import com.ranni.container.session.Manager;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.ServletException;

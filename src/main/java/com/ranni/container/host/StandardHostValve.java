@@ -6,8 +6,8 @@ import com.ranni.container.Context;
 import com.ranni.container.Host;
 import com.ranni.container.pip.ValveBase;
 import com.ranni.container.pip.ValveContext;
-import com.ranni.session.Manager;
-import com.ranni.session.Session;
+import com.ranni.container.session.Manager;
+import com.ranni.container.session.Session;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;

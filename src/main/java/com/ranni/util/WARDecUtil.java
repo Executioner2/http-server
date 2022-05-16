@@ -43,9 +43,10 @@ public final class WARDecUtil {
                     count = new AtomicInteger(0);
                 }
             }
+        } else {
+            warDecUtil.recycleAll();
         }
         
-        warDecUtil.recycleAll();
         return warDecUtil;
     }
 

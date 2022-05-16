@@ -2,19 +2,25 @@ package com.ranni.startup;
 
 import com.ranni.annotation.core.WebBootstrap;
 import com.ranni.common.SystemProperty;
+import com.ranni.connector.HttpConnector;
+import com.ranni.container.Container;
+import com.ranni.container.Context;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
+import com.ranni.container.context.StandardContext;
+import com.ranni.container.host.StandardHost;
 import com.ranni.core.Server;
 import com.ranni.core.Service;
+import com.ranni.deploy.ApplicationConfigure;
+import com.ranni.deploy.ConfigureMap;
 import com.ranni.deploy.ServerConfigure;
-import com.ranni.deploy.ServerMap;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
+import com.ranni.loader.WebappLoader;
 import com.ranni.util.WARDecUtil;
 
 import javax.annotation.processing.FilerException;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
@@ -24,6 +30,8 @@ import java.net.URLStreamHandler;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.zip.ZipException;
 
 
@@ -41,12 +49,14 @@ public class StandardServerStartup implements ServerStartup {
     private static AtomicInteger finishCount = new AtomicInteger(0); // 扫描线程完成数
     private static Deque<ScanFileEntity> scanFiles = new ConcurrentLinkedDeque<>(); // 扫描文件数
 
+    protected boolean initialized; // 是否已经初始化
     protected Engine engine; // 引擎
+    protected Server server; // 服务器
     protected float divisor = 0.4f; // 线程数量因子，范围：[0.1, 1]
     protected boolean serverStartup; // 是否从服务器启动的标志位
     protected boolean started; // 服务器是否已启动
-    protected ServerMap serverMap; // 服务器实例与服务器实例映射
-    protected ConfigureParse configureParse; // 配置文件解析实例
+    protected ConfigureMap<Server, ServerConfigure> configureMap; // 服务器实例与服务器实例映射
+    protected ConfigureParse<Server, ServerConfigure> configureParse; // 配置文件解析实例
 
 
     private StandardServerStartup() { }
@@ -111,6 +121,8 @@ public class StandardServerStartup implements ServerStartup {
                 try {
                     ScanFileEntity scanFileEntity = scanFiles.pop();
                     File file = scanFileEntity.getFile();
+                    // FIXME - 需要重写
+                    
                     scanBootstrap(file);
                 } catch (NoSuchElementException e) {
                     e.printStackTrace();
@@ -189,33 +201,11 @@ public class StandardServerStartup implements ServerStartup {
      * 启动服务器
      */
     @Override
-    public void startup() throws Exception {
+    public synchronized void startup() throws Exception {
         if (started) 
             throw new IllegalStateException("服务器已启动！");
         
         started = true;
-
-        // 解析服务器配置信息
-        ServerMap serverMap = getServerMap();
-        
-        if (serverMap == null)
-            throw new IllegalArgumentException("无可用服务器！");
-
-        // 获取server和engine
-        Server server = serverMap.getServer();
-        setDivisor(serverMap.getServerConfigure().getScanThreadDivisor()); // 设置扫描线程数量因子
-        Service[] services = server.findServices();
-        Engine engine = (Engine) services[0].getContainer();
-        setEngine(engine);
-        
-        // 扫描Host
-        scanHost(engine);
-        
-        if (serverStartup) {
-            // 通过服务器启动，扫描容器
-            scanContext();
-        }
-
         if (server instanceof Lifecycle) {
             try {
                 server.initialize();
@@ -245,17 +235,22 @@ public class StandardServerStartup implements ServerStartup {
      * 只有拥有启动类的webapp才会被创建Context容器并加入到服务器中进行管理
      */
     private void scanHost(Engine engine) throws IOException {
-        ServerConfigure serverConfigure = serverMap.getServerConfigure();
+        ServerConfigure serverConfigure = configureMap.getConfigure();
 
         Map<String, File> webapps = new HashMap<>();
         Deque<File> wars = new LinkedList<>();        
         WARDecUtil warDecUtil = WARDecUtil.getInstance(); // 解压工具
         int warCount = 0; // 将被解压的war包数量
-                
-        for (Host host : (Host[]) engine.findChildren()) {
-            // XXX - 考虑要不要把webapp的遍历交给加载器
+        
+        // 遍历Host容器
+        for (Container container : engine.findChildren()) {
+            Host host = (Host) container;
             String path = System.getProperty(SystemProperty.SERVER_BASE) + File.separator + host.getAppBase();
             File repository = new File(path);
+            
+            if (!repository.exists())
+                continue;
+            
             if (!repository.isDirectory())
                 throw new FilerException("此路径应该是个目录！");
             
@@ -344,7 +339,7 @@ public class StandardServerStartup implements ServerStartup {
      * 
      * @return
      */
-    protected ServerMap parseServerConfigure() {
+    protected ConfigureMap<Server, ServerConfigure> parseServerConfigure() {
         if (started)
             throw new IllegalArgumentException("ServerStartupBase.parseServerConfigure  服务器已经启动，不能再解析配置文件！");
         
@@ -352,7 +347,47 @@ public class StandardServerStartup implements ServerStartup {
             throw new IllegalArgumentException("ServerStartupBase.parseServerConfigure  配置文件解析实例不能为null！");
 
         try {
-            return configureParse.parse();
+            String filePath = System.getProperty(SystemProperty.SERVER_BASE) + com.ranni.common.Constants.CONF + File.separator;
+            
+            File file = new File(filePath, Constants.DEFAULT_SERVER_YAML);
+            InputStream input = null;
+            
+            if (!file.exists())
+                file = new File(filePath, Constants.DEFAULT_SERVER_YML);
+            
+            if (file.exists() && file.canRead()) {
+                input = new FileInputStream(file);
+                
+            } else {
+                // 不存在，通过当前的类加载器去加载这个资源
+                String serverConfigureName = Constants.DEFAULT_SERVER_YAML;
+                URL resource = StandardServerStartup.class.getClassLoader().getResource(Constants.DEFAULT_SERVER_YAML);
+                
+                if (resource == null) {
+                    resource = StandardServerStartup.class.getClassLoader().getResource(Constants.DEFAULT_SERVER_YML);
+                    serverConfigureName = Constants.DEFAULT_SERVER_YML;
+                }
+                
+                if (resource == null)
+                    throw new FileNotFoundException("找不到server.yaml和server.yml配置文件！");
+                
+                if ("jar".equals(resource.getProtocol())) {
+                    ClassLoader ccl = Thread.currentThread().getContextClassLoader();
+                    int length = (ccl.getResource("").getProtocol() + ":/").length();
+                    String path = resource.getPath().substring(length, resource.getPath().lastIndexOf("!/"));
+                    file = new File(path);
+                    
+                    if (!file.exists() || !file.canRead() || !file.getName().endsWith(".jar"))
+                        throw new IllegalStateException("jar文件状态异常！");
+
+                    JarFile jarFile = new JarFile(file);
+                    JarEntry jarEntry = jarFile.getJarEntry(serverConfigureName);
+                    input = jarFile.getInputStream(jarEntry);
+                }
+            }
+            
+            return configureParse.parse(input);
+            
         } catch (Exception e) {
             e.printStackTrace(System.err);
             return null;
@@ -385,15 +420,37 @@ public class StandardServerStartup implements ServerStartup {
 
     /**
      * 设置服务器
-     *
-     * @param serverMap
+     * 
+     * @param server
      */
     @Override
-    public void setServerMap(ServerMap serverMap) {
+    public void setServer(Server server) {
+        this.server = server;
+    }
+
+
+    /**
+     * 返回服务器
+     * 
+     * @return
+     */
+    @Override
+    public Server getServer() {
+        return this.server;
+    }
+
+
+    /**
+     * 设置服务器
+     *
+     * @param configureMap
+     */
+    @Override
+    public void setConfigureMap(ConfigureMap<Server, ServerConfigure> configureMap) {
         if (started)
             throw new IllegalStateException("服务器已经启动，不能修改服务器！");
 
-        this.serverMap = serverMap;
+        this.configureMap = configureMap;
     }
 
 
@@ -403,11 +460,11 @@ public class StandardServerStartup implements ServerStartup {
      * @return
      */
     @Override
-    public ServerMap getServerMap() {
-        if (this.serverMap == null) {
-            this.serverMap = parseServerConfigure();
+    public ConfigureMap<Server, ServerConfigure> getConfigureMap() {
+        if (this.configureMap == null) {
+            this.configureMap = parseServerConfigure();
         }
-        return this.serverMap;
+        return this.configureMap;
     }
 
 
@@ -419,31 +476,40 @@ public class StandardServerStartup implements ServerStartup {
         finishCount.set(0);
         scanFiles.clear();
         this.started = false;
-        this.serverMap = null;
+        this.configureMap = null;
         this.serverStartup = false;
         this.configureParse = null;
         this.engine = null;
+        this.server = null;
+        this.initialized = false;
     }
 
 
     /**
-     * 配置文件解析全限定类名
+     * 设置配置文件解析器
+     * 单例模式
      * 
      * @param parse
      */
     @Override
-    public void setConfigureParse(ConfigureParse parse) {
-        this.configureParse = parse;
+    public void setConfigureParse(ConfigureParse<Server, ServerConfigure> parse) {
+        if (configureParse == null) {
+            synchronized (this) {
+                if (configureParse == null) {
+                    this.configureParse = parse;
+                }
+            }
+        }
     }
 
 
     /**
-     * 返回配置文件解析全限定类名
+     * 返回配置文件解析器
      * 
      * @return
      */
     @Override
-    public ConfigureParse getConfigureParse() {
+    public ConfigureParse<Server, ServerConfigure> getConfigureParse() {
         return this.configureParse;
     }
 
@@ -474,6 +540,109 @@ public class StandardServerStartup implements ServerStartup {
     @Override
     public Engine getEngine() {
         return this.engine;
+    }
+
+    
+    /**
+     * 初始化，解析服务器配置
+     * 要在调用startup()之前调用此方法
+     */
+    @Override
+    public void initialize() throws IOException {
+        if (initialized)
+            throw new IllegalStateException("StandardServerStartup.initialize  已经初始化过了！");
+        
+        synchronized (this) {
+            
+            if (initialized)
+                return;
+
+            // 解析服务器配置信息
+            ConfigureMap<Server, ServerConfigure> configureMap = getConfigureMap();
+
+            if (configureMap == null)
+                throw new IllegalArgumentException("无可用服务器！");
+
+            // 获取server和engine
+            Server server = configureMap.getInstance();
+            setDivisor(configureMap.getConfigure().getScanThreadDivisor()); // 设置扫描线程数量因子
+            Service[] services = server.findServices();
+            Engine engine = (Engine) services[0].getContainer();
+            setEngine(engine);
+            setServer(server);
+        }
+        
+        // 下面两条支持多线程，所以要在临界区外
+        
+        // 扫描Host
+        scanHost(engine);
+
+        if (serverStartup) {
+            // 通过服务器启动，扫描容器
+            scanContext();
+        }
+    }
+
+
+    /**
+     * 是否已经初始化
+     * 
+     * @return
+     */
+    @Override
+    public boolean getInitialized() {
+        return this.initialized;
+    }
+    
+
+    /**
+     * 创建Context并初始化webapp
+     * 返回Context，并不在此方法中加入Engine
+     * 
+     * @param applicationConfigure
+     * @return
+     */
+    @Override
+    public Context initializeApplication(ApplicationConfigure applicationConfigure) throws Exception {
+        if (getServer() == null)
+            throw new IllegalStateException("StandardServerStartup.initializeApplication  没有服务器实例！");
+        
+        if (getEngine() == null)
+            throw new IllegalStateException("StandardServerStartup.initializeApplication  没有服务器引擎！");
+
+        Engine engine = getEngine();
+        Server server = getServer();
+        Host host = (Host) engine.findChild(applicationConfigure.getHost());
+        
+        if (host == null) {
+            host = new StandardHost();            
+            host.setAppBase(applicationConfigure.getAppBase());
+            host.setName(applicationConfigure.getHost());
+            engine.addChild(host);
+        }
+
+        StandardContext context = new StandardContext();
+    
+        context.setDocBase(applicationConfigure.getDocBase());
+        context.setPath(applicationConfigure.getPath());
+        context.setReloadable(applicationConfigure.isReloadable());
+        context.setBackgroundProcessorDelay(applicationConfigure.getBackgroundProcessorDelay());
+        context.setLoader(new WebappLoader());
+        ContextConfig contextConfig = new ContextConfig();
+        context.addLifecycleListener(contextConfig);
+
+        // 连接器
+        HttpConnector httpConnector = new HttpConnector();
+        httpConnector.setPort(applicationConfigure.getPort());
+        httpConnector.setAddress(applicationConfigure.getIp());
+
+        // 加入service
+        for (String serviceName : applicationConfigure.getServices()) {
+            Service service = server.findService(serviceName);
+            service.addConnector(httpConnector);
+        }
+                
+        return context;
     }
 
 

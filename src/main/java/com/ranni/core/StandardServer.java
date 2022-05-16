@@ -17,7 +17,6 @@ import java.util.Random;
  * Title: HttpServer
  * Description:
  * 标准的服务器实现类
- * XXX 后续应该实现server.xml读取
  * 
  * @Author 2Executioner
  * @Email 1205878539@qq.com
