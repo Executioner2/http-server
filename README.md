@@ -3,8 +3,13 @@
 --- 
 
 #
-## 计划
+## 计划1
 + 解决响应包中文乱码问题
++ server配置文件支持容器添加Mapper
++ WARDecUtil和StandardServerStartup的多线程任务应该提供多线程数量因子的对外设定方法
+
+#
+## 计划2
 + 实现keepAlive和100状态码
 + session id目前没有同router id（router id每个服务器一个，用于实现负载均衡）一起组成复合型session id。计划选择性加入这个，因为session可能会被设计为一个独立于服务器的session池
 + 请求对象和响应对象也要有集合，要实现复用

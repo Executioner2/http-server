@@ -1,5 +1,6 @@
 package com.ranni.startup;
 
+import com.ranni.container.Engine;
 import com.ranni.deploy.ServerMap;
 
 /**
@@ -77,4 +78,21 @@ public interface ServerStartup {
      * @return
      */
     ConfigureParse getConfigureParse();
+
+
+    /**
+     * 设置线程数量因子
+     * 
+     * @param divisor
+     */
+    void setDivisor(float divisor);
+
+
+    /**
+     * 返回engine
+     * 
+     * @return
+     */
+    Engine getEngine();
+    
 }

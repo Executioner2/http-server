@@ -8,7 +8,7 @@ import com.ranni.connector.http.response.Response;
 import com.ranni.container.*;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
-import com.ranni.container.loader.Loader;
+import com.ranni.loader.Loader;
 import com.ranni.logger.Logger;
 import com.ranni.monitor.InstanceEvent;
 import com.ranni.monitor.InstanceListener;

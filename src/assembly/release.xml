@@ -1,0 +1,54 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.0 http://maven.apache.org/xsd/assembly-2.1.0.xsd">
+
+    <formats>
+        <format>tar.gz</format>
+        <format>zip</format>
+    </formats>
+    
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>/lib</outputDirectory>
+            <excludes>
+                <exclude>HttpServer*</exclude>
+            </excludes>
+        </dependencySet>
+        
+        <dependencySet>
+            <outputDirectory>/bin</outputDirectory>
+            <includes>
+                <include>HttpServer*</include>
+            </includes>
+        </dependencySet>
+    </dependencySets>
+
+    <fileSets>
+        <fileSet>
+            <includes>
+                <include>bin/**</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+
+        <fileSet>
+            <includes>
+                <include>/conf/**</include>
+                <include>logs</include>
+            </includes>
+        </fileSet>
+
+        <fileSet>
+            <directory>webapps</directory>
+            <outputDirectory>/webapps</outputDirectory>
+        </fileSet>
+    </fileSets>
+
+    <files>
+        <file>
+            <source>README.md</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+    </files>
+
+</assembly>

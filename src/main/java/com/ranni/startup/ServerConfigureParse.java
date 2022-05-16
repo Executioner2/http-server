@@ -37,7 +37,7 @@ public class ServerConfigureParse implements ConfigureParse {
      */
     @Override
     public ServerMap parse() throws Exception {
-        String filePath = System.getProperty(SystemProperty.SERVER_BASE) + File.separator + Constants.DEFAULT_WEB_YAML;
+        String filePath = System.getProperty(SystemProperty.SERVER_BASE) + File.separator + Constants.DEFAULT_SERVER_YAML;
         File file = new File(filePath);
         
         ServerConfigure serverConfigure = yaml.load(new FileInputStream(file));
@@ -69,6 +69,7 @@ public class ServerConfigureParse implements ConfigureParse {
             
             host.setName(hostConfigure.getName());
             host.setAppBase(hostConfigure.getAppBase());
+            host.setAutoDeploy(hostConfigure.isAutoDeploy());
             
             if (hostConfigure.getDefaultContextClass() != null)
                 host.addDefaultContext((DefaultContext) getInstance(hostConfigure.getDefaultContextClass()));

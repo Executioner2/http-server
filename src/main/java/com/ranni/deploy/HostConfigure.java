@@ -15,6 +15,7 @@ public final class HostConfigure {
     private String name; // host的名字
     private String appBase; // host目录
     private String clazz; // host的类名
+    private boolean autoDeploy = true; // 自动部署
     private String defaultContextClass; // 默认的Context容器全限定类名
     private List<ContextConfigure> contexts; // Context容器
 
@@ -56,5 +57,13 @@ public final class HostConfigure {
 
     public void setContexts(List<ContextConfigure> contexts) {
         this.contexts = contexts;
+    }
+
+    public boolean isAutoDeploy() {
+        return autoDeploy;
+    }
+
+    public void setAutoDeploy(boolean autoDeploy) {
+        this.autoDeploy = autoDeploy;
     }
 }

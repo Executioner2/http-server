@@ -15,6 +15,15 @@ public final class ServerConfigure {
     private boolean unpackWARS; // 是否自动解压war包
     private EngineConfigure engine; // 服务器引擎
     private List<ServiceConfigure> services; // 服务集合
+    private float scanThreadDivisor = 0.4f; // 扫描线程数量因子
+
+    public float getScanThreadDivisor() {
+        return scanThreadDivisor;
+    }
+
+    public void setScanThreadDivisor(float scanThreadDivisor) {
+        this.scanThreadDivisor = scanThreadDivisor;
+    }
 
     public boolean isUnpackWARS() {
         return unpackWARS;
