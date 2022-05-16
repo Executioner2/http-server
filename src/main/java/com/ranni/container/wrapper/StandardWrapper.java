@@ -18,7 +18,10 @@ import com.ranni.util.InstanceSupport;
 import javax.servlet.*;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * Title: HttpServer
@@ -34,7 +37,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     private StandardWrapperFacade facade = new StandardWrapperFacade(this);
     private Map<String, String> parameters = new HashMap(); // 参数列表
     private boolean singleThreadModel; // 是否是单线程servlet模式，如果不是，每次请求都会创建新的servlet实例
-    private Deque<Servlet> instancePool = null; // 单线程servlet模式下才会有servlet实例池
+    private ConcurrentLinkedDeque<Servlet> instancePool = null; // 单线程servlet模式下才会有servlet实例池
     private int maxInstances = 20; // 默认的单线程servlet模式下最大实例数量
     private int countAllocated; // 活动的实例数量
     private int debug = Logger.INFORMATION; // 日志输出级别
@@ -389,7 +392,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         if (singleThreadModel) {
             if (instancePool == null) {
                 // 创建一个实例池
-                instancePool = new LinkedList<>();
+                instancePool = new ConcurrentLinkedDeque<>();
             }
         }
 

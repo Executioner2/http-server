@@ -1,7 +1,9 @@
 package com.ranni.startup;
 
+import com.ranni.common.SystemProperty;
 import com.ranni.container.Engine;
 import com.ranni.deploy.ServerConfigure;
+import com.ranni.loader.CommonClassLoader;
 
 /**
  * Title: HttpServer
@@ -16,8 +18,17 @@ public final class Bootstrap {
     public static final ServerStartup serverStartup = StandardServerStartup.getInstance();
     
     public static void main(String[] args) {
-        serverStartup.setServerStartup(true);
-        startup();
+        String base = System.getProperty("user.dir"); // 服务器根目录
+        if (base.endsWith("\\bin")) {
+            base = base.substring(0, base.length() - 4);
+        }
+        System.setProperty(SystemProperty.SERVER_BASE, base);
+        
+        // 设置类加载器
+        CommonClassLoader commonClassLoader = new CommonClassLoader();
+        Thread.currentThread().setContextClassLoader(commonClassLoader);
+//        serverStartup.setServerStartup(true);
+//        startup();
     }
 
 

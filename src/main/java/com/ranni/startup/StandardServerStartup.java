@@ -22,6 +22,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLStreamHandler;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipException;
 
@@ -38,7 +39,7 @@ public class StandardServerStartup implements ServerStartup {
     private static final int MAX_THREAD = 8; // 最大线程数
     private volatile static StandardServerStartup instance; // 单例的StandardServerStartup
     private static AtomicInteger finishCount = new AtomicInteger(0); // 扫描线程完成数
-    private static Deque<ScanFileEntity> scanFiles = new LinkedList<>();
+    private static Deque<ScanFileEntity> scanFiles = new ConcurrentLinkedDeque<>(); // 扫描文件数
 
     protected Engine engine; // 引擎
     protected float divisor = 0.4f; // 线程数量因子，范围：[0.1, 1]
@@ -48,9 +49,7 @@ public class StandardServerStartup implements ServerStartup {
     protected ConfigureParse configureParse; // 配置文件解析实例
 
 
-    private StandardServerStartup() {
-        System.setProperty(SystemProperty.SERVER_BASE, System.getProperty("user.dir"));
-    }
+    private StandardServerStartup() { }
 
 
     /**
@@ -244,9 +243,6 @@ public class StandardServerStartup implements ServerStartup {
     /**
      * 扫描所有主机
      * 只有拥有启动类的webapp才会被创建Context容器并加入到服务器中进行管理
-     * webapp的启动类必须继承WebApplicationStartupBase
-     * 
-     * @see WebApplicationStartup
      */
     private void scanHost(Engine engine) throws IOException {
         ServerConfigure serverConfigure = serverMap.getServerConfigure();
@@ -296,7 +292,7 @@ public class StandardServerStartup implements ServerStartup {
             }
 
             // 解压war包，后台解压                      
-            warDecUtil.unzip(new LinkedList<>(wars), true);
+            warDecUtil.unzip(new ConcurrentLinkedDeque<>(wars), true);
 
         }
 

@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -23,7 +24,7 @@ public final class WARDecUtil {
     private volatile static WARDecUtil warDecUtil; // WARDecUtil的实例
     private volatile static AtomicInteger count; // 原子整型，最多只有一个此实例，多个WARDecUtil实例访问的是同一个atomicInteger
     private AtomicInteger finishCount = new AtomicInteger(0); // 完成线程数量计数
-    private Deque<File> files; // 需要解压的压缩文件
+    private ConcurrentLinkedDeque<File> files; // 需要解压的压缩文件
 
     private WARDecUtil() {}
     
@@ -169,7 +170,7 @@ public final class WARDecUtil {
      * @param files 
      * @param background 是否开启后台线程解压，如果开启，会创建新的WARDecUtil实例并新开启一个线程进行解压工作
      */
-    public void unzip(Deque<File> files, boolean background) {
+    public void unzip(ConcurrentLinkedDeque<File> files, boolean background) {
         
         if (background) {
                        
