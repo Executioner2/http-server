@@ -83,15 +83,9 @@ public final class StandardServlet extends HttpServlet {
      */
     @Override
     public void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String requestURI = req.getRequestURI();
-        if (requestURI == null || !requestURI.startsWith(baseUri)) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "请求未找到！ requestURI：" + requestURI);
-            return;
-        }
-
-        String uri = requestURI.substring(baseUri.length() + 1);        
+        String uri = req.getRequestURI().substring(baseUri.length() + 1);        
         if (!methodMap.containsKey(uri)) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "请求未找到！ requestURI：" + requestURI);
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "请求未找到！ requestURI：" + req.getRequestURI());
             return;
         }
 
