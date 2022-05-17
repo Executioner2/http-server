@@ -1,5 +1,7 @@
 package com.ranni.deploy;
 
+import com.ranni.logger.Logger;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,15 +16,22 @@ import java.util.List;
  */
 public class ApplicationConfigure {
     private String bootstrap; // 启动类
-    private String path; // 路径
-    private String docBase; // 资源路径，一般同path
-    private String appBase; // 主机路径
+    private String path; // 路径    
     private String host; // 所属主机
     private String ip; // ip地址
     private boolean reloadable; // 是否可重载
     private int port = 8080; // 端口号
+    private int debug = Logger.WARNING; // debug级别
     private int backgroundProcessorDelay; // 后台线程的休眠因子，值小于等于0表示没有单独的后台任务线程
     private List<String> services = new ArrayList<>(){{ add("StandardService"); }}; // 加入的服务
+
+    public int getDebug() {
+        return debug;
+    }
+
+    public void setDebug(int debug) {
+        this.debug = debug;
+    }
 
     public List<String> getServices() {
         return services;
@@ -31,23 +40,7 @@ public class ApplicationConfigure {
     public void setServices(List<String> services) {
         this.services = services;
     }
-
-    public String getDocBase() {
-        return docBase;
-    }
-
-    public void setDocBase(String docBase) {
-        this.docBase = docBase;
-    }
-
-    public String getAppBase() {
-        return appBase;
-    }
-
-    public void setAppBase(String appBase) {
-        this.appBase = appBase;
-    }
-
+    
     public String getBootstrap() {
         return bootstrap;
     }

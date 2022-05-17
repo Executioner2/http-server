@@ -42,7 +42,7 @@ public abstract class ConfigureParseBase<T, E> implements ConfigureParse {
                 yaml = new Yaml();
             }
         }
-
+        
         E load = yaml.load(input);
 
         // 装配

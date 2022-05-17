@@ -2,21 +2,17 @@ package com.ranni.startup;
 
 import com.ranni.annotation.core.WebBootstrap;
 import com.ranni.common.SystemProperty;
-import com.ranni.connector.HttpConnector;
 import com.ranni.container.Container;
-import com.ranni.container.Context;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
-import com.ranni.container.context.StandardContext;
 import com.ranni.container.host.StandardHost;
 import com.ranni.core.Server;
 import com.ranni.core.Service;
-import com.ranni.deploy.ApplicationConfigure;
+import com.ranni.deploy.ApplicationMap;
 import com.ranni.deploy.ConfigureMap;
 import com.ranni.deploy.ServerConfigure;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
-import com.ranni.loader.WebappLoader;
 import com.ranni.util.WARDecUtil;
 
 import javax.annotation.processing.FilerException;
@@ -599,11 +595,11 @@ public class StandardServerStartup implements ServerStartup {
      * 创建Context并初始化webapp
      * 返回Context，并不在此方法中加入Engine
      * 
-     * @param applicationConfigure
+     * @param applicationMap
      * @return
      */
     @Override
-    public Context initializeApplication(ApplicationConfigure applicationConfigure) throws Exception {
+    public void initializeApplication(ApplicationMap applicationMap) throws Exception {
         if (getServer() == null)
             throw new IllegalStateException("StandardServerStartup.initializeApplication  没有服务器实例！");
         
@@ -612,37 +608,34 @@ public class StandardServerStartup implements ServerStartup {
 
         Engine engine = getEngine();
         Server server = getServer();
-        Host host = (Host) engine.findChild(applicationConfigure.getHost());
+        Host host = (Host) engine.findChild(applicationMap.getHost());
         
         if (host == null) {
             host = new StandardHost();            
-            host.setAppBase(applicationConfigure.getAppBase());
-            host.setName(applicationConfigure.getHost());
+            host.setAppBase(applicationMap.getAppBase());
+            host.setName(applicationMap.getHost());
             engine.addChild(host);
         }
-
-        StandardContext context = new StandardContext();
-    
-        context.setDocBase(applicationConfigure.getDocBase());
-        context.setPath(applicationConfigure.getPath());
-        context.setReloadable(applicationConfigure.isReloadable());
-        context.setBackgroundProcessorDelay(applicationConfigure.getBackgroundProcessorDelay());
-        context.setLoader(new WebappLoader());
-        ContextConfig contextConfig = new ContextConfig();
-        context.addLifecycleListener(contextConfig);
-
-        // 连接器
-        HttpConnector httpConnector = new HttpConnector();
-        httpConnector.setPort(applicationConfigure.getPort());
-        httpConnector.setAddress(applicationConfigure.getIp());
+        
+//        StandardContext context = new StandardContext();
+//    
+//        context.setDocBase(applicationConfigure.getDocBase());
+//        context.setPath(applicationConfigure.getPath());
+//        context.setReloadable(applicationConfigure.isReloadable());
+//        context.setBackgroundProcessorDelay(applicationConfigure.getBackgroundProcessorDelay());
+//        context.setLoader(new WebappLoader());
+//        ContextConfig contextConfig = new ContextConfig();
+//        context.addLifecycleListener(contextConfig);
+//
+//        // 连接器
+//        HttpConnector httpConnector = new HttpConnector();
+//        httpConnector.setPort(applicationConfigure.getPort());
+//        httpConnector.setAddress(applicationConfigure.getIp());
 
         // 加入service
-        for (String serviceName : applicationConfigure.getServices()) {
-            Service service = server.findService(serviceName);
-            service.addConnector(httpConnector);
-        }
-                
-        return context;
+        
+        
+        host.addChild(applicationMap.getContext());
     }
 
 

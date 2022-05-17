@@ -1,9 +1,8 @@
 package com.ranni.startup;
 
-import com.ranni.container.Context;
 import com.ranni.container.Engine;
 import com.ranni.core.Server;
-import com.ranni.deploy.ApplicationConfigure;
+import com.ranni.deploy.ApplicationMap;
 import com.ranni.deploy.ConfigureMap;
 import com.ranni.deploy.ServerConfigure;
 
@@ -134,11 +133,11 @@ public interface ServerStartup {
         
 
     /**
-     * 初始化webapp
+     * 初始化并把Context容器加入到服务器中
      * 
-     * @param applicationConfigure
+     * @param applicationMap
      * @return
      */
-    Context initializeApplication(ApplicationConfigure applicationConfigure) throws Exception;
+    void initializeApplication(ApplicationMap applicationMap) throws Exception;
     
 }

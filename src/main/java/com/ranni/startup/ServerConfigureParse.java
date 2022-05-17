@@ -30,12 +30,7 @@ public class ServerConfigureParse extends ConfigureParseBase {
     public ServerConfigureParse(Class clazz) {
         super(clazz);
     }
-
     
-//    @Override
-//    public ConfigureMap parse(File file) throws Exception {
-//        return super.parse(file);
-//    }
 
     /**
      * 装配
@@ -142,5 +137,25 @@ public class ServerConfigureParse extends ConfigureParseBase {
      */
     public String getServerClass() {
         return serverClass;
+    }
+
+
+    /**
+     * 返回服务接口实现类的全限定类名
+     * 
+     * @return
+     */
+    public String getServiceClass() {
+        return serviceClass;
+    }
+
+
+    /**
+     * 设置服务接口实现类的全限定类名
+     * 
+     * @param serviceClass
+     */
+    public void setServiceClass(String serviceClass) {
+        this.serviceClass = serviceClass;
     }
 }

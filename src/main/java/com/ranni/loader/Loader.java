@@ -106,4 +106,36 @@ public interface Loader {
      * @param listener
      */
     void removePropertyChangeListener(PropertyChangeListener listener);
+
+
+    /**
+     * 设置类路径
+     * 
+     * @param classesPath
+     */
+    void setClassesPath(String classesPath);
+
+
+    /**
+     * 返回类路径
+     * 
+     * @return
+     */
+    String getClassesPath();
+
+
+    /**
+     * 设置依赖的路径
+     * 
+     * @param libPath
+     */
+    void setLibPath(String libPath);
+
+
+    /**
+     * 返回lib的路径
+     * 
+     * @return
+     */
+    String getLibPath();
 }

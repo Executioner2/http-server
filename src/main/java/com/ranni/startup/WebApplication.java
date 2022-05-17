@@ -1,7 +1,7 @@
 package com.ranni.startup;
 
 import com.ranni.common.SystemProperty;
-import com.ranni.container.Context;
+import com.ranni.connector.Connector;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
 import com.ranni.deploy.ApplicationConfigure;
@@ -59,13 +59,9 @@ public final class WebApplication {
         // 通过url协议判断是哪种方式启动
         if ("file".equals(protocol)) {            
             // 通过webapp启动类取得webapp所在的路径
+            // XXX - 待改
             String packagePath = "/classes/" + clazz.getPackageName().replaceAll("\\.", "/") + "/";
-            String path = url.toString().substring(6, url.toString().lastIndexOf(packagePath));
-            String docBase = path.substring(path.lastIndexOf("/") + 1);
-            path = path.substring(0, path.lastIndexOf("/"));
-            String appBase = path.substring(path.lastIndexOf("/"));
-            path = path.substring(0, path.lastIndexOf("/"));
-            
+            String path = url.toString().substring(6, url.toString().lastIndexOf(packagePath));            
             System.setProperty(SystemProperty.SERVER_BASE, path);
             
             // 解析配置文件
@@ -83,11 +79,13 @@ public final class WebApplication {
             }
             
             // 解析application.yaml配置文件
-            ConfigureMap<Context, ApplicationConfigure> configureMap = null;
+            ConfigureMap<Connector, ApplicationConfigure> configureMap = null;
             try {
                 ClassLoader ccl = Thread.currentThread().getContextClassLoader();
                 URL resource = ccl.getResource(Constants.APPLICATION_YAML);
-                ConfigureParse parse = new ApplicationConfigureParse();
+                ApplicationConfigureParse parse = new ApplicationConfigureParse(clazz);
+                parse.setPrefix("/classes");
+                parse.setServer(serverStartup.getServer());
                 configureMap = parse.parse(new File(resource.toURI()));
             } catch (Exception e) {
                 e.printStackTrace();
@@ -97,20 +95,11 @@ public final class WebApplication {
             // Context容器初始化
             try {
                 ApplicationConfigure configure = configureMap.getConfigure();
+                Connector connector = configureMap.getInstance();
                 
-                if (configure.getHost() == null) 
-                    configure.setHost(appBase.substring(1));
-                if (configure.getAppBase() == null)
-                    configure.setAppBase(appBase);
-                if (configure.getDocBase() == null)
-                    configure.setDocBase(docBase);
-                if (configure.getPath() == null)
-                    configure.setPath("/" + docBase);
-                
-                Context context = serverStartup.initializeApplication(configure);                
                 Engine engine = serverStartup.getEngine();
                 Host host = (Host) engine.findChild(configure.getHost());
-                host.addChild(context);                
+                host.addChild(connector.getContainer());                
             } catch (Exception e) {
                 e.printStackTrace();
                 return;

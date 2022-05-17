@@ -1,5 +1,6 @@
 package com.ranni.loader;
 
+import com.ranni.common.Constants;
 import com.ranni.common.Globals;
 import com.ranni.container.Container;
 import com.ranni.container.Context;
@@ -48,6 +49,8 @@ public class WebappLoader implements Loader, Lifecycle {
     private boolean threadDone; // 重载线程是否执行完成
     private String threadName; // 重载线程名字
     private int checkInterval = 15; // 重载线程休眠时间因子
+    private String classPath = Constants.WEBAPP_LIB;
+    private String libPath = Constants.WEBAPP_LIB;
     
 
     public WebappLoader() {
@@ -194,7 +197,51 @@ public class WebappLoader implements Loader, Lifecycle {
     public void removePropertyChangeListener(PropertyChangeListener listener) {
 
     }
-    
+
+
+    /**
+     * 设置类路径
+     * 
+     * @param classesPath
+     */
+    @Override
+    public void setClassesPath(String classesPath) {
+        this.classPath = classesPath;
+    }
+
+
+    /**
+     * 返回类路径
+     * 
+     * @return
+     */
+    @Override
+    public String getClassesPath() {
+        return this.classPath;
+    }
+
+
+    /**
+     * 设置依赖的路径
+     * 
+     * @param libPath
+     */
+    @Override
+    public void setLibPath(String libPath) {
+        this.libPath = libPath;
+    }
+
+
+    /**
+     * 返回lib的路径
+     * 
+     * @return
+     */
+    @Override
+    public String getLibPath() {
+        return this.libPath;
+    }
+
 
     /**
      * 添加监听器
@@ -298,7 +345,6 @@ public class WebappLoader implements Loader, Lifecycle {
     /**
      * 设置拓展类的类路径
      * 这个就相当于在设置CLASSPATH环境变量
-     * XXX 当这个加载器启动后还会调用这个方法，但是启动后并不需要进行全扫描，只需要扫描刚加入的类就可以了，这点后面来改进
      */
     private void setClassPath() {
         // 信息验证
@@ -366,7 +412,7 @@ public class WebappLoader implements Loader, Lifecycle {
         DirContext resources = container.getResources();
 
         // 导入WEB应用程序的class文件
-        String classesPath = "/WEB-INF/classes"; // 类的路径
+        String classesPath = getClassesPath(); // 类的路径
         DirContext classes = null;
 
         try {
@@ -390,14 +436,14 @@ public class WebappLoader implements Loader, Lifecycle {
                 copyDir(classes, classRepository);
             }
 
-            log("WebappLoader 类部署  classPath: " + classesPath + "   classRepositoryAbPath: " + classRepository.getAbsolutePath());
+            log("WebappLoader 类部署  getClassesPath: " + classesPath + "   classRepositoryAbPath: " + classRepository.getAbsolutePath());
 
             classLoader.addRepository(classesPath + "/", classRepository);
         }
 
 
         // 导入WEB应用使用的JAR包，需要将JAR包里的类拷贝出来
-        String libPath = "/WEB-INF/lib";
+        String libPath = getLibPath();
         classLoader.setJarPath(libPath);
 
         DirContext libDir = null;
