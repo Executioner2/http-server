@@ -27,4 +27,7 @@ public final class Globals {
 
     // 写入到Cookie中的sessionId属性
     public static final String SESSION_COOKIE_NAME = "JSESSIONID";
+    
+    // webapp的启动类
+    public static final String APPLICATION_BOOTSTRAP_CLASS = "application_bootstrap_class";
 }

@@ -12,10 +12,19 @@ import java.util.List;
  * @Date 2022/5/13 21:05
  */
 public class EngineConfigure {
+    private String name = ""; // engine名
     private String defaultHost; // 默认的host容器名
     private String clazz = "com.ranni.container.engine.StandardEngine"; // engine的实现类
     private String hostClass = "com.ranni.container.host.StandardHost";
     private List<HostConfigure> hosts; // host容器集合
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     public String getDefaultHost() {
         return defaultHost;

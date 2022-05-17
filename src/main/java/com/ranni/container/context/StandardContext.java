@@ -1682,49 +1682,38 @@ public class StandardContext extends ContainerBase implements Context {
 
     /**
      * 设置工作目录，把工作目录属性存入ServletContext中
-     * 会先查询engine和host的路径，为空的话就用"_"代替
+     * 会先查询engine和host的路径，为空的话就用""代替
      */
     private void postWorkDirectory() {
         String workDir = getWorkDir();
 
         if (workDir == null) {
-            String hostName = null;
-            String engineName = null;
+            String hostBase = null;
             String hostWorkDir = null;
             Container parentHost = getParent();
 
             if (parentHost != null) {
-                hostName = parentHost.getName();
                 // 取得主机的工作路径
                 if (parentHost instanceof StandardHost) {
+                    hostBase = ((StandardHost) parentHost).getAppBase();
                     hostWorkDir = ((StandardHost) parentHost).getWorkDir();
                 }
-
-                Container parentEngine = parentHost.getParent();
-
-                if (parentEngine != null) {
-                    engineName = parentEngine.getName();
-                }
             }
 
-            if (engineName == null || engineName.isEmpty()) {
-                engineName = "_";
-            }
-            if (hostName == null || hostName.isEmpty()) {
-                hostName = "_";
+            if (hostBase == null || hostBase.isEmpty()) {
+                hostBase = "";
             }
 
             String path = getPath();
-
-            if (path.startsWith("/")) {
+            if (path.startsWith("/"))
                 path = path.substring(1);
-            }
-
+            if (hostBase.startsWith("/"))
+                hostBase = hostWorkDir.substring(1);
+            
             if (hostWorkDir != null) {
                 workDir = hostWorkDir + File.separator + path;
             } else {
-                workDir = "work" + File.separator + engineName +
-                        File.separator + hostName + File.separator + path;
+                workDir = File.separator + hostBase + File.separator + path;
             }
 
             setWorkDir(workDir);

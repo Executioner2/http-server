@@ -1,10 +1,15 @@
 package com.ranni.startup;
 
+import com.ranni.annotation.core.Controller;
+import com.ranni.annotation.core.Controllers;
+import com.ranni.common.Globals;
 import com.ranni.container.Container;
 import com.ranni.container.Context;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
 import com.ranni.container.context.StandardContext;
+import com.ranni.container.wrapper.StandardServlet;
+import com.ranni.container.wrapper.StandardWrapper;
 import com.ranni.core.FilterDef;
 import com.ranni.deploy.ApplicationParameter;
 import com.ranni.deploy.FilterMap;
@@ -12,6 +17,16 @@ import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleEvent;
 import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
+import com.ranni.naming.FileDirContext;
+
+import javax.naming.Binding;
+import javax.naming.NameClassPair;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.DirContext;
+import java.lang.annotation.Annotation;
+import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  * Title: HttpServer
@@ -173,7 +188,7 @@ public class ContextConfig implements LifecycleListener {
 //        defaultConfig();
         
         // 解析webapp的xml文件
-//        applicationConfig();
+        applicationConfig();
         
         if (ok) {
             context.setConfigured(true);
@@ -183,7 +198,74 @@ public class ContextConfig implements LifecycleListener {
         }
         
     }
-    
+
+
+    /**
+     * 加载启动类
+     * TODO - 插入启动类注解扫描事件
+     */
+    private void applicationConfig() {
+        Class webappBootstrapClass = (Class) context.getServletContext().getAttribute(Globals.APPLICATION_BOOTSTRAP_CLASS);
+
+        Annotation[] declaredAnnotations = webappBootstrapClass.getDeclaredAnnotations();
+        for (Annotation annotation : declaredAnnotations) {
+            if (annotation instanceof Controllers) {
+                // 创建映射关系
+                scanController(((Controllers) annotation).value());
+            }
+        }
+    }
+
+
+    /**
+     * 扫描controller
+     * XXX - 这是个极其耗时长的工作
+     * 
+     * @param paths
+     */
+    private void scanController(String[] paths) {
+        DirContext resources = context.getResources();
+        ClassLoader loader = context.getLoader().getClassLoader();
+
+        for (String path : paths) {
+            try {
+                NamingEnumeration<NameClassPair> it = resources.list(context.getLoader().getClassesPath() + "\\" + path.replaceAll("\\.", "\\\\"));
+                Queue<NamingEnumeration<NameClassPair>> queue = new LinkedList<>();
+                Queue<String> segments = new LinkedList<>();
+                queue.offer(it);
+                segments.offer("."); // 上一段包名
+                
+                while (!queue.isEmpty()) {
+                    it = queue.poll();
+                    String segment = segments.poll();
+                    while (it.hasMore()) {
+                        Binding binding = (Binding) it.nextElement(); // FIXME - webapp打成jar包的情况没做处理
+                        if (binding.getObject() instanceof FileDirContext) {
+                            queue.offer(resources.list(((FileDirContext) binding.getObject()).getDocBase()));
+                            segments.offer(segment + '.' + binding.getName() + '.');
+                        } else {
+                            try {
+                                String controllerName = binding.getName().substring(0, binding.getName().length() - 6);
+                                Class<?> aClass = loader.loadClass(path + segment + controllerName);
+                                Controller controller = aClass.getDeclaredAnnotation(Controller.class);
+                                String value = controller.value();
+                                context.addServletMapping(value, controllerName);
+                                StandardWrapper standardWrapper = new StandardWrapper();
+                                standardWrapper.setName(controllerName);
+                                standardWrapper.setServletClass(StandardServlet.class.getName());
+                            } catch (ClassNotFoundException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+                
+
+            } catch (NamingException e) {
+                e.printStackTrace();
+            }
+        }
+    }
     
 
     /**

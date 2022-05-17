@@ -2,6 +2,7 @@
 
 # 配置引擎
 engine:
+  name: DefaultEngine
   clazz: com.ranni.container.engine.StandardEngine # 如果此属性为null，则使用默认的Engine实现类
   defaultHost: host # 默认Host名
   hostClass: com.ranni.container.host.StandardHost # 统一配置host的实现类名

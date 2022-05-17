@@ -57,6 +57,7 @@ public class ServerConfigureParse extends ConfigureParseBase {
         EngineConfigure engineConfigure = serverConfigure.getEngine();
         Engine engine = (Engine) getInstance(engineConfigure.getClazz());
         engine.setDefaultHost(engineConfigure.getDefaultHost());
+        engine.setName(engineConfigure.getName());
 
         // 配置host
         for (HostConfigure hostConfigure : engineConfigure.getHosts()) {
@@ -84,22 +85,6 @@ public class ServerConfigureParse extends ConfigureParseBase {
             Service service = (Service) getInstance(serviceClass);
             service.setContainer(engine);
             service.setName(serviceConfigure.getName());
-
-            // 配置连接器
-//            for (ConnectorConfigure connectorConfigure : serviceConfigure.getConnectors()) {
-//
-//                Connector connector;
-//
-//                if (connectorConfigure.getClazz() == null) {
-//                    connector = (Connector) getInstance(serviceConfigure.getConnectorClass());
-//                } else {
-//                    connector = (Connector) getInstance(connectorConfigure.getClazz());
-//                }
-//
-//                connector.setDebug(connectorConfigure.getDebug());
-//                service.addConnector(connector);
-//            }
-
             server.addService(service);
         }
         

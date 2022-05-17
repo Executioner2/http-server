@@ -221,12 +221,6 @@ public class HttpProcessor implements Processor {
 
             // 完成请求
             response.finishResponse();
-//            if (request.getRequestURI().startsWith("/servlet/")) {
-//
-//            } else {
-//                // XXX 静态文件请求
-//                response.sendStaticResource();
-//            }
 
         } catch (IOException e) {
             e.printStackTrace();

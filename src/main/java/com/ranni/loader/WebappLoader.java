@@ -310,7 +310,7 @@ public class WebappLoader implements Loader, Lifecycle {
 
             classLoader.setResources(container.getResources());
             classLoader.setDelegate(this.delegate); // 设置委托标志
-            // 导入存储库
+            // 导入额外的加载仓库
             for (int i = 0; i < repositories.length; i++) {
                 classLoader.addRepository(repositories[i]);
             }

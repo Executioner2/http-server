@@ -1,9 +1,10 @@
 package com.ranni.startup;
 
 import com.ranni.common.SystemProperty;
-import com.ranni.connector.Connector;
+import com.ranni.container.Context;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
+import com.ranni.container.host.StandardHost;
 import com.ranni.deploy.ApplicationConfigure;
 import com.ranni.deploy.ConfigureMap;
 
@@ -79,10 +80,14 @@ public final class WebApplication {
             }
             
             // 解析application.yaml配置文件
-            ConfigureMap<Connector, ApplicationConfigure> configureMap = null;
+            ConfigureMap<Context, ApplicationConfigure> configureMap = null;
             try {
                 ClassLoader ccl = Thread.currentThread().getContextClassLoader();
                 URL resource = ccl.getResource(Constants.APPLICATION_YAML);
+                
+                if (resource == null)
+                    resource = ccl.getResource(Constants.APPLICATION_YML);
+                
                 ApplicationConfigureParse parse = new ApplicationConfigureParse(clazz);
                 parse.setPrefix("/classes");
                 parse.setServer(serverStartup.getServer());
@@ -92,14 +97,19 @@ public final class WebApplication {
                 return;
             }
             
-            // Context容器初始化
+            // 加入到服务器中
             try {
                 ApplicationConfigure configure = configureMap.getConfigure();
-                Connector connector = configureMap.getInstance();
+                Context context = configureMap.getInstance();
                 
                 Engine engine = serverStartup.getEngine();
                 Host host = (Host) engine.findChild(configure.getHost());
-                host.addChild(connector.getContainer());                
+                
+                // 设置工作目录和仓库目录
+                if (host instanceof StandardHost) 
+                    ((StandardHost) host).setWorkDir(path);
+
+                host.addChild(context);                
             } catch (Exception e) {
                 e.printStackTrace();
                 return;

@@ -496,7 +496,6 @@ public class FileDirContext extends BaseDirContext {
         NamingEntry entry = null;
         Object o = null;
 
-        // 就用普通的for，foreach在遍历String时性能不如for
         for (int i = 0; i < names.length; i++) {
             File currentFile = new File(file, names[i]);
 
@@ -604,6 +603,17 @@ public class FileDirContext extends BaseDirContext {
     public String getNameInNamespace() throws NamingException {
         return this.docBase;
     }
+
+
+    /**
+     * 返回文件根目录
+     * 
+     * @return
+     */
+    public File getBase() {
+        return base;
+    }
+    
 
     /**
      * 文件资源属性内部类
@@ -729,7 +739,6 @@ public class FileDirContext extends BaseDirContext {
 
         public FileResource(File file) {
             this.file = file;
-
         }
 
 
