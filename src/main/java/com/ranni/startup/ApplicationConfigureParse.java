@@ -7,6 +7,7 @@ import com.ranni.container.Engine;
 import com.ranni.container.Host;
 import com.ranni.container.context.StandardContext;
 import com.ranni.container.host.StandardHost;
+import com.ranni.container.scope.ApplicationContext;
 import com.ranni.core.Server;
 import com.ranni.core.Service;
 import com.ranni.deploy.ApplicationConfigure;
@@ -40,6 +41,7 @@ public class ApplicationConfigureParse extends ConfigureParseBase {
 
     /**
      * 装配
+     * FIXME - 需要重写
      * 
      * @param   load
      * @return  返回context容器
@@ -107,6 +109,7 @@ public class ApplicationConfigureParse extends ConfigureParseBase {
             ContextConfig contextConfig = new ContextConfig();
             context.addLifecycleListener(contextConfig);
             context.getServletContext().setAttribute(Globals.APPLICATION_BOOTSTRAP_CLASS, webappBootstrapClazz);
+            ((ApplicationContext) context.getServletContext()).setAttributeReadOnly(Globals.APPLICATION_BOOTSTRAP_CLASS);
 
             connector.setDebug(applicationConfigure.getDebug());
             connector.setPort(applicationConfigure.getPort());

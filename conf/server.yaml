@@ -4,12 +4,12 @@
 engine:
   name: DefaultEngine
   clazz: com.ranni.container.engine.StandardEngine # 如果此属性为null，则使用默认的Engine实现类
-  defaultHost: host # 默认Host名
+  defaultHost: localhost # 默认主机
   hostClass: com.ranni.container.host.StandardHost # 统一配置host的实现类名
   # 配置Host
   hosts:
     # 第一个host
-    - name: host # host的名字
+    - name: localhost # host的名字
       appBase: webapps # host在服务器目录内的根目录
       defaultContextClass: com.ranni.container.StandardDefaultContext # 默认的Context容器类
       #  class: com.ranni.container.host.StandardHost # 单独为每个host配置类名

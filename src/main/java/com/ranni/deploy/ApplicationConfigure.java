@@ -17,7 +17,7 @@ import java.util.List;
 public class ApplicationConfigure {
     private String bootstrap; // 启动类
     private String path; // 路径    
-    private String host; // 所属主机
+    private String host = "localhost"; // 所属主机
     private String ip; // ip地址
     private boolean reloadable; // 是否可重载
     private int port = 8080; // 端口号

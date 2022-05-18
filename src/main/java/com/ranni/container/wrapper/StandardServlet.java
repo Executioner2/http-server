@@ -4,6 +4,9 @@ import com.ranni.annotation.core.Controller;
 import com.ranni.annotation.core.RequestBody;
 import com.ranni.annotation.core.RequestMapping;
 import com.ranni.annotation.core.RequestParam;
+import com.ranni.common.Globals;
+import com.ranni.container.ContainerServlet;
+import com.ranni.container.Wrapper;
 import com.ranni.handler.JSONException;
 import com.ranni.handler.JSONUtil;
 
@@ -30,13 +33,15 @@ import java.util.Map;
  * @Email 1205878539@qq.com
  * @Date 2022/5/9 15:30
  */
-public final class StandardServlet extends HttpServlet {
+public final class StandardServlet extends HttpServlet implements ContainerServlet {
     
     private Object controller; // controller实例 
     private Class clazz; // controller类
     private String baseUri; // 基本路径
     private Map<String, Method> methodMap = new HashMap<>(); // 方法映射
     private String info = "StandardServlet/1.0"; // 实现信息
+    private Wrapper wrapper; // wrapper
+    private ServletConfig servletConfig; // servlet配置
     
 
     public StandardServlet() {
@@ -52,6 +57,14 @@ public final class StandardServlet extends HttpServlet {
      */
     @Override
     public void init(ServletConfig servletConfig) throws ServletException {
+        this.servletConfig = servletConfig;
+        
+        Map<String, Class> attribute = (Map<String, Class>) servletConfig.getServletContext()
+                .getAttribute(Globals.APPLICATION_CONTROLLER_CLASSES);
+        
+        Class aClass = attribute.get(wrapper.getName());
+        this.clazz = aClass;
+        
         try {
             this.controller = clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
@@ -73,9 +86,15 @@ public final class StandardServlet extends HttpServlet {
         }
     }
 
+
+    /**
+     * 返回这个servletConfig
+     * 
+     * @return
+     */
     @Override
     public ServletConfig getServletConfig() {
-        return null;
+        return this.servletConfig;
     }
 
 
@@ -123,9 +142,26 @@ public final class StandardServlet extends HttpServlet {
         return this.info;
     }
 
+
+    /**
+     * 销毁
+     */
     @Override
     public void destroy() {
-
+        Map<String, Class> attribute = (Map<String, Class>) servletConfig.getServletContext()
+                .getAttribute(Globals.APPLICATION_CONTROLLER_CLASSES);
+        
+        if (attribute != null)
+            attribute.remove(wrapper.getName());
+        
+        methodMap.clear();
+        wrapper = null;
+        servletConfig = null;
+        clazz = null;
+        baseUri = null;
+        controller = null;
+        
+        log("StandardServlet.destroy  servlet已销毁！");
     }
 
 
@@ -191,15 +227,26 @@ public final class StandardServlet extends HttpServlet {
         
         return res;
     }
+    
+
+    /**
+     * 返回与此内部servlet关联的wrapper
+     * 
+     * @return
+     */
+    @Override
+    public Wrapper getWrapper() {
+        return this.wrapper;
+    }
 
 
     /**
-     * 设置关联的Controller类
+     * 设置与此内部servlet关联的wrapper
      * 
-     * @param clazz
+     * @param wrapper
      */
-    public void setClazz(Class clazz) {
-        this.clazz = clazz;
+    @Override
+    public void setWrapper(Wrapper wrapper) {
+        this.wrapper = wrapper;
     }
-    
 }

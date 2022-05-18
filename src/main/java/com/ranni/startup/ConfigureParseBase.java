@@ -30,11 +30,12 @@ public abstract class ConfigureParseBase<T, E> implements ConfigureParse {
      * 解析yaml文件
      * 
      * @param input
+     * @param autoFit 自动填充 
      * @return
      * @throws Exception
      */
     @Override
-    public ConfigureMap parse(InputStream input) throws Exception {
+    public ConfigureMap<T, E> parse(InputStream input, boolean autoFit) throws Exception {
         if (yaml == null) {
             if (getClazz() != null) {
                 yaml = new Yaml(new Constructor(getClazz()));
@@ -47,15 +48,15 @@ public abstract class ConfigureParseBase<T, E> implements ConfigureParse {
 
         // 装配
         T fit = null;
-        if (getClazz() != null)
+        if (autoFit && getClazz() != null)
             fit = fit((T) load);
 
         return new ConfigureMap<T, E>(fit, load);
     }
-    
+
 
     /**
-     * 解析yaml文件
+     * 解析
      * 
      * @param file
      * @return
@@ -64,6 +65,33 @@ public abstract class ConfigureParseBase<T, E> implements ConfigureParse {
     @Override
     public ConfigureMap<T, E> parse(File file) throws Exception {
         return parse(new FileInputStream(file));
+    }
+
+
+    /**
+     * 解析
+     * 
+     * @param input
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public ConfigureMap<T, E> parse(InputStream input) throws Exception {
+        return parse(input, false);
+    }
+    
+
+    /**
+     * 解析yaml文件
+     * 
+     * @param file
+     * @param autoFit 自动填充
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public ConfigureMap<T, E> parse(File file, boolean autoFit) throws Exception {
+        return parse(new FileInputStream(file), autoFit);
     }
 
 

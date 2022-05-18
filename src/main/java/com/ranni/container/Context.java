@@ -1083,7 +1083,7 @@ public interface Context extends Container {
      * @param controller
      * @exception Exception
      */
-    void addController(String controller) throws Exception;
+//    void addController(String controller) throws Exception;
 
 
     /**
@@ -1092,5 +1092,5 @@ public interface Context extends Container {
      * @param name
      * @return
      */
-    Class findController(String name);
+//    Class findController(String name);
 }

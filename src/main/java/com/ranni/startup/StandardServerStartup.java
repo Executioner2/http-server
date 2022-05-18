@@ -5,10 +5,8 @@ import com.ranni.common.SystemProperty;
 import com.ranni.container.Container;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
-import com.ranni.container.host.StandardHost;
 import com.ranni.core.Server;
 import com.ranni.core.Service;
-import com.ranni.deploy.ApplicationMap;
 import com.ranni.deploy.ConfigureMap;
 import com.ranni.deploy.ServerConfigure;
 import com.ranni.lifecycle.Lifecycle;
@@ -44,7 +42,8 @@ public class StandardServerStartup implements ServerStartup {
     private volatile static StandardServerStartup instance; // 单例的StandardServerStartup
     private static AtomicInteger finishCount = new AtomicInteger(0); // 扫描线程完成数
     private static Deque<ScanFileEntity> scanFiles = new ConcurrentLinkedDeque<>(); // 扫描文件数
-
+    private String serverConfigurePath; // 服务器配置文件
+    
     protected boolean initialized; // 是否已经初始化
     protected Engine engine; // 引擎
     protected Server server; // 服务器
@@ -336,22 +335,31 @@ public class StandardServerStartup implements ServerStartup {
      * @return
      */
     protected ConfigureMap<Server, ServerConfigure> parseServerConfigure() {
-        if (started)
-            throw new IllegalArgumentException("ServerStartupBase.parseServerConfigure  服务器已经启动，不能再解析配置文件！");
+        if (initialized || started)
+            throw new IllegalArgumentException("ServerStartupBase.parseServerConfigure  服务器已初始化或已启动，不能再解析配置文件！");
         
         if (this.configureParse == null)
             throw new IllegalArgumentException("ServerStartupBase.parseServerConfigure  配置文件解析实例不能为null！");
 
         try {
-            String filePath = System.getProperty(SystemProperty.SERVER_BASE) + com.ranni.common.Constants.CONF + File.separator;
-            
-            File file = new File(filePath, Constants.DEFAULT_SERVER_YAML);
+            File file = null;
+            if (serverConfigurePath != null) {
+                file = new File(serverConfigurePath);
+                if (!file.exists() || !file.canRead())
+                    throw new IOException("文件不存在或文件不可读！");
+                
+            } else {
+                String filePath = System.getProperty(SystemProperty.SERVER_BASE) + com.ranni.common.Constants.CONF + File.separator;
+                file = new File(filePath, Constants.DEFAULT_SERVER_YAML);
+                if (!file.exists())
+                    file = new File(filePath, Constants.DEFAULT_SERVER_YML);
+            }
+
+
             InputStream input = null;
             
-            if (!file.exists())
-                file = new File(filePath, Constants.DEFAULT_SERVER_YML);
-            
             if (file.exists() && file.canRead()) {
+                
                 input = new FileInputStream(file);
                 
             } else {
@@ -382,7 +390,7 @@ public class StandardServerStartup implements ServerStartup {
                 }
             }
             
-            return configureParse.parse(input);
+            return configureParse.parse(input, true);
             
         } catch (Exception e) {
             e.printStackTrace(System.err);
@@ -589,53 +597,18 @@ public class StandardServerStartup implements ServerStartup {
     public boolean getInitialized() {
         return this.initialized;
     }
-    
+
 
     /**
-     * 创建Context并初始化webapp
-     * 返回Context，并不在此方法中加入Engine
      * 
-     * @param applicationMap
-     * @return
+     * @param path
      */
     @Override
-    public void initializeApplication(ApplicationMap applicationMap) throws Exception {
-        if (getServer() == null)
-            throw new IllegalStateException("StandardServerStartup.initializeApplication  没有服务器实例！");
+    public void setServerConfigurePath(String path) {
+        if (initialized)
+            throw new IllegalStateException("StandardServerStartup.setServerConfigurePath  服务器已初始化，不能再修改配置文件路径！");
         
-        if (getEngine() == null)
-            throw new IllegalStateException("StandardServerStartup.initializeApplication  没有服务器引擎！");
-
-        Engine engine = getEngine();
-        Server server = getServer();
-        Host host = (Host) engine.findChild(applicationMap.getHost());
-        
-        if (host == null) {
-            host = new StandardHost();            
-            host.setAppBase(applicationMap.getAppBase());
-            host.setName(applicationMap.getHost());
-            engine.addChild(host);
-        }
-        
-//        StandardContext context = new StandardContext();
-//    
-//        context.setDocBase(applicationConfigure.getDocBase());
-//        context.setPath(applicationConfigure.getPath());
-//        context.setReloadable(applicationConfigure.isReloadable());
-//        context.setBackgroundProcessorDelay(applicationConfigure.getBackgroundProcessorDelay());
-//        context.setLoader(new WebappLoader());
-//        ContextConfig contextConfig = new ContextConfig();
-//        context.addLifecycleListener(contextConfig);
-//
-//        // 连接器
-//        HttpConnector httpConnector = new HttpConnector();
-//        httpConnector.setPort(applicationConfigure.getPort());
-//        httpConnector.setAddress(applicationConfigure.getIp());
-
-        // 加入service
-        
-        
-        host.addChild(applicationMap.getContext());
+        this.serverConfigurePath = path;
     }
 
 

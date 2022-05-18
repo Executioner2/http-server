@@ -1,12 +1,18 @@
 package com.ranni.startup;
 
+import com.ranni.common.Globals;
 import com.ranni.common.SystemProperty;
+import com.ranni.connector.HttpConnector;
 import com.ranni.container.Context;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
+import com.ranni.container.context.StandardContext;
 import com.ranni.container.host.StandardHost;
+import com.ranni.container.scope.ApplicationContext;
+import com.ranni.core.Server;
+import com.ranni.core.Service;
 import com.ranni.deploy.ApplicationConfigure;
-import com.ranni.deploy.ConfigureMap;
+import com.ranni.loader.WebappLoader;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,7 +66,7 @@ public final class WebApplication {
         // 通过url协议判断是哪种方式启动
         if ("file".equals(protocol)) {            
             // 通过webapp启动类取得webapp所在的路径
-            // XXX - 待改
+            // XXX - 待多环境测试
             String packagePath = "/classes/" + clazz.getPackageName().replaceAll("\\.", "/") + "/";
             String path = url.toString().substring(6, url.toString().lastIndexOf(packagePath));            
             System.setProperty(SystemProperty.SERVER_BASE, path);
@@ -79,37 +85,30 @@ public final class WebApplication {
                 return;
             }
             
-            // 解析application.yaml配置文件
-            ConfigureMap<Context, ApplicationConfigure> configureMap = null;
+            
             try {
+                // 解析application.yaml配置文件
                 ClassLoader ccl = Thread.currentThread().getContextClassLoader();
                 URL resource = ccl.getResource(Constants.APPLICATION_YAML);
                 
                 if (resource == null)
                     resource = ccl.getResource(Constants.APPLICATION_YML);
                 
-                ApplicationConfigureParse parse = new ApplicationConfigureParse(clazz);
-                parse.setPrefix("/classes");
-                parse.setServer(serverStartup.getServer());
-                configureMap = parse.parse(new File(resource.toURI()));
-            } catch (Exception e) {
-                e.printStackTrace();
-                return;
-            }
-            
-            // 加入到服务器中
-            try {
-                ApplicationConfigure configure = configureMap.getConfigure();
-                Context context = configureMap.getInstance();
-                
+                ConfigureParse<Context, ApplicationConfigure> parse = new ApplicationConfigureParse(clazz);
+                ApplicationConfigure configure = parse.parse(new File(resource.toURI())).getConfigure();
+                Context context = fitApplicationConfigure(clazz, serverStartup.getServer(), configure);
+
+                // 加入到服务器中
                 Engine engine = serverStartup.getEngine();
                 Host host = (Host) engine.findChild(configure.getHost());
-                
+                engine.setDefaultHost(host.getName()); // 设置默认主机
+
                 // 设置工作目录和仓库目录
-                if (host instanceof StandardHost) 
+                if (host instanceof StandardHost)
                     ((StandardHost) host).setWorkDir(path);
 
-                host.addChild(context);                
+                host.addChild(context);
+                
             } catch (Exception e) {
                 e.printStackTrace();
                 return;
@@ -134,6 +133,71 @@ public final class WebApplication {
             throw new IllegalStateException("不合法的启动方式！");
         }
           
+    }
+
+    
+    private static Context fitApplicationConfigure(Class webappBootstrapClazz, Server server, ApplicationConfigure configure) {
+        URL url = webappBootstrapClazz.getResource("");
+        StandardContext context = null;
+        HttpConnector connector = null;
+        String docBase = "";
+        String appBase = "";
+        String prefix = "/classes";
+        
+        if ("file".equals(url.getProtocol())) {
+            // 文件URL协议
+            connector = new HttpConnector();
+            context = new StandardContext();
+
+            Engine engine = (Engine) server.findServices()[0].getContainer();
+            Host host = (Host) engine.findChild(configure.getHost());
+
+            // 如果没有host，就新建一个
+            if (host == null) {
+                host = new StandardHost();
+                host.setAppBase(appBase);
+                host.setName(configure.getHost());
+                engine.addChild(host);
+            } else {
+                // 把默认server配置文件中的webapps路径改掉
+                host.setAppBase(appBase);
+            }
+            
+            context.setDocBase(docBase);
+            context.setPath("/" + docBase);
+            context.setReloadable(configure.isReloadable());
+            context.setBackgroundProcessorDelay(configure.getBackgroundProcessorDelay());
+            WebappLoader webappLoader = new WebappLoader();
+            webappLoader.setClassesPath(prefix);
+            context.setLoader(webappLoader);
+            ContextConfig contextConfig = new ContextConfig();
+            context.addLifecycleListener(contextConfig);
+            context.getServletContext().setAttribute(Globals.APPLICATION_BOOTSTRAP_CLASS, webappBootstrapClazz);
+            ((ApplicationContext) context.getServletContext()).setAttributeReadOnly(Globals.APPLICATION_BOOTSTRAP_CLASS);
+
+            connector.setDebug(configure.getDebug());
+            connector.setPort(configure.getPort());
+            connector.setAddress(configure.getIp());
+
+            // 将服务和连接器关联
+            for (String serviceName : configure.getServices()) {
+                Service service = server.findService(serviceName);
+                service.addConnector(connector);
+            }
+        }
+        
+        return context;
+    } 
+    
+    
+
+    /**
+     * 指定服务器配置文件
+     * 
+     * @param path
+     */
+    public static void setServerConfigurePath(String path) {
+        serverStartup.setServerConfigurePath(path);
     }
 
 }

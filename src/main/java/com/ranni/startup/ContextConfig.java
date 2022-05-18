@@ -1,5 +1,6 @@
 package com.ranni.startup;
 
+import com.ranni.annotation.core.Controller;
 import com.ranni.annotation.core.Controllers;
 import com.ranni.common.Globals;
 import com.ranni.container.Container;
@@ -7,6 +8,8 @@ import com.ranni.container.Context;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
 import com.ranni.container.context.StandardContext;
+import com.ranni.container.scope.ApplicationContext;
+import com.ranni.container.wrapper.StandardWrapper;
 import com.ranni.core.FilterDef;
 import com.ranni.deploy.ApplicationParameter;
 import com.ranni.deploy.FilterMap;
@@ -22,7 +25,9 @@ import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 import java.lang.annotation.Annotation;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 
 /**
@@ -37,6 +42,8 @@ public class ContextConfig implements LifecycleListener {
     private Context context; // 关联的Context容器
     private int debug = Logger.INFORMATION; // 日志输出级别
     private boolean ok; // 是否配置成功标志位
+    private boolean applicationConfig; // webapp正在配置的标志位
+    private String servletBaseClass = "com.ranni.container.wrapper.StandardServlet"; // 模板servlet类
     
     
     /**
@@ -202,6 +209,11 @@ public class ContextConfig implements LifecycleListener {
      * TODO - 插入启动类注解扫描事件
      */
     private void applicationConfig() {
+        if (applicationConfig)
+            return;
+        
+        applicationConfig = true;
+        
         Class webappBootstrapClass = (Class) context.getServletContext().getAttribute(Globals.APPLICATION_BOOTSTRAP_CLASS);
 
         Annotation[] declaredAnnotations = webappBootstrapClass.getDeclaredAnnotations();
@@ -211,6 +223,8 @@ public class ContextConfig implements LifecycleListener {
                 scanController(((Controllers) annotation).value());
             }
         }
+        
+        applicationConfig = false;
     }
 
 
@@ -241,8 +255,10 @@ public class ContextConfig implements LifecycleListener {
                             segments.offer(segment + '.' + binding.getName() + '.');
                         } else {
                             try {
+                                // 添加到容器中
                                 String controllerName = binding.getName().substring(0, binding.getName().length() - 6);
-                                context.addController(path + segment + controllerName);
+                                addController(path + segment + controllerName);
+                                
                             } catch (Exception e) {
                                 ok = false;
                                 e.printStackTrace();
@@ -259,6 +275,55 @@ public class ContextConfig implements LifecycleListener {
                 return;
             }
         }
+    }
+
+
+    /**
+     * 添加这个controller类到全局上下文作用域中
+     * 创建一个对应的模板servlet实例
+     * 添加对应的servletMapping
+     * 
+     * @param controller
+     * @throws Exception
+     */
+    private void addController(String controller) throws Exception {
+        Class<?> aClass = context.getLoader().getClassLoader().loadClass(controller);
+        Controller annotation = aClass.getDeclaredAnnotation(Controller.class);
+        if (annotation == null)
+            throw new IllegalStateException("ContextConfig.addController  非controller类！");
+
+        ApplicationContext servletContext = (ApplicationContext) context.getServletContext();
+        StandardWrapper standardWrapper = null;
+        Object controllerMap = null;
+
+        synchronized (servletContext) {
+            controllerMap = servletContext.getAttribute(Globals.APPLICATION_CONTROLLER_CLASSES);
+            if (controllerMap == null) {
+                controllerMap = new HashMap<String, Object>();
+                servletContext.setAttribute(Globals.APPLICATION_CONTROLLER_CLASSES, controllerMap);
+                servletContext.setAttributeReadOnly(Globals.APPLICATION_CONTROLLER_CLASSES); // 设置为只读，避免容器重载导致此属性被清除
+            }
+        }
+
+        Container child = context.findChild(controller);
+
+        // 进入到这里说明子容器也已经都启动了
+        if (child != null) {
+            if (child instanceof Lifecycle)
+                ((Lifecycle) child).stop();
+
+            context.removeChild(child);
+        }
+        
+        synchronized (controllerMap) {
+            ((Map<String, Class>) controllerMap).put(controller, aClass);
+        }
+
+        standardWrapper = new StandardWrapper();
+        standardWrapper.setServletClass(servletBaseClass);
+        standardWrapper.setName(controller);
+        context.addServletMapping(annotation.value(), controller);
+        context.addChild(standardWrapper);
     }
     
 
@@ -298,5 +363,17 @@ public class ContextConfig implements LifecycleListener {
             throwable.printStackTrace(System.out);
         }
     }
-    
+
+
+    /**
+     * 修改模板servlet类
+     * 
+     * @param servletBaseClass
+     */
+    public void setServletBaseClass(String servletBaseClass) {
+        if (applicationConfig)
+            throw new IllegalStateException("ContextConfig.setServletBaseClass  application正在配置中，无法更改模板servlet类");
+        
+        this.servletBaseClass = servletBaseClass;
+    }
 }

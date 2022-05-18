@@ -2,7 +2,6 @@ package com.ranni.startup;
 
 import com.ranni.container.Engine;
 import com.ranni.core.Server;
-import com.ranni.deploy.ApplicationMap;
 import com.ranni.deploy.ConfigureMap;
 import com.ranni.deploy.ServerConfigure;
 
@@ -130,14 +129,13 @@ public interface ServerStartup {
      * @return
      */
     boolean getInitialized();
-        
+
 
     /**
-     * 初始化并把Context容器加入到服务器中
+     * 指定配置文件路径
+     * 若路径为null，则使用默认的配置文件
      * 
-     * @param applicationMap
-     * @return
+     * @param path
      */
-    void initializeApplication(ApplicationMap applicationMap) throws Exception;
-    
+    void setServerConfigurePath(String path);
 }

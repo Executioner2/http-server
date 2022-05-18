@@ -660,7 +660,8 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     @Override
     public synchronized void start() throws LifecycleException {
         if (started) throw new LifecycleException("此wrapper容器实例已经启动！");
-        System.out.println("启动wrapper容器：" + this); // TODO sout
+        if (debug >= Logger.INFORMATION)
+            log("StandardWrapper.start  启动wrapper容器");
 
         // 此wrapper容器启动之前
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, null);

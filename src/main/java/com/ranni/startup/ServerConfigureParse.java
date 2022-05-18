@@ -41,11 +41,6 @@ public class ServerConfigureParse extends ConfigureParseBase {
     @Override
     protected Object fit(Object load) throws Exception {
         ServerConfigure serverConfigure = (ServerConfigure) load;
-        
-        // XXX - 加入了一个不存在的Host容器配置也会通过，后面判断如果不存在就会跳过创建此配置的Host容器实例。（此情况出现在通过webapp启动服务器）
-        // XXX - 这条判断更多的是为了通过服务器启动时有一个默认的Host容器
-        if (serverConfigure.getEngine().getHosts().isEmpty())
-            throw new IllegalStateException("至少要有一个Host容器！");
 
         if (serverConfigure.getServices().isEmpty())
             throw new IllegalStateException("至少要有一个Service实例！");

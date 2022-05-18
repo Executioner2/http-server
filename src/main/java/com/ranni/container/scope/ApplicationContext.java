@@ -307,7 +307,7 @@ public class ApplicationContext implements ServletContext {
     }
 
     /**
-     * 移除指定的属性
+     * 移除指定的可读写属性
      *
      * @param s
      */
@@ -358,7 +358,8 @@ public class ApplicationContext implements ServletContext {
 
 
     /**
-     * 清空全部属性
+     * 清空全部可读写属性
+     * 不删除只读属性
      */
     public void clearAttributes() {
         ArrayList list = new ArrayList();

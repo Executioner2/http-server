@@ -284,7 +284,7 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
     public void addChild(Container child) {
         child.setParent(this);
         synchronized (children) {
-            log("ContainerBase.addChild  有容器加入！  " + child);
+            log("ContainerBase.addChild  有容器加入！  " + child + "   " + child.getName());
             
             if (started && child instanceof Lifecycle) {
                 try {

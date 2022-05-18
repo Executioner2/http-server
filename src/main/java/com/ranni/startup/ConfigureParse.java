@@ -18,9 +18,9 @@ public interface ConfigureParse<T, E> {
 
     /**
      * 解析
-     * 
-     * @return
+     *
      * @param file
+     * @return
      */
     ConfigureMap<T, E> parse(File file) throws Exception;
 
@@ -28,10 +28,30 @@ public interface ConfigureParse<T, E> {
     /**
      * 解析
      *
-     * @return
      * @param input
+     * @return
      */
     ConfigureMap<T, E> parse(InputStream input) throws Exception;
+    
+    
+    /**
+     * 解析
+     *
+     * @param file
+     * @param autoFit 自动填充
+     * @return
+     */
+    ConfigureMap<T, E> parse(File file, boolean autoFit) throws Exception;
+
+
+    /**
+     * 解析
+     *
+     * @param input
+     * @param autoFit 自动填充
+     * @return
+     */
+    ConfigureMap<T, E> parse(InputStream input, boolean autoFit) throws Exception;
 
 
     /**

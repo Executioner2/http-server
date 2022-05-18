@@ -30,4 +30,7 @@ public final class Globals {
     
     // webapp的启动类
     public static final String APPLICATION_BOOTSTRAP_CLASS = "application_bootstrap_class";
+    
+    // webapp的controller类们
+    public static final String APPLICATION_CONTROLLER_CLASSES = "application_controller_classes";
 }
