@@ -1,20 +1,22 @@
 package com.ranni.container.context;
 
+import com.ranni.annotation.core.Controller;
 import com.ranni.common.Globals;
 import com.ranni.common.SystemProperty;
 import com.ranni.connector.http.request.Request;
 import com.ranni.connector.http.response.Response;
 import com.ranni.container.*;
 import com.ranni.container.host.StandardHost;
-import com.ranni.loader.WebappLoader;
 import com.ranni.container.scope.ApplicationContext;
+import com.ranni.container.session.StandardManager;
+import com.ranni.container.wrapper.StandardWrapper;
 import com.ranni.core.ApplicationFilterConfig;
 import com.ranni.core.FilterDef;
 import com.ranni.deploy.*;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
+import com.ranni.loader.WebappLoader;
 import com.ranni.naming.*;
-import com.ranni.container.session.StandardManager;
 import com.ranni.util.CharsetMapper;
 import com.ranni.util.RequestUtil;
 
@@ -68,6 +70,7 @@ public class StandardContext extends ContainerBase implements Context {
     private boolean reloadable; // 容器的重载标志位
     private String publicId; // xml公共id
     private String systemId; // xml系统id
+    private Map<String, Class> controllerMap = new HashMap<>(); // controller类映射
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
@@ -1343,6 +1346,57 @@ public class StandardContext extends ContainerBase implements Context {
 
     }
 
+
+    /**
+     * 查询controller类
+     *
+     * @param name
+     * @return
+     */
+    @Override
+    public Class findController(String name) {
+        synchronized (controllerMap) {
+            return controllerMap.get(name);
+        }
+    }
+    
+
+    /**
+     * 添加controller类
+     *
+     * @param controller
+     * @exception Exception
+     */
+    @Override
+    public void addController(String controller) throws Exception {
+        Class<?> aClass = loader.getClassLoader().loadClass(controller);
+        Controller annotation = aClass.getDeclaredAnnotation(Controller.class);
+        if (annotation == null)
+            throw new IllegalStateException("StandardContext.addController  非controller类！");
+
+        StandardWrapper standardWrapper = null;
+                
+        synchronized (controllerMap) {
+            Container child = findChild(controller);
+            
+            if (child != null) {
+                if (started && child instanceof Lifecycle)
+                    ((Lifecycle) child).stop();
+                
+                removeChild(child);
+            }
+            
+            controllerMap.put(controller, aClass);
+        }
+
+        standardWrapper = new StandardWrapper();
+        standardWrapper.setServletClass("com.ranni.container.wrapper.StandardServlet");
+        standardWrapper.setName(controller);
+        addServletMapping(annotation.value(), controller);
+        addChild(standardWrapper);
+    }
+
+    
     @Override
     public String getInfo() {
         return null;

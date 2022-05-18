@@ -1075,4 +1075,22 @@ public interface Context extends Container {
      * @param listener
      */
     void removeWrapperListener(String listener);
+
+
+    /**
+     * 添加controller类
+     *
+     * @param controller
+     * @exception Exception
+     */
+    void addController(String controller) throws Exception;
+
+
+    /**
+     * 查询controller类
+     *
+     * @param name
+     * @return
+     */
+    Class findController(String name);
 }

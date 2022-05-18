@@ -1,5 +1,6 @@
 package com.ranni.container.wrapper;
 
+import com.ranni.annotation.core.Controller;
 import com.ranni.annotation.core.RequestBody;
 import com.ranni.annotation.core.RequestMapping;
 import com.ranni.annotation.core.RequestParam;
@@ -38,11 +39,9 @@ public final class StandardServlet extends HttpServlet {
     private String info = "StandardServlet/1.0"; // 实现信息
     
 
-    public StandardServlet(Object controller, String baseUri) {
-        this.controller = controller;
-        this.baseUri = baseUri;
-        this.clazz = controller.getClass();
-    }    
+    public StandardServlet() {
+        
+    }
     
     
     /**
@@ -52,7 +51,15 @@ public final class StandardServlet extends HttpServlet {
      * @throws ServletException
      */
     @Override
-    public void init(ServletConfig servletConfig) throws ServletException { 
+    public void init(ServletConfig servletConfig) throws ServletException {
+        try {
+            this.controller = clazz.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new ServletException(e);
+        } 
+
+        this.baseUri = ((Controller) clazz.getDeclaredAnnotation(Controller.class)).value();
+        
         // 扫描所有Mapping注解标识的method
         Method[] methods = clazz.getMethods();
         for (Method method : methods) {
@@ -183,6 +190,16 @@ public final class StandardServlet extends HttpServlet {
         }
         
         return res;
+    }
+
+
+    /**
+     * 设置关联的Controller类
+     * 
+     * @param clazz
+     */
+    public void setClazz(Class clazz) {
+        this.clazz = clazz;
     }
     
 }

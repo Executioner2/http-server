@@ -1,6 +1,5 @@
 package com.ranni.startup;
 
-import com.ranni.annotation.core.Controller;
 import com.ranni.annotation.core.Controllers;
 import com.ranni.common.Globals;
 import com.ranni.container.Container;
@@ -8,8 +7,6 @@ import com.ranni.container.Context;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
 import com.ranni.container.context.StandardContext;
-import com.ranni.container.wrapper.StandardServlet;
-import com.ranni.container.wrapper.StandardWrapper;
 import com.ranni.core.FilterDef;
 import com.ranni.deploy.ApplicationParameter;
 import com.ranni.deploy.FilterMap;
@@ -225,7 +222,6 @@ public class ContextConfig implements LifecycleListener {
      */
     private void scanController(String[] paths) {
         DirContext resources = context.getResources();
-        ClassLoader loader = context.getLoader().getClassLoader();
 
         for (String path : paths) {
             try {
@@ -246,15 +242,11 @@ public class ContextConfig implements LifecycleListener {
                         } else {
                             try {
                                 String controllerName = binding.getName().substring(0, binding.getName().length() - 6);
-                                Class<?> aClass = loader.loadClass(path + segment + controllerName);
-                                Controller controller = aClass.getDeclaredAnnotation(Controller.class);
-                                String value = controller.value();
-                                context.addServletMapping(value, controllerName);
-                                StandardWrapper standardWrapper = new StandardWrapper();
-                                standardWrapper.setName(controllerName);
-                                standardWrapper.setServletClass(StandardServlet.class.getName());
-                            } catch (ClassNotFoundException e) {
+                                context.addController(path + segment + controllerName);
+                            } catch (Exception e) {
+                                ok = false;
                                 e.printStackTrace();
+                                return;
                             }
                         }
                     }
@@ -262,7 +254,9 @@ public class ContextConfig implements LifecycleListener {
                 
 
             } catch (NamingException e) {
+                ok = false;
                 e.printStackTrace();
+                return;
             }
         }
     }
