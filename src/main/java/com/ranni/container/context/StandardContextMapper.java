@@ -69,7 +69,8 @@ public class StandardContextMapper implements Mapper {
 
     /**
      * 返回要处理某个特定请求的子容器的实例
-     * XXX 目前只能全匹配
+     * 和StandardHost的map类似，从后往前剪，找最精准的匹配
+     * @see {@link com.ranni.container.host.StandardHost#map(Request, boolean)}
      * 
      * @param request
      * @param update
@@ -88,8 +89,18 @@ public class StandardContextMapper implements Mapper {
 
         // 根据URI取得对应的wrapper
         Wrapper wrapper = null;
-        String name = context.findServletMapping(relativeURI);
-
+        String name = null;
+        
+        while (true) {
+            name = context.findServletMapping(relativeURI);
+            
+            if (name != null) break;
+            int pos = relativeURI.lastIndexOf('/');
+            if (pos < 0) break;
+            
+            relativeURI = requestURI.substring(0, pos); 
+        } 
+        
         if (name != null) wrapper = (Wrapper) context.findChild(name);
 
         return wrapper;

@@ -2,6 +2,7 @@ package com.ranni.connector.http.response;
 
 import javax.servlet.http.Cookie;
 import java.io.IOException;
+import java.util.Collection;
 
 /**
  * Title: HttpServer
@@ -13,16 +14,13 @@ import java.io.IOException;
  */
 public interface HttpResponse extends Response {
     // 返回cookies
-    Cookie[] getCookies();
+    Collection<Cookie> getCookies();
 
     // 返回请求头中指定name对应的values[0]
     String getHeader(String name);
 
-    // 返回请求头中所有name
-    String[] getHeaderNames();
-
     // 返回请求头中指定name对应的values
-    String[] getHeaderValues(String name);
+    Collection<String> getHeaderValues(String name);
 
     // 返回响应消息
     String getMessage();

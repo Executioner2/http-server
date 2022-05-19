@@ -26,8 +26,8 @@
 
     <dependency>
       <groupId>javax.servlet</groupId>
-      <artifactId>servlet-api</artifactId>
-      <version>2.3</version>
+      <artifactId>javax.servlet-api</artifactId>
+      <version>4.0.1</version>
     </dependency>
 
     <!-- 为了使用LRUMap，所以导入这个包 -->
@@ -83,6 +83,22 @@
 
   <build>
     <plugins>
+      <!-- 将参数名编译进去 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgs>
+            <arg>-parameters</arg>
+          </compilerArgs>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>compile</phase>
+          </execution>
+        </executions>
+      </plugin>
+      
       <!-- 指定HTTP服务器jar包的启动类 -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

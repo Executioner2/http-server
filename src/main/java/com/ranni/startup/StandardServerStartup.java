@@ -387,6 +387,8 @@ public class StandardServerStartup implements ServerStartup {
                     JarFile jarFile = new JarFile(file);
                     JarEntry jarEntry = jarFile.getJarEntry(serverConfigureName);
                     input = jarFile.getInputStream(jarEntry);
+                } else if ("file".equals(resource.getProtocol())) {
+                    input = new FileInputStream(new File(resource.toURI()));
                 }
             }
             

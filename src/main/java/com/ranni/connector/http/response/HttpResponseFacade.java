@@ -3,6 +3,7 @@ package com.ranni.connector.http.response;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collection;
 
 /**
  * Title: HttpServer
@@ -112,5 +113,40 @@ public class HttpResponseFacade extends ResponseFacade implements HttpServletRes
     public void setStatus(int i, String s) {
         if (isCommitted()) return;
         ((HttpServletResponse)servletResponse).setStatus(i, s);
+    }
+
+    @Override
+    public int getStatus() {
+        return ((HttpServletResponse) servletResponse).getStatus();
+    }
+
+    @Override
+    public String getHeader(String name) {
+        return ((HttpServletResponse) servletResponse).getHeader(name);
+    }
+
+    @Override
+    public Collection<String> getHeaders(String name) {
+        return ((HttpServletResponse) servletResponse).getHeaders(name);
+    }
+
+    @Override
+    public Collection<String> getHeaderNames() {
+        return ((HttpServletResponse) servletResponse).getHeaderNames();
+    }
+
+    @Override
+    public String getContentType() {
+        return servletResponse.getContentType();
+    }
+
+    @Override
+    public void setCharacterEncoding(String charset) {
+        servletResponse.setCharacterEncoding(charset);
+    }
+
+    @Override
+    public void setContentLengthLong(long len) {
+        servletResponse.setContentLengthLong(len);
     }
 }

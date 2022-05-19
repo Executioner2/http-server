@@ -1,6 +1,7 @@
 package com.ranni.connector.http.response;
 
 import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -8,6 +9,7 @@ import java.io.OutputStream;
  * Title: HttpServer
  * Description:
  * 这个流和RequestStream相似，只是对ServletOutputStream的封装
+ * XXX - 未完整实现 
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -141,5 +143,15 @@ public class ResponseStream extends ServletOutputStream {
      */
     public void reset() {
         this.count = 0;
+    }
+
+    @Override
+    public boolean isReady() {
+        return false;
+    }
+
+    @Override
+    public void setWriteListener(WriteListener writeListener) {
+
     }
 }

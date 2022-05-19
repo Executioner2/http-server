@@ -362,9 +362,11 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
                 return ("HTTP Response Status " + status);
         }
     }
+    
 
     /**
      * TODO 重定向
+     * 
      * @param s
      * @throws IOException
      */
@@ -372,6 +374,7 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
     public void sendRedirect(String s) throws IOException {
 
     }
+    
 
     /**
      * 向响应头中设置日期
@@ -383,6 +386,7 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
         if (isCommitted()) return;
         addHeader(s, format.format(new Date(l)));
     }
+    
 
     /**
      * 向响应头中设置日期
@@ -393,6 +397,7 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
     public void addDateHeader(String s, long l) {
         setDateHeader(s, l);
     }
+    
 
     /**
      * 向响应头中添加信息
@@ -474,9 +479,9 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
      * @return
      */
     @Override
-    public Cookie[] getCookies() {
+    public Collection<Cookie> getCookies() {
         synchronized (cookies) {
-            return cookies.toArray(new Cookie[cookies.size()]);
+            return cookies;
         }
     }
 
@@ -498,21 +503,32 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
         return values.get(0);
     }
 
+
+    /**
+     * 返回请求头
+     * 
+     * @param name
+     * @return
+     */
+    @Override
+    public Collection<String> getHeaders(String name) {
+        synchronized (headers) {
+            return headers.get(name);
+        }
+    }
+    
+
     /**
      * 返回header中所有name
      * @return
      */
     @Override
-    public String[] getHeaderNames() {
-        Set<String> set = null;
+    public Collection<String> getHeaderNames() {
         synchronized (headers) {
-            set = headers.keySet();
+            return headers.keySet();
         }
-
-        if (set == null) return null;
-
-        return set.toArray(new String[set.size()]);
     }
+    
 
     /**
      * 返回指定name的values
@@ -520,17 +536,12 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
      * @return
      */
     @Override
-    public String[] getHeaderValues(String name) {
-        List<String> values = null;
-
+    public Collection<String> getHeaderValues(String name) {
         synchronized (headers) {
-            values = headers.get(name);
+            return headers.get(name);
         }
-
-        if (values == null) return null;
-
-        return values.toArray(new String[values.size()]);
     }
+    
 
     /**
      * 返回响应行消息
@@ -569,6 +580,41 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
     public void sendAcknowledgement() throws IOException {
 
     }
+
+
+    /**
+     * 设置编码格式
+     * 
+     * @param charset
+     */
+    @Override
+    public void setCharacterEncoding(String charset) {
+        try {
+            byte[] b = {'a'};
+            // 尝试编码
+            String s = new String(b, charset);
+
+            this.characterEncoding = charset;
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }        
+    }
+
+
+    /**
+     * 设置响应体的长度
+     * 
+     * @param len
+     */
+    @Override
+    public void setContentLengthLong(long len) {
+        if (isCommitted())
+            return;
+
+        this.contentLength = len;
+        
+    }
+    
 
     /**
      * 刷新缓冲区，如果第一次调用此方法，

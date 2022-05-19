@@ -272,7 +272,7 @@ public final class JSONUtil {
      * @param params    构造方法的形参
      * @return
      */
-    private static Object getInstance(Class clazz, Object... params) {
+    public static Object getInstance(Class clazz, Object... params) {
         Class<?>[] classes = null;
 
         if (params != null && params.length > 0) {

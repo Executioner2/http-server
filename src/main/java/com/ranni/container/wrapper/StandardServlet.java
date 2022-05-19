@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -109,7 +110,9 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
      */
     @Override
     public void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String uri = req.getRequestURI().substring(baseUri.length() + 1);        
+        String uri = req.getRequestURI().substring(baseUri.length());        
+        req.setCharacterEncoding("UTF-8");
+        resp.setCharacterEncoding("UTF-8");
         if (!methodMap.containsKey(uri)) {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND, "请求未找到！ requestURI：" + req.getRequestURI());
             return;
@@ -124,10 +127,14 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
             return;
         }
         
-        // 自动值填充
+        // 调用处理方法
         try {
-            Object[] args = parseParams(req, method);
-            method.invoke(controller, args);
+            Object[] args = parseParams(req, method); // 自动值填充
+            Object res = method.invoke(controller, args); // 执行controller对应的方法并返回值
+            resp.setContentType("text/html"); // FIXME - 不能固定死
+            // XXX - 应该做更灵活的处理
+            PrintWriter writer = resp.getWriter();
+            writer.print(res);
         } catch (IllegalAccessException e) {
             resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "无方法执行权限！ " + method.getName());
             e.printStackTrace(System.err);
@@ -182,7 +189,7 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
             for (Annotation annotation : parameters[i].getDeclaredAnnotations()) {
 
                 String paramName = ((RequestParam) annotation).value();
-                if (paramName == null)
+                if (paramName == null || "".equals(paramName))
                     paramName = parameters[i].getName();
                 
                 if (annotation instanceof RequestParam) {                    
@@ -191,15 +198,10 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
                     String value = hsr.getParameter(paramName);
 
                     if (value != null) {
-                        Object obj = null;
+                        res[i] = JSONUtil.getInstance(parameters[i].getType(), value);
 
-                        try {
-                            obj = Double.parseDouble(value);
-                        } catch (Throwable t) {
-                            obj = value;
-                        }
-
-                        res[i] = obj;
+                        if (res[i] == null)
+                            res[i] = value;
                     }
                     
                     break;

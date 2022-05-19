@@ -242,8 +242,7 @@ public abstract class RequestBase implements Request, ServletRequest {
     @Override
     public void setCharacterEncoding(String s) throws UnsupportedEncodingException {
         // 测试用s编码格式能否正确解码'a'
-        byte[] buffer = new byte[1];
-        buffer[0] = 'a';
+        byte[] buffer = {'a'};
         String dummy = new String(buffer, s);
 
         this.characterEncoding = s;

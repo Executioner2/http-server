@@ -31,6 +31,11 @@ public class ResponseFacade implements ServletResponse {
     }
 
     @Override
+    public String getContentType() {
+        return response.getContentType();
+    }
+
+    @Override
     public ServletOutputStream getOutputStream() throws IOException {
         return servletResponse.getOutputStream();
     }
@@ -41,9 +46,19 @@ public class ResponseFacade implements ServletResponse {
     }
 
     @Override
+    public void setCharacterEncoding(String charset) {
+        servletResponse.setCharacterEncoding(charset);
+    }
+
+    @Override
     public void setContentLength(int i) {
         if (isCommitted()) return;
         servletResponse.setContentLength(i);
+    }
+
+    @Override
+    public void setContentLengthLong(long len) {
+        servletResponse.setContentLengthLong(len);
     }
 
     @Override

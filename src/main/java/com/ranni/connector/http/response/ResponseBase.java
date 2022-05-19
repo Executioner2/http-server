@@ -38,7 +38,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
     protected boolean suspended; // 挂起标志
     protected boolean error; // 错误标志
     protected ServletOutputStream stream; // Servlet输出流
-    protected int contentLength = -1; // 设置或计算出来的响应体长度
+    protected long contentLength = -1; // 设置或计算出来的响应体长度
     protected String contentType; // 响应体类型
     protected PrintWriter writer; // 字符串输出处理流
     protected String characterEncoding; // 字符编码格式
@@ -306,7 +306,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
      */
     @Override
     public int getContentLength() {
-        return this.contentLength;
+        return (int) this.contentLength;
     }
 
     /**
@@ -318,6 +318,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
         return this.contentType;
     }
 
+    
     /**
      * 取得输出处理流
      * @return
@@ -417,8 +418,6 @@ public abstract class ResponseBase implements ServletResponse, Response {
     @Override
     public void setContentLength(int i) {
         if (isCommitted()) return;
-
-        this.contentLength = i;
 
         this.contentLength = i;
     }
@@ -534,6 +533,7 @@ public abstract class ResponseBase implements ServletResponse, Response {
             }
         }
     }
+    
 
     /**
      * 返回locale

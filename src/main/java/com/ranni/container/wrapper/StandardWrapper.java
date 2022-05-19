@@ -407,7 +407,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
      * @return
      */
     private boolean isContainerProvidedServlet(String actualClass) {
-        if ("com.ranni.".startsWith(actualClass)) {
+        if (actualClass.startsWith("com.ranni.")) {
             return true;
         }
 

@@ -164,7 +164,7 @@ public final class WebApplication {
             }
             
             context.setDocBase(docBase);
-            context.setPath("/" + docBase);
+            context.setPath(docBase);
             context.setReloadable(configure.isReloadable());
             context.setBackgroundProcessorDelay(configure.getBackgroundProcessorDelay());
             WebappLoader webappLoader = new WebappLoader();

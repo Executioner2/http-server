@@ -7,11 +7,8 @@ import com.ranni.container.session.Session;
 import com.ranni.util.Enumerator;
 import com.ranni.util.RequestUtil;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import javax.servlet.*;
+import javax.servlet.http.*;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
@@ -386,6 +383,11 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
         return getSession(true);
     }
 
+    @Override
+    public String changeSessionId() {
+        return null;
+    }
+
     /**
      * TODO 验证session id是否合法
      *
@@ -423,7 +425,37 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
         return isRequestedSessionIdFromURL();
     }
 
-    
+    @Override
+    public boolean authenticate(HttpServletResponse response) throws IOException, ServletException {
+        return false;
+    }
+
+    @Override
+    public void login(String username, String password) throws ServletException {
+
+    }
+
+    @Override
+    public void logout() throws ServletException {
+
+    }
+
+    @Override
+    public Collection<Part> getParts() throws IOException, ServletException {
+        return null;
+    }
+
+    @Override
+    public Part getPart(String name) throws IOException, ServletException {
+        return null;
+    }
+
+    @Override
+    public <T extends HttpUpgradeHandler> T upgrade(Class<T> handlerClass) throws IOException, ServletException {
+        return null;
+    }
+
+
     /**
      * 内部调用，解析参数
      * 在调用 getParameter、getParameterNames、getParameterValues 和 getParameterMap时会先调用该方法
@@ -474,6 +506,18 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
         parsed = true;
         parameters = result;
     }
+
+
+    /**
+     * 返回请求体长度
+     * 
+     * @return
+     */
+    @Override
+    public long getContentLengthLong() {
+        return this.contentLength;
+    }
+    
 
     /**
      * 取得请求中的参数，如果还没有解析就解析
@@ -549,6 +593,67 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
      */
     @Override
     public RequestDispatcher getRequestDispatcher(String s) {
+        return null;
+    }
+
+    @Override
+    public int getRemotePort() {
+        return 0;
+    }
+
+    @Override
+    public String getLocalName() {
+        return null;
+    }
+
+    @Override
+    public String getLocalAddr() {
+        return null;
+    }
+
+    @Override
+    public int getLocalPort() {
+        return 0;
+    }
+
+
+    /**
+     * 返回全局作用域
+     * 
+     * @return
+     */
+    @Override
+    public ServletContext getServletContext() {
+        return context.getServletContext();
+    }
+
+    @Override
+    public AsyncContext startAsync() throws IllegalStateException {
+        return null;
+    }
+
+    @Override
+    public AsyncContext startAsync(ServletRequest servletRequest, ServletResponse servletResponse) throws IllegalStateException {
+        return null;
+    }
+
+    @Override
+    public boolean isAsyncStarted() {
+        return false;
+    }
+
+    @Override
+    public boolean isAsyncSupported() {
+        return false;
+    }
+
+    @Override
+    public AsyncContext getAsyncContext() {
+        return null;
+    }
+
+    @Override
+    public DispatcherType getDispatcherType() {
         return null;
     }
 
