@@ -95,4 +95,36 @@ public interface Processor extends Runnable {
      * @return
      */
     boolean isStooped();
+
+
+    /**
+     * 设置代理名
+     * 
+     * @param proxyName
+     */
+    void setProxyName(String proxyName);
+
+
+    /**
+     * 取得代理名
+     * 
+     * @return
+     */
+    String getProxyName();
+
+
+    /**
+     * 设置代理服务器端口
+     * 
+     * @param proxyPort
+     */
+    void setProxyPort(int proxyPort);
+
+
+    /**
+     * 返回代理服务器端口
+     * 
+     */
+    int getProxyPort();
+    
 }

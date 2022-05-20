@@ -5,19 +5,23 @@ import com.ranni.connector.SocketInputStream;
 import com.ranni.connector.http.HttpHeader;
 import com.ranni.connector.http.HttpRequestLine;
 import com.ranni.connector.http.request.HttpRequestBase;
+import com.ranni.connector.http.response.DefaultHeaders;
 import com.ranni.connector.http.response.HttpResponseBase;
 import com.ranni.container.Container;
+import com.ranni.logger.Logger;
 import com.ranni.util.RequestUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
 /**
  * Title: HttpServer
  * Description:
+ * XXX - 待完善
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -28,6 +32,14 @@ public class HttpProcessor implements Processor {
     private boolean available = false; // 是否阻塞线程等待接收socket请求
     private Socket socket;
     private Thread thread;
+    private String proxyName; // 代理服务器
+    private int proxyPort; // 代理服务器端口
+    private boolean keepAlive; // 保持连接
+    private boolean sendAck; // 发送确认
+    private String  threadName; // 线程名
+    private int debug = Logger.WARNING;
+    private int id = 0; // 处理器id
+    private boolean http11 = true; // 是否是http11
 
     protected boolean stopped; // 停止状态标志位
     protected boolean working; // 工作状态标志位
@@ -35,15 +47,18 @@ public class HttpProcessor implements Processor {
     protected HttpResponseBase response;
     protected HttpConnector connector;
     protected Container container;
-
+    
+    
 
     /**
-     * TODO 处理器执行线程
+     * 处理器执行线程
      */
     @Override
     public void run() {
+        threadName = "HttpProcessor[" + this.hashCode() + "]" + "[" + id + "]"; 
+        
         while (!stopped) {
-            await(); // 阻塞等待socket
+            Socket socket = await(); // 阻塞等待socket
 
             // 执行到这儿说明此处理器线程被唤醒了
             if (socket == null) continue;
@@ -55,9 +70,11 @@ public class HttpProcessor implements Processor {
             connector.recycle(this);
         }
 
-        System.out.println("处理器线程："+ Thread.currentThread().getName() +"  已关闭！"); // TODO sout
+        if (debug >= Logger.WARNING)
+            log("处理器线程："+ threadName +"  已关闭！");
     }
 
+    
     /**
      * XXX 等待socket
      * 需要注意的是，该方法在HowTomcatWorks中返回一个局部变量
@@ -68,7 +85,7 @@ public class HttpProcessor implements Processor {
      *
      * @return
      */
-    private synchronized void await() {
+    private synchronized Socket await() {
         while (!available) {
             try {
                 wait();
@@ -77,19 +94,26 @@ public class HttpProcessor implements Processor {
             }
         }
 
+        Socket socket = this.socket;
         available = false;
         notifyAll();
+        
+        if (debug >= Logger.WARNING)
+            log("有请求取得了处理线程！");
+        
+        return socket;
     }
+    
 
     /**
      * connector分配过来socket
      * 然后该方法唤醒处理器线程
+     * 
      * @param socket
      */
     @Override
     public synchronized void assign(Socket socket) {
         while (available) {
-            // XXX 由于连接线程只有一个，所以一般情况不会进入到这儿
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -120,6 +144,50 @@ public class HttpProcessor implements Processor {
         return this.stopped;
     }
 
+
+    /**
+     * 设置代理服务器名字
+     * 
+     * @param proxyName
+     */
+    @Override
+    public void setProxyName(String proxyName) {
+       this.proxyName = proxyName; 
+    }
+
+
+    /**
+     * 返回代理服务器名称
+     * 
+     * @return
+     */
+    @Override
+    public String getProxyName() {
+        return this.proxyName;
+    }
+
+
+    /**
+     * 设置代理服务器端口
+     * 
+     * @param proxyPort
+     */
+    @Override
+    public void setProxyPort(int proxyPort) {
+        this.proxyPort = proxyPort; 
+    }
+
+
+    /**
+     * 返回代理服务器端口
+     * 
+     * @return
+     */
+    @Override
+    public int getProxyPort() {
+        return this.proxyPort;
+    }
+
     /**
      * 启动处理器线程
      */
@@ -129,6 +197,7 @@ public class HttpProcessor implements Processor {
         thread.setName("HttProcessor@"+this.hashCode());
         thread.start();
     }
+    
 
     /**
      * 停止当前线程
@@ -180,14 +249,18 @@ public class HttpProcessor implements Processor {
      */
     @Override
     public void recycle() {
-        request = null;
-        response = null;
-        connector = null;
-        container = null;
-        nullRequest = false;
-        stopped = false;
-        available = false;
-        socket = null;
+        this.request = null;
+        this.response = null;
+        this.connector = null;
+        this.container = null;
+        this.nullRequest = false;
+        this.stopped = false;
+        this.available = false;
+        this.socket = null;
+        this.proxyName = null;
+        this.proxyPort = 0;
+        this.keepAlive = false;
+        this.sendAck = false;
     }
 
     /**
@@ -197,16 +270,30 @@ public class HttpProcessor implements Processor {
     public void process() {
         SocketInputStream input = null;
         OutputStream output = null;
-
+        keepAlive = true; // 默认保持连接
+        
         try {
             request = (HttpRequestBase) connector.createRequest();
             response = (HttpResponseBase) connector.createResponse();
 
+            try (InputStream inputStream = socket.getInputStream()) {
+                
+                System.out.println(inputStream.available());
+                byte[] bytes = new byte[inputStream.available()];
+//                byte[] bytes = inputStream.readAllBytes();
+                inputStream.read(bytes, 0, inputStream.available());
+                System.out.println(new String(bytes));
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            
             // 设置请求对象和响应对象的部分参数
             response.setRequest(request);
             request.setScheme(connector.getScheme());
             request.setStream(socket.getInputStream());
             response.setStream(socket.getOutputStream());
+
 
             input = new SocketInputStream(request.getStream());
             output = response.getStream();
@@ -256,7 +343,7 @@ public class HttpProcessor implements Processor {
             String value = new String(header.value, 0, header.valueEnd);
             request.addHeader(name, value);
 
-            if ("cookie".equals(name)) {
+            if (DefaultHeaders.COOKIE_NAME == header.nameHash) {
                 // 如果是cookie信息
                 Cookie[] cookies = RequestUtil.parseCookieHeader(value); // 解析cookie
                 for (Cookie cookie : cookies) {
@@ -269,7 +356,7 @@ public class HttpProcessor implements Processor {
                     }
                     request.addCookie(cookie);
                 }
-            } else if ("content-length".equals(name)) {
+            } else if (DefaultHeaders.CONTENT_LENGTH_NAME == header.nameHash) {
                 // 请求体长度
                 int n = -1;
                 try {
@@ -278,10 +365,58 @@ public class HttpProcessor implements Processor {
                     throw new ServletException("http请求头参数异常！");
                 }
                 request.setContentLength(n);
-            } else if ("content-type".equals(name)) {
+            } else if (DefaultHeaders.CONTENT_TYPE_NAME == header.nameHash) {
                 // 请求体类型
                 request.setContentType(value);
+            } else if (DefaultHeaders.HOST_NAME == header.nameHash) {
+                int i = value.indexOf(':'); // localhost:8080 这种
+                if (i < 0) {
+                    if ("http".equals(connector.getScheme())) {
+                        request.setServerPort(80);
+                    } else if ("https".equals(connector.getScheme())) {
+                        request.setServerPort(443);
+                    }
+                    
+                    if (proxyName != null) {
+                        request.setServerName(proxyName);
+                    } else {
+                        request.setServerName(value);
+                    }
+                } else {
+                    if (proxyName != null) {
+                        request.setServerName(proxyName);
+                    } else {
+                        request.setServerName(value.substring(0, i).trim());
+                    }
+                    
+                    if (proxyPort != 0) {
+                        request.setServerPort(proxyPort);
+                    } else {
+                        int port = 80;
+                        try {
+                            port = Integer.parseInt(value.substring(i + 1).trim());
+                        } catch (Exception e) {
+                            throw new ServletException("HttpProcessor.parseHeaders  请求头端口转换异常！");
+                        }
+                        request.setServerPort(port);
+                    }
+                }
+                
+            } else if (DefaultHeaders.CONNECTION_NAME == header.nameHash) {
+                if (header.valueHash == DefaultHeaders.CONNECTION_CLOSE_VALUE) {
+                    keepAlive = false;
+                    response.setHeader("Connection", "close");
+                }
+                
+            } else if (DefaultHeaders.EXPECT_NAME == header.nameHash) {
+                if (header.valueHash == DefaultHeaders.EXPECT_100_VALUE) {
+                    sendAck = true;
+                } else {
+                    throw new ServletException("HttpProcessor.parseHeaders  未知异常！");
+                }
+                
             }
+            
         } // while end
     }
 
@@ -305,8 +440,19 @@ public class HttpProcessor implements Processor {
         String protocol = new String(requestLine.protocol, 0, requestLine.protocolEnd);
 
         if (method.length() < 1) throw new ServletException("缺少HTTP请求方法");
-        if (protocol.length() < 1) throw new ServletException("缺少protocol");
         if (requestLine.uriEnd < 1) throw new ServletException("缺少uri信息");
+
+        if (protocol.length() == 0)
+            protocol = "HTTP/0.9";
+
+        if ("HTTP/1.1".equals(protocol)) {
+            http11 = true;
+            sendAck = false;
+        } else {
+            http11 = false;
+            sendAck = false;
+            keepAlive = false;
+        }
 
         // 解析存在于uri中的查询参数
         int question = requestLine.indexOf('?');
@@ -360,10 +506,65 @@ public class HttpProcessor implements Processor {
             request.setRequestURI(uri);
         }
 
-        request.setScheme("http");
+        request.setScheme(connector.getScheme());
         request.setMethod(method);
         request.setProtocol(protocol);
 
         if (normalizedUri == null) throw new ServletException("未规范化 URI: " + uri);
+    }
+
+
+    /**
+     * 打印日志
+     *
+     * @param message
+     */
+    private void log(String message) {
+        Logger logger = connector.getContainer().getLogger();
+        if (logger != null)
+            logger.log(threadName + " " + message);
+    }
+
+
+    /**
+     * 打印日志
+     * 
+     * @param message
+     * @param throwable
+     */
+    private void log(String message, Throwable throwable) {
+        Logger logger = connector.getContainer().getLogger();
+        if (logger != null)
+            logger.log(threadName + " " + message, throwable);
+    }
+
+
+    /**
+     * 返回线程id
+     * 
+     * @return
+     */
+    public int getId() {
+        return id;
+    }
+
+
+    /**
+     * 设置此处理器id
+     * 
+     * @param id
+     */
+    protected void setId(int id) {
+        this.id = id;
+    }
+
+
+    /**
+     * 设置debug等级
+     * 
+     * @param debug
+     */
+    public void setDebug(int debug) {
+        this.debug = debug;
     }
 }

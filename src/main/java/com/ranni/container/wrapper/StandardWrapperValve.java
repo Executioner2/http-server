@@ -62,7 +62,7 @@ public class StandardWrapperValve extends ValveBase {
     @Override
     public void invoke(Request request, Response response, ValveContext valveContext) throws IOException, ServletException {
         boolean unavailable = false; // 是否不可用
-
+        
         StandardWrapper wrapper = (StandardWrapper) getContainer();
         ServletRequest sreq = request.getRequest();
         ServletResponse sres = response.getResponse();

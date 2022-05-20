@@ -30,10 +30,10 @@ public class ResponseFacade implements ServletResponse {
         return servletResponse.getCharacterEncoding();
     }
 
-    @Override
-    public String getContentType() {
-        return response.getContentType();
-    }
+//    @Override
+//    public String getContentType() {
+//        return response.getContentType();
+//    }
 
     @Override
     public ServletOutputStream getOutputStream() throws IOException {
@@ -45,10 +45,10 @@ public class ResponseFacade implements ServletResponse {
         return servletResponse.getWriter();
     }
 
-    @Override
-    public void setCharacterEncoding(String charset) {
-        servletResponse.setCharacterEncoding(charset);
-    }
+//    @Override
+//    public void setCharacterEncoding(String charset) {
+//        servletResponse.setCharacterEncoding(charset);
+//    }
 
     @Override
     public void setContentLength(int i) {
@@ -56,10 +56,10 @@ public class ResponseFacade implements ServletResponse {
         servletResponse.setContentLength(i);
     }
 
-    @Override
-    public void setContentLengthLong(long len) {
-        servletResponse.setContentLengthLong(len);
-    }
+//    @Override
+//    public void setContentLengthLong(long len) {
+//        servletResponse.setContentLengthLong(len);
+//    }
 
     @Override
     public void setContentType(String s) {

@@ -183,6 +183,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
     /**
      * 返回协议类型
+     * 
      * @return
      */
     @Override

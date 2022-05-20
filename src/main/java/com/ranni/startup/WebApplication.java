@@ -178,6 +178,7 @@ public final class WebApplication {
             connector.setDebug(configure.getDebug());
             connector.setPort(configure.getPort());
             connector.setAddress(configure.getIp());
+            connector.setScheme(configure.getScheme());
 
             // 将服务和连接器关联
             for (String serviceName : configure.getServices()) {

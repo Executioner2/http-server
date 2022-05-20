@@ -1,6 +1,5 @@
 package com.ranni.connector.http.request;
 
-import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -87,18 +86,18 @@ public class RequestStream extends ServletInputStream {
         closed = true;
     }
 
-    @Override
-    public boolean isFinished() {
-        return false;
-    }
-
-    @Override
-    public boolean isReady() {
-        return false;
-    }
-
-    @Override
-    public void setReadListener(ReadListener readListener) {
-
-    }
+//    @Override
+//    public boolean isFinished() {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean isReady() {
+//        return false;
+//    }
+//
+//    @Override
+//    public void setReadListener(ReadListener readListener) {
+//
+//    }
 }

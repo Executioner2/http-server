@@ -14,6 +14,9 @@ public class HttpHeader {
     public static final int MAX_NAME_SIZE = 128;
     public static final int MAX_VALUE_SIZE = 4096;
 
+    public long nameHash; // 请求头中name的hash
+    public long valueHash; // 请求头中value的hash
+    
     public char[] name;
     public int nameEnd;
     public char[] value;
@@ -36,5 +39,7 @@ public class HttpHeader {
     public void recycle() {
         this.nameEnd = 0;
         this.valueEnd = 0;
+        this.nameHash = 0L;
+        this.valueHash = 0L;
     }
 }

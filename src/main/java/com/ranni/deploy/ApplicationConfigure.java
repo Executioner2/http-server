@@ -21,6 +21,7 @@ public class ApplicationConfigure {
     private String ip; // ip地址
     private boolean reloadable; // 是否可重载
     private int port = 8080; // 端口号
+    private String scheme = "http"; // 协议
     private int debug = Logger.WARNING; // debug级别
     private int backgroundProcessorDelay; // 后台线程的休眠因子，值小于等于0表示没有单独的后台任务线程
     private List<String> services = new ArrayList<>(){{ add("StandardService"); }}; // 加入的服务
@@ -95,5 +96,13 @@ public class ApplicationConfigure {
 
     public void setBackgroundProcessorDelay(int backgroundProcessorDelay) {
         this.backgroundProcessorDelay = backgroundProcessorDelay;
+    }
+
+    public String getScheme() {
+        return scheme;
+    }
+
+    public void setScheme(String scheme) {
+        this.scheme = scheme;
     }
 }

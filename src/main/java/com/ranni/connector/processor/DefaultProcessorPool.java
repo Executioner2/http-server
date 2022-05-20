@@ -82,6 +82,10 @@ public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
                     // 初始化处理器池
                     for (int i = 0; i < min; i++) {
                         Processor processor = new HttpProcessor();
+                        
+                        if (processor instanceof HttpProcessor)
+                            ((HttpProcessor) processor).setId(i);
+                        
                         processor.start();
                         pool.push(processor);
                     }
@@ -109,6 +113,10 @@ public class DefaultProcessorPool implements ProcessorPool, Lifecycle {
 
                 Processor processor = new HttpProcessor();
                 processor.setWorking(true);
+                
+                if (processor instanceof HttpProcessor)
+                    ((HttpProcessor) processor).setId(curProcessors);
+                
                 curProcessors++;
                 processor.start();
 

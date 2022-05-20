@@ -510,24 +510,24 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
      * @param name
      * @return
      */
-    @Override
-    public Collection<String> getHeaders(String name) {
-        synchronized (headers) {
-            return headers.get(name);
-        }
-    }
-    
-
-    /**
-     * 返回header中所有name
-     * @return
-     */
-    @Override
-    public Collection<String> getHeaderNames() {
-        synchronized (headers) {
-            return headers.keySet();
-        }
-    }
+//    @Override
+//    public Collection<String> getHeaders(String name) {
+//        synchronized (headers) {
+//            return headers.get(name);
+//        }
+//    }
+//    
+//
+//    /**
+//     * 返回header中所有name
+//     * @return
+//     */
+//    @Override
+//    public Collection<String> getHeaderNames() {
+//        synchronized (headers) {
+//            return headers.keySet();
+//        }
+//    }
     
 
     /**
@@ -587,18 +587,18 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
      * 
      * @param charset
      */
-    @Override
-    public void setCharacterEncoding(String charset) {
-        try {
-            byte[] b = {'a'};
-            // 尝试编码
-            String s = new String(b, charset);
-
-            this.characterEncoding = charset;
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }        
-    }
+//    @Override
+//    public void setCharacterEncoding(String charset) {
+//        try {
+//            byte[] b = {'a'};
+//            // 尝试编码
+//            String s = new String(b, charset);
+//
+//            this.characterEncoding = charset;
+//        } catch (UnsupportedEncodingException e) {
+//            e.printStackTrace();
+//        }        
+//    }
 
 
     /**
@@ -606,14 +606,14 @@ public class HttpResponseBase extends ResponseBase implements HttpResponse, Http
      * 
      * @param len
      */
-    @Override
-    public void setContentLengthLong(long len) {
-        if (isCommitted())
-            return;
-
-        this.contentLength = len;
-        
-    }
+//    @Override
+//    public void setContentLengthLong(long len) {
+//        if (isCommitted())
+//            return;
+//
+//        this.contentLength = len;
+//        
+//    }
     
 
     /**

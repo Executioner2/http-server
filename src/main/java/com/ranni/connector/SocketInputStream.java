@@ -2,6 +2,7 @@ package com.ranni.connector;
 
 import com.ranni.connector.http.HttpHeader;
 import com.ranni.connector.http.HttpRequestLine;
+import com.ranni.connector.http.response.DefaultHeaders;
 
 import javax.servlet.ServletException;
 import java.io.*;
@@ -75,7 +76,11 @@ public class SocketInputStream extends InputStream {
      * @param requestLine
      */
     public void readRequestLine(HttpRequestLine requestLine) throws IOException, ServletException {
-        requestLine.recycle(); // 初始化一些参数
+
+        // 初始化一些参数
+        if (requestLine.methodEnd != 0)
+            requestLine.recycle();
+        
         int val;
 
         // 处理/r/n
@@ -173,7 +178,7 @@ public class SocketInputStream extends InputStream {
             else requestLine.protocol[readCount++] = (char)val;
         }
 
-        requestLine.protocolEnd = readCount;
+        requestLine.protocolEnd = readCount - 1;
     }
 
     /**
@@ -199,6 +204,7 @@ public class SocketInputStream extends InputStream {
         int maxRead = header.name.length;
         int readCount = 0;
         boolean colon = false; // 是否遇到了分号(:)
+        long hash = 0L;
 
         while (!colon) {
             // 如果header.name装满了，就扩容
@@ -215,17 +221,26 @@ public class SocketInputStream extends InputStream {
 
             val = read();
             if (val == -1) throw new IOException("请求体错误！");
+            val = val >= 'A' && val <= 'Z' ? val + OFFSET : val; // 转小写字符
             colon = val == COLON;
-            header.name[readCount++] = (char)(val >= 'A' && val <= 'Z' ? val + OFFSET : val); // 转小写字符
+            
+            if (!colon) {
+                hash = hash * DefaultHeaders.HASH + val;
+            }
+            
+            header.name[readCount++] = (char) val;
         }
 
         header.nameEnd = readCount - 1;
+        header.nameHash = hash;
 
         maxRead = header.value.length;
         readCount = 0;
+        hash = 0L;
+        int prev = -1;
         boolean eol = false; // 是否读完了
         boolean validLine = true; // 有效行
-
+        
         while (validLine) {
             // 3、消除name与value之间的空格
             boolean space = true;
@@ -236,6 +251,8 @@ public class SocketInputStream extends InputStream {
             }
 
             // 4、读取value并写入到header对象的value属性中
+            prev = -1;
+            
             while (!eol) {
                 if (readCount >= maxRead) {
                     if (maxRead * 2 <= HttpHeader.MAX_VALUE_SIZE) {
@@ -250,11 +267,16 @@ public class SocketInputStream extends InputStream {
 
                 val = read();
                 if (val == -1) throw new IOException("请求体错误！");
+                
                 if (val == LF) {
                     eol = true;
                 } else {
-                    header.value[readCount++] = (char)val;
+                    hash = hash * DefaultHeaders.HASH + prev;
+                    header.value[readCount++] = (char) val;
                 }
+                
+                prev = val;
+                
             } // while(!eol) - end
 
             // XXX 下一个字符是空格或者水平制表符表示后面还有value。（但是上面是读value是遇到LF才结束的，如果行是有前导空格或水平制表符的下一个name，将会出现错误）
@@ -271,13 +293,15 @@ public class SocketInputStream extends InputStream {
                     }
                 }
                 header.value[readCount++] = ' ';
+                hash = hash * DefaultHeaders.HASH + SP;
             } else {
                 pos--;
                 validLine = false;
             }
         } // while(validLine) - end
 
-        header.valueEnd = readCount;
+        header.valueEnd = readCount - 1;
+        header.valueHash = hash;
     }
 
     /**

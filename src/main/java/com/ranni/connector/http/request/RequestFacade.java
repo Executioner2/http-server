@@ -56,10 +56,10 @@ public class RequestFacade implements ServletRequest {
         return request.getContentLength();
     }
 
-    @Override
-    public long getContentLengthLong() {
-        return request.getContentLengthLong();
-    }
+//    @Override
+//    public long getContentLengthLong() {
+//        return request.getContentLengthLong();
+//    }
 
     @Override
     public String getContentType() {
@@ -161,58 +161,58 @@ public class RequestFacade implements ServletRequest {
         return request.getRealPath(s);
     }
 
-    @Override
-    public int getRemotePort() {
-        return request.getRemotePort();
-    }
-
-    @Override
-    public String getLocalName() {
-        return request.getLocalName();
-    }
-
-    @Override
-    public String getLocalAddr() {
-        return request.getLocalAddr();
-    }
-
-    @Override
-    public int getLocalPort() {
-        return request.getLocalPort();
-    }
-
-    @Override
-    public ServletContext getServletContext() {
-        return request.getServletContext();
-    }
-
-    @Override
-    public AsyncContext startAsync() throws IllegalStateException {
-        return request.startAsync();
-    }
-
-    @Override
-    public AsyncContext startAsync(ServletRequest servletRequest, ServletResponse servletResponse) throws IllegalStateException {
-        return request.startAsync();
-    }
-
-    @Override
-    public boolean isAsyncStarted() {
-        return request.isAsyncStarted();
-    }
-
-    @Override
-    public boolean isAsyncSupported() {
-        return request.isAsyncSupported();
-    }
-
-    @Override
-    public AsyncContext getAsyncContext() {
-        return request.getAsyncContext();
-    }
-
-    @Override
-    public DispatcherType getDispatcherType() {
-        return request.getDispatcherType();
-    }
+//    @Override
+//    public int getRemotePort() {
+//        return request.getRemotePort();
+//    }
+//
+//    @Override
+//    public String getLocalName() {
+//        return request.getLocalName();
+//    }
+//
+//    @Override
+//    public String getLocalAddr() {
+//        return request.getLocalAddr();
+//    }
+//
+//    @Override
+//    public int getLocalPort() {
+//        return request.getLocalPort();
+//    }
+//
+//    @Override
+//    public ServletContext getServletContext() {
+//        return request.getServletContext();
+//    }
+//
+//    @Override
+//    public AsyncContext startAsync() throws IllegalStateException {
+//        return request.startAsync();
+//    }
+//
+//    @Override
+//    public AsyncContext startAsync(ServletRequest servletRequest, ServletResponse servletResponse) throws IllegalStateException {
+//        return request.startAsync();
+//    }
+//
+//    @Override
+//    public boolean isAsyncStarted() {
+//        return request.isAsyncStarted();
+//    }
+//
+//    @Override
+//    public boolean isAsyncSupported() {
+//        return request.isAsyncSupported();
+//    }
+//
+//    @Override
+//    public AsyncContext getAsyncContext() {
+//        return request.getAsyncContext();
+//    }
+//
+//    @Override
+//    public DispatcherType getDispatcherType() {
+//        return request.getDispatcherType();
+//    }
 }

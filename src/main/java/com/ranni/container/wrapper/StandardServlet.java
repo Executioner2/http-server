@@ -112,7 +112,7 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
     public void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String uri = req.getRequestURI().substring(baseUri.length());        
         req.setCharacterEncoding("UTF-8");
-        resp.setCharacterEncoding("UTF-8");
+//        resp.setCharacterEncoding("UTF-8");
         if (!methodMap.containsKey(uri)) {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND, "请求未找到！ requestURI：" + req.getRequestURI());
             return;
@@ -192,8 +192,8 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
                 if (paramName == null || "".equals(paramName))
                     paramName = parameters[i].getName();
                 
-                if (annotation instanceof RequestParam) {                    
-
+                if (annotation instanceof RequestParam) {
+                    
                     // XXX 是否应该让非GET请求的URI携带参数无效化
                     String value = hsr.getParameter(paramName);
 
