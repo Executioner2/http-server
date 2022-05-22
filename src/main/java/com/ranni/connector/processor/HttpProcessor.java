@@ -2,8 +2,8 @@ package com.ranni.connector.processor;
 
 import com.ranni.connector.HttpConnector;
 import com.ranni.connector.SocketInputStream;
-import com.ranni.connector.http.HttpHeader;
-import com.ranni.connector.http.HttpRequestLine;
+import com.ranni.connector.http.request.HttpHeader;
+import com.ranni.connector.http.request.HttpRequestLine;
 import com.ranni.connector.http.request.HttpRequestBase;
 import com.ranni.connector.http.response.DefaultHeaders;
 import com.ranni.connector.http.response.HttpResponseBase;

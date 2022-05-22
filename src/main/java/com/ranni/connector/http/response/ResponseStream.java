@@ -1,6 +1,7 @@
 package com.ranni.connector.http.response;
 
 import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -144,13 +145,13 @@ public class ResponseStream extends ServletOutputStream {
         this.count = 0;
     }
 
-//    @Override
-//    public boolean isReady() {
-//        return false;
-//    }
-//
-//    @Override
-//    public void setWriteListener(WriteListener writeListener) {
-//
-//    }
+    @Override
+    public boolean isReady() {
+        return false;
+    }
+
+    @Override
+    public void setWriteListener(WriteListener writeListener) {
+
+    }
 }

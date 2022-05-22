@@ -383,10 +383,10 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
         return getSession(true);
     }
 
-//    @Override
-//    public String changeSessionId() {
-//        return null;
-//    }
+    @Override
+    public String changeSessionId() {
+        return null;
+    }
 
     /**
      * TODO 验证session id是否合法
@@ -425,35 +425,35 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
         return isRequestedSessionIdFromURL();
     }
 
-//    @Override
-//    public boolean authenticate(HttpServletResponse response) throws IOException, ServletException {
-//        return false;
-//    }
-//
-//    @Override
-//    public void login(String username, String password) throws ServletException {
-//
-//    }
-//
-//    @Override
-//    public void logout() throws ServletException {
-//
-//    }
-//
-//    @Override
-//    public Collection<Part> getParts() throws IOException, ServletException {
-//        return null;
-//    }
-//
-//    @Override
-//    public Part getPart(String name) throws IOException, ServletException {
-//        return null;
-//    }
-//
-//    @Override
-//    public <T extends HttpUpgradeHandler> T upgrade(Class<T> handlerClass) throws IOException, ServletException {
-//        return null;
-//    }
+    @Override
+    public boolean authenticate(HttpServletResponse response) throws IOException, ServletException {
+        return false;
+    }
+
+    @Override
+    public void login(String username, String password) throws ServletException {
+
+    }
+
+    @Override
+    public void logout() throws ServletException {
+
+    }
+
+    @Override
+    public Collection<Part> getParts() throws IOException, ServletException {
+        return null;
+    }
+
+    @Override
+    public Part getPart(String name) throws IOException, ServletException {
+        return null;
+    }
+
+    @Override
+    public <T extends HttpUpgradeHandler> T upgrade(Class<T> handlerClass) throws IOException, ServletException {
+        return null;
+    }
 
 
     /**
@@ -513,10 +513,10 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
      * 
      * @return
 //     */
-//    @Override
-//    public long getContentLengthLong() {
-//        return this.contentLength;
-//    }
+    @Override
+    public long getContentLengthLong() {
+        return this.contentLength;
+    }
     
 
     /**
@@ -596,66 +596,66 @@ public class HttpRequestBase extends RequestBase implements HttpRequest, HttpSer
         return null;
     }
 
-//    @Override
-//    public int getRemotePort() {
-//        return 0;
-//    }
-//
-//    @Override
-//    public String getLocalName() {
-//        return null;
-//    }
-//
-//    @Override
-//    public String getLocalAddr() {
-//        return null;
-//    }
-//
-//    @Override
-//    public int getLocalPort() {
-//        return 0;
-//    }
-//
-//
-//    /**
-//     * 返回全局作用域
-//     * 
-//     * @return
-//     */
-//    @Override
-//    public ServletContext getServletContext() {
-//        return context.getServletContext();
-//    }
-//
-//    @Override
-//    public AsyncContext startAsync() throws IllegalStateException {
-//        return null;
-//    }
-//
-//    @Override
-//    public AsyncContext startAsync(ServletRequest servletRequest, ServletResponse servletResponse) throws IllegalStateException {
-//        return null;
-//    }
-//
-//    @Override
-//    public boolean isAsyncStarted() {
-//        return false;
-//    }
-//
-//    @Override
-//    public boolean isAsyncSupported() {
-//        return false;
-//    }
-//
-//    @Override
-//    public AsyncContext getAsyncContext() {
-//        return null;
-//    }
-//
-//    @Override
-//    public DispatcherType getDispatcherType() {
-//        return null;
-//    }
+    @Override
+    public int getRemotePort() {
+        return 0;
+    }
+
+    @Override
+    public String getLocalName() {
+        return null;
+    }
+
+    @Override
+    public String getLocalAddr() {
+        return null;
+    }
+
+    @Override
+    public int getLocalPort() {
+        return 0;
+    }
+
+
+    /**
+     * 返回全局作用域
+     * 
+     * @return
+     */
+    @Override
+    public ServletContext getServletContext() {
+        return context.getServletContext();
+    }
+
+    @Override
+    public AsyncContext startAsync() throws IllegalStateException {
+        return null;
+    }
+
+    @Override
+    public AsyncContext startAsync(ServletRequest servletRequest, ServletResponse servletResponse) throws IllegalStateException {
+        return null;
+    }
+
+    @Override
+    public boolean isAsyncStarted() {
+        return false;
+    }
+
+    @Override
+    public boolean isAsyncSupported() {
+        return false;
+    }
+
+    @Override
+    public AsyncContext getAsyncContext() {
+        return null;
+    }
+
+    @Override
+    public DispatcherType getDispatcherType() {
+        return null;
+    }
 
     /**
      * 添加cookie到cookies中

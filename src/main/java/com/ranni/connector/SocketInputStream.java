@@ -1,7 +1,7 @@
 package com.ranni.connector;
 
-import com.ranni.connector.http.HttpHeader;
-import com.ranni.connector.http.HttpRequestLine;
+import com.ranni.connector.http.request.HttpHeader;
+import com.ranni.connector.http.request.HttpRequestLine;
 import com.ranni.connector.http.response.DefaultHeaders;
 
 import javax.servlet.ServletException;
