@@ -1,5 +1,7 @@
 package com.ranni.buf;
 
+import com.ranni.util.HexUtils;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -30,6 +32,7 @@ public final class MessageBytes implements Serializable, Cloneable {
     private String strValue; // 计算后的str值
     private int hashCode;
     private boolean hasHashCode; // 是否计算了哈希值
+    private long longValue;
     private boolean hasLongValue; // 是否表示的是64位类型
     
     
@@ -413,4 +416,72 @@ public final class MessageBytes implements Serializable, Cloneable {
         
         setCharset(src.getCharset());
     }
+
+
+    /**
+     * 设置长整型数据
+     * 
+     * @param l 设置的数据
+     */
+    public void setLong(long l) {
+        byteC.allocate(32, 64);
+        
+        long current = l;
+        byte[] buf = byteC.getBuffer();
+        int start = 0;
+        int end = 0;
+        if (l == 0) {
+            buf[end++] = (byte) '0';
+        }
+        if (l < 0) {
+            current = -l;
+            buf[end++] = (byte) '-';
+        }
+        while (current > 0) { // 计算出来的数字是倒叙的
+            int digit = (int) (current % 10);
+            current = current / 10;
+            buf[end++] = HexUtils.getHex(digit);
+        }
+        byteC.setOffset(0);
+        byteC.setEnd(end);
+        
+        // 将倒叙的数字反转为正
+        end--;
+        if (l < 0) {
+            start++;
+        }        
+        while (end > start) {
+            buf[start] ^= buf[end];
+            buf[end] ^= buf[start];
+            buf[start] ^= buf[end];            
+            start++; end--;
+        }
+        
+        longValue = l;
+        strValue = null;
+        hasHashCode = false;
+        hasLongValue = true;
+        type = T_BYTES;
+    }
+
+
+    /**
+     * @return 返回长整型值
+     */
+    public long getLong() {
+        if(hasLongValue) {
+            return longValue;
+        }
+
+        if (type == T_BYTES) {
+            longValue = byteC.getLong();
+        } else {
+            longValue = Long.parseLong(toString());
+        }
+
+        hasLongValue = true;
+        
+        return longValue;
+    }
+    
 }
