@@ -298,8 +298,97 @@ public class OutputBuffer extends Writer {
         }
     }
 
+    
+    @Override
+    public void write(char[] cbuf, int off, int len) throws IOException {
 
-    // ------------------------------ 输入到输出流 ------------------------------    
+    }
+
+
+    // ------------------------------ 输入到输出流 ------------------------------  
+
+    /**
+     * 如果字节缓冲没有数据，直接把追加的数据全部添加到字节缓冲中。
+     * 如果字节缓冲可以填满就填满并发送出去。发送了，src中还有多
+     * 余的，就将多余的填充到字节缓冲中。
+     * 
+     * @param src 追加的数据
+     * @param off 偏移量
+     * @param len 添加的数据长度
+     * @throws IOException 可能抛出I/O异常
+     */
+    public void append(byte src[], int off, int len) throws IOException {
+        if (bb.remaining() == 0) {
+            appendByteArray(src, off, len);
+        } else {
+            int n = transfer(src, off, len, bb);
+            len = len - n;
+            off = off + n;
+            if (len > 0 && isFull(bb)) {
+                flushByteBuffer();
+                appendByteArray(src, off, len);
+            }
+        }
+    }
+
+
+    /**
+     * 添加数据到字符缓冲区
+     * 
+     * @param src 追加的字符数据
+     * @param off 偏移量
+     * @param len 数据长度
+     * @throws IOException 可能抛出I/O异常
+     */
+    public void append(char src[], int off, int len) throws IOException {
+        // 如果字符缓冲区剩余的空间刚好可以装下追加
+        // 的数据，那么直接追加到后面后直接返回
+        if(len <= cb.capacity() - cb.limit()) {
+            transfer(src, off, len, cb);
+            return;
+        }
+
+        // 如果需要的容量不到字符缓冲区最大值的两倍，只需要填满并发送
+        // 一次后，剩下的数据就可以直接添加到缓冲区中。如果不满足前面
+        // 的条件，则将字符缓冲区和追加数据全部发送出去。
+        if(len * 1L + cb.limit() < 2L * cb.capacity()) {
+            int n = transfer(src, off, len, cb);
+            flushCharBuffer();
+            transfer(src, off + n, len - n, cb);
+        } else {
+            flushCharBuffer();
+            realWriteChars(CharBuffer.wrap(src, off, len));
+        }
+    }
+
+    public void append(ByteBuffer from) throws IOException {
+        if (bb.remaining() == 0) {
+            appendByteBuffer(from);
+        } else {
+            transfer(from, bb);
+            if (from.hasRemaining() && isFull(bb)) {
+                flushByteBuffer();
+                appendByteBuffer(from);
+            }
+        }
+    }
+
+    private void appendByteArray(byte src[], int off, int len) throws IOException {
+        if (len == 0) {
+            return;
+        }
+
+        int limit = bb.capacity();
+        while (len > limit) {
+            realWriteBytes(ByteBuffer.wrap(src, off, limit));
+            len = len - limit;
+            off = off + limit;
+        }
+
+        if (len > 0) {
+            transfer(src, off, len, bb);
+        }
+    }
 
     private void appendByteBuffer(ByteBuffer from) throws IOException {
         if (from.remaining() == 0) {
@@ -387,12 +476,6 @@ public class OutputBuffer extends Writer {
         buffer.mark()
                 .position(buffer.limit())
                 .limit(buffer.capacity());
-    }
-
-
-    @Override
-    public void write(char[] cbuf, int off, int len) throws IOException {
-        
     }
 
 }
