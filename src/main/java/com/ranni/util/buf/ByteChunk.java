@@ -1,4 +1,4 @@
-package com.ranni.buf;
+package com.ranni.util.buf;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -228,6 +228,20 @@ public final class ByteChunk extends AbstractChunk {
         to.position(to.position() - n);
         start += n;
         return n;
+    }
+
+
+    /**
+     * 读取一个字节
+     * 
+     * @return 返回读取的一个字节
+     * @throws IOException
+     */
+    public byte subtractB() throws IOException {
+        if (checkEof()) {
+            return -1;
+        }
+        return buff[start++];
     }
     
 

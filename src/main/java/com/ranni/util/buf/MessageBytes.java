@@ -1,4 +1,4 @@
-package com.ranni.buf;
+package com.ranni.util.buf;
 
 import com.ranni.util.HexUtils;
 

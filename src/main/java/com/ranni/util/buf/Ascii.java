@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.ranni.buf;
+package com.ranni.util.buf;
 
 /**
  * This class implements some basic ASCII character handling functions.
