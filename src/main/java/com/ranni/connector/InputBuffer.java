@@ -381,7 +381,7 @@ public class InputBuffer extends Reader
      * @param charset 编码方式
      * @return 返回创建的编码转换器
      */
-    private static B2CConverter createConverter(Charset charset) {
+    private static B2CConverter createConverter(final Charset charset) {
         // XXX - 缺少安全检查
         return new B2CConverter(charset);
     }

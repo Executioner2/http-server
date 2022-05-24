@@ -2,10 +2,13 @@ package com.ranni.connector;
 
 import com.ranni.coyote.ActionCode;
 import com.ranni.coyote.CloseNowException;
+import com.ranni.coyote.Constants;
 import com.ranni.coyote.CoyoteAdapter;
 import com.ranni.coyote.Response;
+import com.ranni.util.buf.B2CConverter;
 import com.ranni.util.buf.C2BConverter;
 
+import javax.servlet.WriteListener;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.Writer;
@@ -71,11 +74,6 @@ public class OutputBuffer extends Writer {
     
     public void setResponse(Response coyoteResponse) {
         this.coyoteResponse = coyoteResponse;
-    }
-    
-    
-    public Response getResponse() {
-        return this.coyoteResponse;
     }
 
 
@@ -213,6 +211,56 @@ public class OutputBuffer extends Writer {
     }
 
 
+    /**
+     * 检查编码转换器。如果编码转换器（属性名conv）不为null，就直接返回。如果编
+     * 码转换器为null，则先按以下顺序依次尝试获取编码方式（Charset的实例）：
+     * 1、coyoteResponse中获取
+     * 2、若coyoteResponse没有，则设置为默认的编码方式
+     *    {@link com.ranni.coyote.Constants#DEFAULT_BODY_CHARSET}
+     * 取得编码方式后从编码缓存中取得编码转换器，如果缓存中没有编码缓存器，则创建
+     * 一个新的编码缓存器。
+     *
+     * @throws IOException 有可能抛出I/O异常
+     */
+    public void checkConverter() throws IOException {
+        if (conv != null) {
+            return;
+        }
+        
+        Charset charset = null;
+        
+        if (coyoteResponse != null) {
+            charset = coyoteResponse.getCharset();
+        }
+        
+        if (charset == null) {
+            if (coyoteResponse.getCharacterEncoding() != null) {
+                // 测试编码是否正常，如果不正常则抛出异常，
+                charset = B2CConverter.getCharset(coyoteResponse.getCharacterEncoding());
+            }
+            charset = Constants.DEFAULT_BODY_CHARSET;
+        }
+        
+        conv = encoders.get(charset);
+        if (conv == null) {
+            conv = createConverter(charset);
+            encoders.put(charset, conv);
+        }
+    }
+    
+
+    /**
+     * 创建一个编码转换器
+     *
+     * @param charset 编码方式
+     * @return 返回创建的编码转换器
+     */
+    private static C2BConverter createConverter(final Charset charset) {
+        // XXX - 缺少安全检查
+        return new C2BConverter(charset);
+    }
+
+
     // ------------------------------ 字节缓冲区 ------------------------------
 
     /**
@@ -268,9 +316,9 @@ public class OutputBuffer extends Writer {
         
         writeBytes(from);
     }
-    
-    
-    public void writeBytes(byte b[], int off, int len) throws IOException {
+
+
+    private void writeBytes(byte b[], int off, int len) throws IOException {
         if (closed) {
             return;
         }
@@ -284,7 +332,7 @@ public class OutputBuffer extends Writer {
     }
     
     
-    public void writeBytes(ByteBuffer from) throws IOException {
+    private void writeBytes(ByteBuffer from) throws IOException {
         if (closed) {
             return;
         }
@@ -362,6 +410,22 @@ public class OutputBuffer extends Writer {
 
     
     @Override
+    public void write(int c) throws IOException {
+
+        if (suspended) {
+            return;
+        }
+
+        if (isFull(cb)) {
+            flushCharBuffer();
+        }
+
+        transfer((char) c, cb);
+        charsWritten++;
+    }
+    
+    
+    @Override
     public void write(char[] cbuf, int off, int len) throws IOException {
         if (suspended) {
             return;
@@ -397,14 +461,99 @@ public class OutputBuffer extends Writer {
         if (str == null) {
             throw new NullPointerException("传入的字符串不能为null！");
         }
-        // TODO 
-        append(str, off, len);
+        
+        int sOff = off;
+        int sEnd = off + len;
+        while (sOff < sEnd) {
+            int n = transfer(str, off, sEnd - sOff, cb);
+            sOff += n;
+            if (sOff < sEnd && isFull(cb)) {
+                flushCharBuffer();
+            }
+        }
+        
         charsWritten += len;
     }
 
 
     // ------------------------------ 输入到输出流 ------------------------------  
 
+    
+    public long getContentWritten() {
+        return bytesWritten + charsWritten;
+    }
+
+
+    /**
+     * 这个输入缓冲区是否使用过。根据写入的字节和字符是否都为0来
+     * 判断。如果都为0，则表示这是个未使用的输出缓冲区。可以通过
+     * {@link #recycle()}来初始化实例属性
+     * 
+     * @return 返回使用状态
+     */
+    public boolean isNew() {
+        return bytesWritten == 0 && charsWritten == 0;
+    }
+
+
+    public void setBufferSize(int size) {
+        if (size > bb.capacity()) {
+            bb = ByteBuffer.allocate(size);
+            clear(bb);
+        }
+    }
+
+
+    public void reset() {
+        reset(false);
+    }
+
+
+    /**
+     * 清空缓冲区
+     * 
+     * @param resetWriterStreamFlags 是否对实例属性进行重置
+     */
+    public void reset(boolean resetWriterStreamFlags) {
+        clear(bb);
+        clear(cb);
+        bytesWritten = 0;
+        charsWritten = 0;
+        if (resetWriterStreamFlags) {
+            if (conv != null) {
+                conv.recycle();
+            }
+            conv = null;
+        }
+        initial = true;
+    }
+
+
+    public int getBufferSize() {
+        return bb.capacity();
+    }
+
+
+    public boolean isReady() {
+        return coyoteResponse.isReady();
+    }
+
+
+    public void setWriteListener(WriteListener listener) {
+        coyoteResponse.setWriteListener(listener);
+    }
+
+
+    public boolean isBlocking() {
+        return coyoteResponse.getWriteListener() == null;
+    }
+
+
+    public void checkRegisterForWrite() {
+        coyoteResponse.checkRegisterForWrite();
+    }
+    
+    
     /**
      * 如果字节缓冲没有数据，直接把追加的数据全部添加到字节缓冲中。
      * 如果字节缓冲可以填满就填满并发送出去。发送了，src中还有多

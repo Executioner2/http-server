@@ -1,7 +1,9 @@
 package com.ranni.coyote;
 
+import javax.servlet.WriteListener;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 /**
  * Title: HttpServer
@@ -57,5 +59,28 @@ public final class Response {
 
     public Exception getErrorException() {
         return null;
+    }
+
+    public Charset getCharset() {
+        return null;
+    }
+
+    public String getCharacterEncoding() {
+        return null;
+    }
+
+    public boolean isReady() {
+        return false;
+    }
+
+    public void setWriteListener(WriteListener listener) {
+        
+    }
+
+    public WriteListener getWriteListener() {
+        return null;
+    }
+
+    public void checkRegisterForWrite() {
     }
 }
