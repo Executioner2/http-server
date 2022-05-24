@@ -557,6 +557,11 @@ public class StandardSession implements Session, HttpSession, Serializable {
     public void setNote(String name, Object value) {
 
     }
+
+    @Override
+    public void endAccess() {
+        
+    }
 }
 
 

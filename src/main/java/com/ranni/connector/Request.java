@@ -1,6 +1,9 @@
 package com.ranni.connector;
 
 import com.ranni.connector.http.ParameterMap;
+import com.ranni.container.MappingData;
+import com.ranni.container.session.Session;
+import com.ranni.core.ApplicationMapping;
 import com.ranni.coyote.CoyoteInputStream;
 import com.ranni.util.FastHttpDateFormat;
 
@@ -10,7 +13,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
-import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,8 +29,9 @@ public class Request implements HttpServletRequest {
 
     private static final String HTTP_UPGRADE_HEADER_NAME = "upgrade";
     
-    private Connector connector;
+    private Connector connector; // 与此请求关联的连接器
 
+    // 日期格式化
     private static final DateTimeFormatter formats[] = {
             DateTimeFormatter.ofPattern(FastHttpDateFormat.RFC1123_DATE, Locale.US),
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.CHINA),
@@ -42,31 +45,195 @@ public class Request implements HttpServletRequest {
     protected DispatcherType internalDispatcherType; // 转发类型
     protected final InputBuffer inputBuffer = new InputBuffer(); // 输入缓冲区
     protected CoyoteInputStream inputStream = new CoyoteInputStream(inputBuffer); // 输入流
+    protected CoyoteReader reader = new CoyoteReader(inputBuffer); // 输入缓冲区读取器
     
     protected boolean usingInputStream; // 是使用了输入流
     protected boolean usingReader; // 是否使用了缓冲区读取器
     protected boolean parametersParsed; // 参数是否已经解析过了
     protected boolean cookiesParsed; // cookies是否已经解析过了
     protected boolean cookiesConverted; // 是否已经将cookies进行了转换
+    protected boolean sslAttributesParsed; // 在SSL下的属性解析了吗
     protected boolean secure; // 安全标志位
     
-    
+    protected Cookie[] cookies;
     protected ParameterMap<String, String[]> parameterMap = new ParameterMap<>(); // 请求参数
-    
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
+    private final transient HashMap<String, Object> notes = new HashMap<>(); // Catalina 组件和事件侦听器与此请求相关的内部注释。（不可被序列化）
 
-    // Catalina 组件和事件侦听器与此请求相关的内部注释。（不可被序列化）
-    private final transient HashMap<String, Object> notes = new HashMap<>();
+    // post数据缓存
+    protected static final int CACHED_POST_LEN = 8192;
+    protected byte[] postData = null;    
+    protected Collection<Part> parts = null; // 随请求上传的部分
     
+    protected Exception partsParseException;  // 解析part抛出的异常（如果有异常的话）
+    
+    protected Session session; // Session
+    protected Object requestDispatcherPath; // 转发路径
+    protected boolean requestedSessionCookie; // 是否用cookie作为session的id
+    protected boolean requestedSessionURL; // session id是否在URL中 
+    protected String requestedSessionId; // 请求中的session id
+    protected boolean requestedSessionSSL;
+
+    protected boolean localesParsed; // 是否已经解析了本地环境
+    protected int localPort = -1; // 本地端口
+    protected String localAddr; // 本地地址
+    protected String localName; // 本地名
+    protected String remoteAddr; // 远程地址
+    protected String remoteHost; // 远程主机
+    protected int remotePort = -1; // 远程端口
+    protected String peerAddr;
+
+    private HttpServletRequest applicationRequest;
+    protected com.ranni.coyote.Request coyoteRequest;
+    protected RequestFacade facade; // HttpServletRequest请求的外观类
+
+    // 映射数据
+    protected final MappingData mappingData = new MappingData();
+    private final ApplicationMapping applicationMapping = new ApplicationMapping(mappingData);
+
+
+    // ------------------------------ 构造方法 ------------------------------
     
     public Request(Connector connector) {
         this.connector = connector;
     }
     
+
+    // ------------------------------ 通用方法 ------------------------------
+
+    protected void addPathParameter(String name, String value) {
+        coyoteRequest.addPathParameter(name, value);
+    }
     
-    static class DateUtil {
-        private final static ThreadLocal<SimpleDateFormat> tl = new ThreadLocal<>();
-        
+    
+    protected String getPathParameter(String name) {
+        return coyoteRequest.getPathParameter(name);
+    }
+
+
+    /**
+     * 释放所有对象引用并初始化值
+     */
+    public void recycle() {
+        internalDispatcherType = null;
+        requestDispatcherPath = null;
+
+        authType = null;
+        inputBuffer.recycle();
+        usingInputStream = false;
+        usingReader = false;
+//        userPrincipal = null;
+//        subject = null;
+        parametersParsed = false;
+        if (parts != null) {
+            for (Part part: parts) {
+                try {
+                    part.delete();
+                } catch (IOException ignored) {
+                    // ApplicationPart.delete() never throws an IOEx
+                }
+            }
+            parts = null;
+        }
+        partsParseException = null;
+        locales.clear();
+        localesParsed = false;
+        secure = false;
+        remoteAddr = null;
+        peerAddr = null;
+        remoteHost = null;
+        remotePort = -1;
+        localPort = -1;
+        localAddr = null;
+        localName = null;
+
+        attributes.clear();
+        sslAttributesParsed = false;
+        notes.clear();
+
+        recycleSessionInfo();
+        recycleCookieInfo(false);
+
+        if (getDiscardFacades()) {
+            parameterMap = new ParameterMap<>();
+        } else {
+            parameterMap.setLocked(false);
+            parameterMap.clear();
+        }
+
+        mappingData.recycle();
+        applicationMapping.recycle();
+
+        applicationRequest = null;
+        if (getDiscardFacades()) {
+            if (facade != null) {
+                facade.clear();
+                facade = null;
+            }
+            if (inputStream != null) {
+                inputStream.clear();
+                inputStream = null;
+            }
+            if (reader != null) {
+                reader.clear();
+                reader = null;
+            }
+        }
+
+//        asyncSupported = null;
+//        if (asyncContext!=null) {
+//            asyncContext.recycle();
+//        }
+//        asyncContext = null;
+    }
+
+
+    /**
+     * @return 是否重置外观对象
+     */
+    public boolean getDiscardFacades() {
+        return (connector == null) ? true : connector.getDiscardFacades();
+    }
+    
+
+    /**
+     * 重置关于cookie操作的属性信息
+     * 
+     * @param recycleCoyote 是否重置cookie内的信息
+     */
+    protected void recycleCookieInfo(boolean recycleCoyote) {
+        cookiesParsed = false;
+        cookiesConverted = false;
+        cookies = null;
+        if (recycleCoyote) {
+            getCoyoteRequest().getCookies().recycle();
+        }
+    }
+
+
+    /**
+     * 重置session信息
+     */
+    protected void recycleSessionInfo() {
+        if (session != null) {
+            try {
+                session.endAccess();
+            } catch (Throwable t) {
+                throw t;
+            }
+        }
+
+        session = null;
+        requestedSessionCookie = false;
+        requestedSessionId = null;
+        requestedSessionURL = false;
+        requestedSessionSSL = false;
+    }
+
+
+    
+    private com.ranni.coyote.Request getCoyoteRequest() {
+        return this.coyoteRequest;
     }
     
     

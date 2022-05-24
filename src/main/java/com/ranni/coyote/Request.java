@@ -2,6 +2,7 @@ package com.ranni.coyote;
 
 import com.ranni.connector.InputBuffer;
 import com.ranni.util.buf.MessageBytes;
+import com.ranni.util.http.ServerCookies;
 
 import javax.servlet.ReadListener;
 import java.io.IOException;
@@ -90,5 +91,17 @@ public final class Request {
 
     public MessageBytes method() {
         return methodMB;
+    }
+
+    public void addPathParameter(String name, String value) {
+        
+    }
+
+    public String getPathParameter(String name) {
+        return null;
+    }
+
+    public ServerCookies getCookies() {
+        return null;
     }
 }

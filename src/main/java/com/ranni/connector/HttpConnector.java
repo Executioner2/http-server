@@ -78,7 +78,16 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         this.debug = debug;
     }
 
-    
+
+    /**
+     * @return TODO 是否重置外观对象
+     */
+    @Override
+    public boolean getDiscardFacades() {
+        return true;
+    }
+
+
     /**
      * 返回容器
      * 

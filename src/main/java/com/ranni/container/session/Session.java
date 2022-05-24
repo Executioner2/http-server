@@ -245,4 +245,10 @@ public interface Session {
      * @param value 内部注释对象
      */
     void setNote(String name, Object value);
+
+
+    /**
+     * 结束session的访问
+     */
+    void endAccess();
 }

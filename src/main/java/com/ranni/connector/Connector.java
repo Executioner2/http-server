@@ -167,4 +167,10 @@ public interface Connector {
      * @param debug
      */
     void setDebug(int debug);
+
+
+    /**
+     * @return 是否重置外观对象
+     */
+    boolean getDiscardFacades();
 }
