@@ -1,15 +1,19 @@
 package com.ranni.connector;
 
+import com.ranni.connector.http.ParameterMap;
+import com.ranni.coyote.CoyoteInputStream;
+import com.ranni.util.FastHttpDateFormat;
+
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.Locale;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Title: HttpServer
@@ -20,8 +24,50 @@ import java.util.Map;
  * @Date 2022/5/23 21:55
  */
 public class Request implements HttpServletRequest {
+
+    private static final String HTTP_UPGRADE_HEADER_NAME = "upgrade";
     
-    protected InputBuffer inputBuffer = new InputBuffer();
+    private Connector connector;
+
+    private static final DateTimeFormatter formats[] = {
+            DateTimeFormatter.ofPattern(FastHttpDateFormat.RFC1123_DATE, Locale.US),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.CHINA),
+            DateTimeFormatter.ofPattern("EEEEEE, dd-MMM-yy HH:mm:ss zzz", Locale.US),
+            DateTimeFormatter.ofPattern("EEE MMMM d HH:mm:ss yyyy", Locale.US)
+    };
+
+    protected static final Locale defaultLocale = Locale.getDefault();
+    protected final ArrayList<Locale> locales = new ArrayList<>(); // 与此请求关联的本地环境
+    protected String authType; // 认证类型
+    protected DispatcherType internalDispatcherType; // 转发类型
+    protected final InputBuffer inputBuffer = new InputBuffer(); // 输入缓冲区
+    protected CoyoteInputStream inputStream = new CoyoteInputStream(inputBuffer); // 输入流
+    
+    protected boolean usingInputStream; // 是使用了输入流
+    protected boolean usingReader; // 是否使用了缓冲区读取器
+    protected boolean parametersParsed; // 参数是否已经解析过了
+    protected boolean cookiesParsed; // cookies是否已经解析过了
+    protected boolean cookiesConverted; // 是否已经将cookies进行了转换
+    protected boolean secure; // 安全标志位
+    
+    
+    protected ParameterMap<String, String[]> parameterMap = new ParameterMap<>(); // 请求参数
+    
+    private final Map<String, Object> attributes = new ConcurrentHashMap<>();
+
+    // Catalina 组件和事件侦听器与此请求相关的内部注释。（不可被序列化）
+    private final transient HashMap<String, Object> notes = new HashMap<>();
+    
+    
+    public Request(Connector connector) {
+        this.connector = connector;
+    }
+    
+    
+    static class DateUtil {
+        private final static ThreadLocal<SimpleDateFormat> tl = new ThreadLocal<>();
+        
+    }
     
     
     @Override
