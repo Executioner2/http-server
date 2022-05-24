@@ -4,15 +4,19 @@ import com.ranni.connector.http.ParameterMap;
 import com.ranni.container.Context;
 import com.ranni.container.Host;
 import com.ranni.container.MappingData;
+import com.ranni.container.Wrapper;
 import com.ranni.container.session.Session;
 import com.ranni.core.ApplicationMapping;
+import com.ranni.coyote.ActionCode;
 import com.ranni.coyote.CoyoteInputStream;
 import com.ranni.util.FastHttpDateFormat;
+import com.ranni.util.buf.B2CConverter;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.time.format.DateTimeFormatter;
@@ -62,7 +66,7 @@ public class Request implements HttpServletRequest {
     protected ParameterMap<String, String[]> parameterMap = new ParameterMap<>(); // 请求参数
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
     private final transient HashMap<String, Object> notes = new HashMap<>(); // Catalina 组件和事件侦听器与此请求相关的内部注释。（不可被序列化）
-
+    
     // post数据缓存
     protected static final int CACHED_POST_LEN = 8192;
     protected byte[] postData = null;    
@@ -76,18 +80,20 @@ public class Request implements HttpServletRequest {
     protected boolean requestedSessionURL; // session id是否在URL中 
     protected String requestedSessionId; // 请求中的session id
     protected boolean requestedSessionSSL;
+    protected B2CConverter URIConverter;
 
-    protected boolean localesParsed; // 是否已经解析了本地环境
-    protected int localPort = -1; // 本地端口
-    protected String localAddr; // 本地地址
-    protected String localName; // 本地名
-    protected String remoteAddr; // 远程地址
+    protected boolean localesParsed; // 是否已经解析了处理语言环境（请求头中的accept-language属性）
+    protected int localPort = -1; // 接收这个请求的服务器端口号
+    protected String localAddr; // 接收这个请求的服务器IP
+    protected String localName; // 接收这个请求的服务器名
+    protected String remoteAddr; // 与此请求关联的远程客户端IP地址
+    protected int remotePort = -1; // 此请求关联的远程客户端端口
     protected String remoteHost; // 远程主机
-    protected int remotePort = -1; // 远程端口
     protected String peerAddr;
 
     private HttpServletRequest applicationRequest;
     protected com.ranni.coyote.Request coyoteRequest;
+    protected Response response;
     protected RequestFacade facade; // HttpServletRequest请求的外观类
 
     // 映射数据
@@ -268,8 +274,11 @@ public class Request implements HttpServletRequest {
     public MappingData getMappingData() {
         return mappingData;
     }
-    
-    
+
+
+    /**
+     * @return 返回面向应用的请求实例
+     */
     public HttpServletRequest getRequest() {
         if (facade == null) {
             facade = new RequestFacade(this);
@@ -280,6 +289,188 @@ public class Request implements HttpServletRequest {
         }
         
         return applicationRequest;
+    }
+
+
+    /**
+     * 设置面向应用的请求实例。应用请求实例，如果它同时也是
+     * HttpServletRequestWrapper实例，则直到取到最内层的请求实例。如果最终
+     * 取出来的请求实例不是当前请求实例的外观对象，就抛出异常
+     * 
+     * @param applicationRequest 传入的面向应用的请求实例
+     */
+    public void setRequest(HttpServletRequest applicationRequest) {
+        ServletRequest r = applicationRequest;
+        
+        while (r instanceof HttpServletRequestWrapper) {            
+            r = ((HttpServletRequestWrapper) r).getRequest();
+        }
+        
+        if (r != facade) {
+            throw new IllegalArgumentException("request.illegalWrap");
+        }
+        this.applicationRequest = applicationRequest;
+    } 
+    
+    
+    public Response getResponse() {
+        return response;
+    }
+    
+    
+    public void setResponse(Response response) {
+        this.response = response;
+    }
+    
+    
+    public InputStream getStream() {
+        if (inputStream == null) {
+            inputStream = new CoyoteInputStream(inputBuffer);
+        }
+        return inputStream;
+    }
+    
+    
+    protected B2CConverter getURIConverter() {
+        return URIConverter;
+    }
+    
+    
+    protected void setURIConverter(B2CConverter URIConverter) {
+        this.URIConverter = URIConverter; 
+    }
+    
+    
+    public Wrapper getWrapper() {
+        return mappingData.wrapper;
+    }
+
+
+    // ------------------------------ 请求处理方法 ------------------------------
+    
+    public ServletInputStream createInputStream() throws IOException {
+        if (inputStream == null) {
+            inputStream = new CoyoteInputStream(inputBuffer);
+        }
+        return inputStream;
+    }
+
+
+    /**
+     * 只有当响应状态为413时才会调用checkSwallowInput方法
+     * 产生作用
+     * 
+     * @throws IOException 可能抛出I/O异常
+     */
+    public void finishRequest() throws IOException {
+        if (response.getStatus() == HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE) {
+            checkSwallowInput();
+        }
+    }
+
+
+    /**
+     * 如果有Context容器且Context容器开启了
+     * 请求大小边界限制的，就触发禁止大数据吞吐
+     * 的钩子。（例如控制大文件上传）
+     */
+    protected void checkSwallowInput() {
+        Context context = getContext();
+        if (context != null && !context.getSwallowAbortedUploads()) {
+            coyoteRequest.action(ActionCode.DISABLE_SWALLOW_INPUT, null);
+        }
+    }
+
+
+    /**
+     * Request的内部便签
+     * 
+     * @param name 便签名
+     * @return 返回便签
+     */
+    public Object getNode(String name) {
+        return notes.get(name);
+    }
+
+
+    /**
+     * 移除Request的内部便签
+     * 
+     * @param name 便签名
+     */
+    public void removeNote(String name) {
+        notes.remove(name);
+    }
+
+
+    /**
+     * 添加Request的内部便签
+     * 
+     * @param name 便签名
+     * @param node 便签
+     */
+    public void setNote(String name, Object node) {
+        notes.put(name, node);
+    }
+
+
+    /**
+     * 处理这个请求的服务器端口号
+     * 
+     * @param port 服务器端口号
+     */
+    public void setLocalPort(int port) {
+        localPort = port;
+    }
+    
+    
+    /**
+     * 设置与此请求关联的远程客户端IP地址
+     * 
+     * @param remoteAddr 远程客户端IP地址
+     */
+    public void setRemoteAddr(String remoteAddr) {
+        this.remoteAddr = remoteAddr;
+    }
+
+
+    /**
+     * 设置与此请求关联的远程客户端主机名（全限定名）
+     * 
+     * @param remoteHost 全程客户端主机名
+     */
+    public void setRemoteHost(String remoteHost) {
+        this.remoteHost = remoteHost;
+    }
+
+
+    /**
+     * 设置远程客户端的端口号
+     * 
+     * @param remotePort 客户端的端口号
+     */
+    public void setRemotePort(int remotePort) {
+        this.remotePort = remotePort;
+    }
+
+
+    /**
+     * 设置安全检查标志
+     * 
+     * @param secure 安全标志
+     */
+    public void setSecure(boolean secure) {
+        this.secure = secure;
+    }
+    
+
+    /**
+     * 设置服务器端口号来处理这个请求
+     * 
+     * @param port 服务器端口号
+     */
+    public void setServerPort(int port) {
+        coyoteRequest.setServerPort(port);
     }
     
     

@@ -68,6 +68,7 @@ public class StandardContext extends ContainerBase implements Context {
     private boolean reloadable; // 容器的重载标志位
     private String publicId; // xml公共id
     private String systemId; // xml系统id
+    private boolean swallowAbortedUploads = true; // 对请求大小进行约束的标志位
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
@@ -1342,8 +1343,16 @@ public class StandardContext extends ContainerBase implements Context {
     public void removeWrapperListener(String listener) {
 
     }
-    
-    
+
+
+    /**
+     * @return 返回是否对请求大小进行约束的标志位
+     */
+    @Override
+    public boolean getSwallowAbortedUploads() {
+        return swallowAbortedUploads;
+    }
+
     @Override
     public String getInfo() {
         return null;

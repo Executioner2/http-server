@@ -1078,6 +1078,12 @@ public interface Context extends Container {
 
 
     /**
+     * @return 返回是否对请求大小进行约束的标志位
+     */
+    boolean getSwallowAbortedUploads();
+
+
+    /**
      * 添加controller类
      *
      * @param controller
