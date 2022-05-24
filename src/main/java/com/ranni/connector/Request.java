@@ -1,6 +1,8 @@
 package com.ranni.connector;
 
 import com.ranni.connector.http.ParameterMap;
+import com.ranni.container.Context;
+import com.ranni.container.Host;
 import com.ranni.container.MappingData;
 import com.ranni.container.session.Session;
 import com.ranni.core.ApplicationMapping;
@@ -56,6 +58,7 @@ public class Request implements HttpServletRequest {
     protected boolean secure; // 安全标志位
     
     protected Cookie[] cookies;
+    protected FilterChain filterChain; // 过滤链
     protected ParameterMap<String, String[]> parameterMap = new ParameterMap<>(); // 请求参数
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
     private final transient HashMap<String, Object> notes = new HashMap<>(); // Catalina 组件和事件侦听器与此请求相关的内部注释。（不可被序列化）
@@ -232,8 +235,51 @@ public class Request implements HttpServletRequest {
 
 
     
-    private com.ranni.coyote.Request getCoyoteRequest() {
-        return this.coyoteRequest;
+    public com.ranni.coyote.Request getCoyoteRequest() {
+        return coyoteRequest;
+    }
+    
+    
+    public Connector getConnector() {
+        return connector;
+    }
+    
+    
+    public Context getContext() {
+        return mappingData.context;
+    }
+    
+    
+    public FilterChain getFilterChain() {
+        return filterChain;    
+    }
+    
+    
+    public void setFilterChain(FilterChain filterChain) {
+        this.filterChain = filterChain;
+    }
+    
+    
+    public Host getHost() {
+        return mappingData.host;
+    }
+    
+    
+    public MappingData getMappingData() {
+        return mappingData;
+    }
+    
+    
+    public HttpServletRequest getRequest() {
+        if (facade == null) {
+            facade = new RequestFacade(this);
+        }
+        
+        if (applicationRequest == null) {
+            applicationRequest = facade;
+        }
+        
+        return applicationRequest;
     }
     
     

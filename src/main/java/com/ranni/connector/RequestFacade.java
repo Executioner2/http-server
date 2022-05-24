@@ -22,8 +22,11 @@ import java.util.Map;
 public class RequestFacade implements HttpServletRequest {
 
     protected Request request;
-    
-    
+
+    public RequestFacade(Request request) {
+        this.request = request;
+    }
+
     @Override
     public String getAuthType() {
         return null;
