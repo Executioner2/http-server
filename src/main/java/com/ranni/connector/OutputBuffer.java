@@ -363,7 +363,43 @@ public class OutputBuffer extends Writer {
     
     @Override
     public void write(char[] cbuf, int off, int len) throws IOException {
+        if (suspended) {
+            return;
+        }
+        
+        append(cbuf, off, len);
+        charsWritten += len;
+    }
 
+    
+    @Override
+    public void write(char[] cbuf) throws IOException {
+        write(cbuf, 0, cbuf.length);
+    }
+
+    
+    @Override
+    public void write(String str) throws IOException {
+        if (str == null) {
+            str = "null";
+        }
+        
+        write(str, 0, str.length());
+    }
+
+    
+    @Override
+    public void write(String str, int off, int len) throws IOException {
+        if (suspended) {
+            return;
+        }
+        
+        if (str == null) {
+            throw new NullPointerException("传入的字符串不能为null！");
+        }
+        // TODO 
+        append(str, off, len);
+        charsWritten += len;
     }
 
 
