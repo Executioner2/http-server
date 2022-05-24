@@ -250,6 +250,68 @@ public class OutputBuffer extends Writer {
             }
         }
     }
+    
+    
+    public void write(byte b[], int off, int len) throws IOException {
+        if (suspended) {
+            return;
+        }
+        
+        writeBytes(b, off, len);
+    }
+    
+    
+    public void write(ByteBuffer from) throws IOException {
+        if (suspended) {
+            return;
+        }
+        
+        writeBytes(from);
+    }
+    
+    
+    public void writeBytes(byte b[], int off, int len) throws IOException {
+        if (closed) {
+            return;
+        }
+        
+        append(b, off, len);
+        bytesWritten += len;
+        
+        if (doFlush) {
+            flushByteBuffer();
+        }
+    }
+    
+    
+    public void writeBytes(ByteBuffer from) throws IOException {
+        if (closed) {
+            return;
+        }
+
+        // Tomcat 9（后面的版本可能也有这个问题） 中把下面
+        // 两行代码搞反了，导致不能正确计算出已写入的数据量
+        bytesWritten += from.remaining();
+        append(from);
+        
+        if (doFlush) {
+            flushByteBuffer();
+        }
+    }
+    
+    
+    public void writeByte(int b) throws IOException {
+        if (suspended) {
+            return;
+        }
+        
+        if (isFull(bb)) {
+            flushByteBuffer();
+        }
+        
+        transfer((byte) b, bb);
+        bytesWritten++;
+    }
 
 
     // ------------------------------ 字符缓冲区 ------------------------------
@@ -348,9 +410,10 @@ public class OutputBuffer extends Writer {
             return;
         }
 
-        // 如果需要的容量不到字符缓冲区最大值的两倍，只需要填满并发送
-        // 一次后，剩下的数据就可以直接添加到缓冲区中。如果不满足前面
-        // 的条件，则将字符缓冲区和追加数据全部发送出去。
+        // 如果缓冲区已有数据长度加上追加的数据长度不到字符缓冲区最大
+        // 值的两倍，只需要填满并发送一次后，剩下的数据就可以直接添加
+        // 到缓冲区中。如果不满足前面的条件，则将字符缓冲区和追加数据
+        // 全部发送出去。
         if(len * 1L + cb.limit() < 2L * cb.capacity()) {
             int n = transfer(src, off, len, cb);
             flushCharBuffer();
