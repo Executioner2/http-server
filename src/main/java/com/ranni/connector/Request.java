@@ -11,6 +11,7 @@ import com.ranni.coyote.ActionCode;
 import com.ranni.coyote.CoyoteInputStream;
 import com.ranni.util.FastHttpDateFormat;
 import com.ranni.util.buf.B2CConverter;
+import com.ranni.util.buf.MessageBytes;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -30,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022/5/23 21:55
+ * @Ref org.apache.catalina.connector.Request
  */
 public class Request implements HttpServletRequest {
 
@@ -58,7 +60,7 @@ public class Request implements HttpServletRequest {
     protected boolean parametersParsed; // 参数是否已经解析过了
     protected boolean cookiesParsed; // cookies是否已经解析过了
     protected boolean cookiesConverted; // 是否已经将cookies进行了转换
-    protected boolean sslAttributesParsed; // 在SSL下的属性解析了吗
+    protected boolean sslAttributesParsed; // 在SSL下的字段解析了吗
     protected boolean secure; // 安全标志位
     
     protected Cookie[] cookies;
@@ -82,7 +84,7 @@ public class Request implements HttpServletRequest {
     protected boolean requestedSessionSSL;
     protected B2CConverter URIConverter;
 
-    protected boolean localesParsed; // 是否已经解析了处理语言环境（请求头中的accept-language属性）
+    protected boolean localesParsed; // 是否已经解析了处理语言环境（请求头中的accept-language字段）
     protected int localPort = -1; // 接收这个请求的服务器端口号
     protected String localAddr; // 接收这个请求的服务器IP
     protected String localName; // 接收这个请求的服务器名
@@ -206,7 +208,7 @@ public class Request implements HttpServletRequest {
     
 
     /**
-     * 重置关于cookie操作的属性信息
+     * 重置关于cookie操作的字段信息
      * 
      * @param recycleCoyote 是否重置cookie内的信息
      */
@@ -474,78 +476,187 @@ public class Request implements HttpServletRequest {
     }
 
 
-    // TODO ------------------------------ ServletRequest Methods ------------------------------
-    
+    // TODO ------------------------------ ServletRequest Methods ------------------------------    
+
+
+    /**
+     * @return 返回此请求的认证类型
+     */
     @Override
     public String getAuthType() {
-        return null;
+        return authType;
     }
 
+
+    /**
+     * @return 返回所有的cookie
+     */
     @Override
     public Cookie[] getCookies() {
-        return new Cookie[0];
+        return cookies;
     }
 
+
+    /**
+     * 根据传入的name返回请求头中的日期
+     * 
+     * @param name 与日期关联的字段名
+     * @return 返回解析后的长整型值
+     */
     @Override
     public long getDateHeader(String name) {
-        return 0;
+        String val = getHeader(name);
+        if (val == null) {
+            return  -1;
+        }
+        
+        long result = FastHttpDateFormat.parseDate(val);
+        if (result != -1L) {
+            return result;
+        }
+        
+        throw new IllegalArgumentException(val);
     }
 
+
+    /**
+     * 从请求头中取得字段值
+     * 
+     * @param name 字段名
+     * @return 返回字段值
+     */
     @Override
     public String getHeader(String name) {
-        return null;
+        return coyoteRequest.getHeader(name);
     }
 
+
+    /**
+     * 取得请求头中字段name对应的字段值的迭代器
+     * 
+     * @param name 字段名
+     * @return 返回的字段值的迭代器
+     */
     @Override
     public Enumeration<String> getHeaders(String name) {
-        return null;
+        return coyoteRequest.getMimeHeaders().values(name);
     }
 
+
+    /**
+     * @return 返回请求头中字段值的迭代器
+     */
     @Override
     public Enumeration<String> getHeaderNames() {
-        return null;
+        return coyoteRequest.getMimeHeaders().names();
     }
 
+
+    /**
+     * 返回指定字段名对应的整型字段值
+     * 
+     * @param name 字段名
+     * @return 返回整型的字段值
+     */
     @Override
     public int getIntHeader(String name) {
-        return 0;
+        String value = getHeader(name);
+        if (value == null) {
+            return 0;
+        }
+        
+        return Integer.parseInt(value);
     }
 
+
+    @Override
+    public HttpServletMapping getHttpServletMapping() {
+        return applicationMapping.getHttpServletMapping();
+    }
+    
+
+    /**
+     * @return 返回HTTP请求方法
+     */
     @Override
     public String getMethod() {
-        return null;
+        return coyoteRequest.method().toString();
     }
 
+
+    /**
+     * @return 返回请求的路径信息
+     */
     @Override
     public String getPathInfo() {
-        return null;
+        return mappingData.pathInfo.toString();
     }
 
+
+    /**
+     * @return 返回此请求的真实路径
+     */
     @Override
     public String getPathTranslated() {
-        return null;
+        Context context = getContext();
+        
+        if (context == null || getPathInfo() == null) {
+            return null;
+        }
+                
+        return context.getServletContext().getRealPath(getPathInfo());
     }
 
+
+    /**
+     * @return 返回容器路径
+     */
     @Override
     public String getContextPath() {
         return null;
     }
 
+
+    /**
+     * @return 返回查询字符串
+     */
     @Override
     public String getQueryString() {
-        return null;
+        return coyoteRequest.queryString().toString();
     }
 
+
+    /**
+     * @return TODO 返回进行了用户认证的远程用户
+     */
     @Override
     public String getRemoteUser() {
         return null;
     }
 
+    /**
+     * TODO 用户是否在此角色中
+     * 
+     * @param role 角色
+     * @return 返回是否被包含
+     */
     @Override
     public boolean isUserInRole(String role) {
         return false;
     }
 
+
+    /**
+     * @return 返回请求路径的缓冲区
+     */
+    public MessageBytes getRequestPathMB() {
+        return mappingData.requestPath;
+    }
+
+
+    /**
+     * @return TODO 返回用户主体
+     */
     @Override
     public Principal getUserPrincipal() {
         return null;

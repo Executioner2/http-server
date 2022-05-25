@@ -2,6 +2,7 @@ package com.ranni.coyote;
 
 import com.ranni.connector.InputBuffer;
 import com.ranni.util.buf.MessageBytes;
+import com.ranni.util.http.MimeHeaders;
 import com.ranni.util.http.ServerCookies;
 
 import javax.servlet.ReadListener;
@@ -18,6 +19,7 @@ import java.nio.charset.Charset;
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022/5/22 23:29
+ * @Ref org.apache.coyote.Request
  */
 public final class Request {
 
@@ -107,5 +109,17 @@ public final class Request {
 
     public void setServerPort(int port) {
         
+    }
+
+    public String getHeader(String name) {
+        return null;
+    }
+
+    public MimeHeaders getMimeHeaders() {
+        return null;
+    }
+
+    public MessageBytes queryString() {
+        return null;
     }
 }
