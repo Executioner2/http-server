@@ -144,4 +144,41 @@ public final class Request {
     public String getCharacterEncoding() {
         return null;
     }
+
+    public void setCharset(Charset charset) {
+        
+    }
+
+    public int getContentLength() {
+        return 0;
+    }
+
+    public String getContentType() {
+        return null;
+    }
+
+    public MessageBytes protocol() {
+        return null;
+    }
+
+    public MessageBytes scheme() {
+        return null;
+    }
+
+    public MessageBytes serverName() {
+        return null;
+    }
+
+
+    public int getServerPort() {
+        return 0;
+    }
+
+    public MessageBytes remoteAddr() {
+        return null;
+    }
+
+    public MessageBytes remoteHost() {
+        return null;
+    }
 }

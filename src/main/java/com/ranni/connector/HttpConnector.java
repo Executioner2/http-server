@@ -20,6 +20,7 @@ import com.ranni.util.LifecycleSupport;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.net.*;
+import java.util.HashSet;
 
 /**
  * Title: HttpServer
@@ -52,6 +53,9 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     protected ProcessorPool processorPool; // 处理器池
     protected int maxPostSize = 2 * 1024 * 1024; // Post的最大请求体积
     protected int maxParameterCount = 10000; // 容器自动解析参数数量
+    protected boolean useBodyEncodingForURI; // 是否将请求体的解码格式应用于URI
+    protected HashSet<String> parseBodyMethodsSet; // 可以被解析请求体的请求方法集合
+    protected String parseBodyMethods = "POST"; // 可以被解析请求体的请求方法
 
 
     public HttpConnector() {
@@ -91,7 +95,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
 
 
     /**
-     * @return 返回Post请求的最大体积
+     * @return 返回Post请求的最大体积，-1表示无限制
      */
     @Override
     public int getMaxPostSize() {
@@ -106,6 +110,29 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     public int getMaxParameterCount() {
         return maxParameterCount;
     }
+
+
+    /**
+     * @return 如果为true，则表示URI的解码格式同请求体一样
+     */
+    @Override
+    public boolean getUseBodyEncodingForURI() {
+        return useBodyEncodingForURI;
+    }
+
+
+    /**
+     * 此请求方法是否包含在可被解析请求体的方法集合中
+     *
+     * @param method 请求方法
+     * @return 如果返回true，则表示可以解析此请求的
+     *         请求体，否则反之
+     */
+    @Override
+    public boolean isParseBodyMethod(String method) {
+        return parseBodyMethodsSet.contains(method);
+    }
+    
 
     /**
      * 返回容器

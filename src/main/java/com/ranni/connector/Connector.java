@@ -176,7 +176,7 @@ public interface Connector {
 
 
     /**
-     * @return 返回Post请求包的最大大小
+     * @return 返回Post请求包的最大大小，-1表示无限制
      */
     int getMaxPostSize();
 
@@ -185,4 +185,20 @@ public interface Connector {
      * @return 返回容器自动解析的参数数量，为0表示无限制
      */
     int getMaxParameterCount();
+
+
+    /**
+     * @return 如果为true，则表示URI的解码格式同请求体一样
+     */
+    boolean getUseBodyEncodingForURI();
+
+
+    /**
+     * 此请求方法是否包含在可被解析请求体的方法集合中
+     * 
+     * @param method 请求方法
+     * @return 如果返回true，则表示可以解析此请求的
+     *         请求体，否则反之
+     */
+    boolean isParseBodyMethod(String method);
 }

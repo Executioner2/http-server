@@ -15,6 +15,7 @@ import com.ranni.coyote.CoyoteInputStream;
 import com.ranni.util.FastHttpDateFormat;
 import com.ranni.util.RequestUtil;
 import com.ranni.util.buf.B2CConverter;
+import com.ranni.util.buf.ByteChunk;
 import com.ranni.util.buf.MessageBytes;
 import com.ranni.util.http.Parameters;
 
@@ -93,7 +94,7 @@ public class Request implements HttpServletRequest {
     protected String localName; // 接收这个请求的服务器名
     protected String remoteAddr; // 与此请求关联的远程客户端IP地址
     protected int remotePort = -1; // 此请求关联的远程客户端端口
-    protected String remoteHost; // 远程主机
+    protected String remoteHost; // 远程主机域名
     protected String peerAddr;
 
     private HttpServletRequest applicationRequest;
@@ -441,9 +442,9 @@ public class Request implements HttpServletRequest {
 
 
     /**
-     * 设置与此请求关联的远程客户端主机名（全限定名）
+     * 设置与此请求关联的远程客户端主机域名（全限定名）
      * 
-     * @param remoteHost 全程客户端主机名
+     * @param remoteHost 远程客户端主机域名
      */
     public void setRemoteHost(String remoteHost) {
         this.remoteHost = remoteHost;
@@ -955,7 +956,7 @@ public class Request implements HttpServletRequest {
 
 
     /**
-     * @return 返回编码格式
+     * @return 返回解码格式
      */
     @Override
     public String getCharacterEncoding() {
@@ -974,7 +975,7 @@ public class Request implements HttpServletRequest {
 
 
     /**
-     * @return 返回编码器
+     * @return 返回解码器
      */
     private Charset getCharset() {
         Charset charset = null;
@@ -1002,91 +1003,461 @@ public class Request implements HttpServletRequest {
 
         return Constants.DEFAULT_BODY_CHARSET;
     }
-    
 
+
+    /**
+     * 设置字符解码格式
+     * 
+     * @param env 解码格式
+     * @throws UnsupportedEncodingException
+     */    
     @Override
     public void setCharacterEncoding(String env) throws UnsupportedEncodingException {
+        if (usingReader) {
+            return;
+        }
 
+        Charset charset = B2CConverter.getCharset(env);
+        coyoteRequest.setCharset(charset);
     }
 
+
+    /**
+     * @return 返回请求体长度
+     */
     @Override
     public int getContentLength() {
-        return 0;
+        return coyoteRequest.getContentLength();
     }
 
+    
+    /**
+     * @return 返回请求体长度（长整型）
+     */
     @Override
     public long getContentLengthLong() {
         return coyoteRequest.getContentLengthLong();
     }
 
+
+    /**
+     * @return 返回请求体类型
+     */
     @Override
     public String getContentType() {
-        return null;
+        return coyoteRequest.getContentType();
     }
 
+
+    /**
+     * 返回此请求的输入流（实际上是一个输入缓冲区转换为的输入流）
+     * 
+     * @return 返回的输入流
+     * 
+     * @throws IOException 可能抛出I/O异常
+     * @throws IllegalStateException 如果已经使用了读取器（这个缓冲区通过
+     *         读取器进行数据处理），那么将抛出此状态异常
+     */
     @Override
     public ServletInputStream getInputStream() throws IOException {
-        return null;
+        if (usingReader) {
+            throw new IllegalStateException("coyoteRequest.getInputStream.ise");
+        }
+        
+        usingInputStream = true;
+        if (inputStream == null) {
+            inputStream = new CoyoteInputStream(inputBuffer);
+        }
+        
+        return inputStream;
     }
 
+
+    /**
+     * 返回参数名对应的参数值
+     * 
+     * @param name 参数名
+     * @return 返回参数值
+     */
     @Override
     public String getParameter(String name) {
-        return null;
+        if (!parametersParsed) {
+            parseParameters();
+        }
+        
+        return coyoteRequest.getParameters().getParameter(name);
     }
 
+
+    /**
+     * 参数解析
+     */
+    protected void parseParameters() {
+        parametersParsed = true;
+
+        Parameters parameters = coyoteRequest.getParameters();
+        boolean success = false;
+        
+        try {
+            parameters.setLimit(getConnector().getMaxParameterCount());
+
+            Charset charset = getCharset();
+
+            boolean useBodyEncodingForURI = connector.getUseBodyEncodingForURI();
+            parameters.setCharset(charset);
+            if (useBodyEncodingForURI) {
+                parameters.setQueryStringCharset(charset);
+            }
+
+            // 解析查询参数
+            parameters.handleQueryParameters();
+
+            if (usingInputStream || usingReader) {
+                success = true;
+                return;
+            }
+
+            // 没有使用输入流或者读取器就要在这里将解析出来的查询参数进行处理
+            String contentType = getContentType();
+            if (contentType == null) {
+                contentType = "";
+            }
+
+            int semicolon = contentType.indexOf(";");
+            if (semicolon >= 0) {
+                contentType = contentType.substring(0, semicolon).trim();
+            } else {
+                contentType = contentType.trim();
+            }
+
+            if ("multipart/form-data".equals(contentType)) {
+                // multipart的不编码数据（html的form表单可通过此格式提交附加文件）
+                parseParts(false); // 解析文件
+                success = true;
+                return;
+            }
+
+            // 如果不支持解析请求体，就不再进行后续的解析
+            if (!getConnector().isParseBodyMethod(getMethod())) {
+                success = true;
+                return;
+            }
+
+            // 不是标准的post表单数据内容类型
+            if (!("application/x-www-form-urlencoded").equals(contentType)) {
+                success = true;
+                return;
+            }
+
+            // 开始解析请求体
+            int len = getContentLength();
+
+            if (len > 0) {
+                // 可以确定请求体长度的请求体解析
+                int maxPostSize = connector.getMaxPostSize();
+                if (maxPostSize >= 0 && len > maxPostSize) {
+                    // XXX - 日志打印
+                    checkSwallowInput();
+                    parameters.setParseFailedReason(Parameters.FailReason.POST_TOO_LARGE);
+                    return;
+                }
+                
+                byte[] formData = null;
+                if (len < CACHED_POST_LEN) {
+                    if (postData == null) {
+                        postData = new byte[CACHED_POST_LEN];
+                    }
+                    formData = postData;
+                } else {
+                    formData = new byte[len];
+                }
+                
+                try {
+                    // 读取请求体中的数据
+                    if (readPostBody(formData, len) != len) {
+                        parameters.setParseFailedReason(Parameters.FailReason.REQUEST_BODY_INCOMPLETE);
+                        return;
+                    }
+                } catch (IOException e) {
+                    // XXX - 日志打印
+                    parameters.setParseFailedReason(Parameters.FailReason.CLIENT_DISCONNECT);
+                    return;
+                }
+
+                // 解析请求体
+                parameters.processParameters(formData, 0, len);
+                
+            } else if ("chunked".equalsIgnoreCase(coyoteRequest
+                    .getHeader("transfer-encoding"))) {
+                // 对发送请求时无法确定请求体长度的请求体解析
+                byte[] formData = null;
+                try {
+                    formData = readChunkedPostBody(); // 读取请求体分块
+                    
+                } catch (IllegalStateException ise) {
+                    // 超出最大限制
+                    // XXX - 日志打印
+                    parameters.setParseFailedReason(Parameters.FailReason.POST_TOO_LARGE);
+                    return;
+                    
+                } catch (IOException e) {
+                    // 客户端关闭
+                    // XXX - 日志打印
+                    parameters.setParseFailedReason(Parameters.FailReason.CLIENT_DISCONNECT);
+                    return;
+                }
+
+                if (formData != null) {
+                    parameters.processParameters(formData, 0, len);
+                }
+            } // if end
+
+            success = true;
+            
+        } finally {
+            if (!success) {
+                parameters.setParseFailedReason(Parameters.FailReason.UNKNOWN);
+            }
+        }
+        
+    }
+
+
+    /**
+     * 读取客户端发来的部分请求体中的数据
+     * 
+     * @return 返回读取的数据
+     */
+    protected byte[] readChunkedPostBody() throws IOException {
+        ByteChunk body = new ByteChunk();
+
+        byte[] buffer = new byte[CACHED_POST_LEN];
+        
+        int len = 0;
+        while (len > -1) { // 循环读取到暂时没有数据或触发异常
+            len = getStream().read(buffer, 0, CACHED_POST_LEN);
+
+            // 如果超出了最大限制，就触发大文件钩子并抛出异常
+            if (connector.getMaxPostSize() >= 0
+                && body.getLength() + len > connector.getMaxPostSize()) {
+                
+                checkSwallowInput();
+                throw new IllegalStateException("coyoteRequest.chunkedPostTooLarge");
+            }
+            
+            if (len > 0) {
+                body.append(buffer, 0, len);
+            }
+        }
+        
+        if (body.getLength() == 0) {
+            return null;
+        }
+        
+        if (body.getLength() < body.getBuffer().length) {
+            int length = body.getLength();
+            byte[] result = new byte[length];
+            System.arraycopy(body.getBuffer(), 0, result, 0, length);
+            return result;
+        }
+        
+        return body.getBuffer();
+    }
+
+
+    /**
+     * 读取请求体中的数据
+     * 
+     * @param body 要存入的数组
+     * @param len 数据的长度
+     * @return 返回读取的数据长度
+     * @throws IOException 可能抛出I/O异常
+     */
+    protected int readPostBody(byte[] body, int len) throws IOException {
+        int offset = 0;
+        
+        do {
+            int readLen = getStream().read(body, offset, len - offset);
+            if (readLen <= 0) {
+                return offset;
+            }
+            offset += readLen;
+            
+        } while (len - offset > 0);
+        
+        return len;
+    }
+
+
+    /**
+     * @return 返回所有参数的参数名
+     */
     @Override
     public Enumeration<String> getParameterNames() {
-        return null;
+        if (!parametersParsed) {
+            parseParameters();
+        }
+        
+        return coyoteRequest.getParameters().getParameterNames();
     }
 
+
+    /**
+     * 返回指定参数名的参数值
+     * 
+     * @param name 参数名
+     * @return 返回的参数值集合
+     */
     @Override
     public String[] getParameterValues(String name) {
-        return new String[0];
+        if (!parametersParsed) {
+            parseParameters();
+        }
+        
+        return coyoteRequest.getParameters().getParameterValues(name);
     }
 
+
+    /**
+     * @return 返回参数集合
+     */
     @Override
     public Map<String, String[]> getParameterMap() {
-        return null;
+        if (parameterMap.isLocked()) {
+            return parameterMap;
+        }
+
+        Enumeration<String> parameterNames = getParameterNames();
+        while (parameterNames.hasMoreElements()) {
+            String name = parameterNames.nextElement();
+            String[] values = getParameterValues(name);
+            parameterMap.put(name, values);
+        }
+
+        return parameterMap;
     }
 
+
+    /**
+     * @return 返回端口号
+     */
     @Override
     public String getProtocol() {
-        return null;
+        return coyoteRequest.protocol().toString();
     }
 
+
+    /**
+     * @return 返回协议类型（http还是https）
+     */
     @Override
     public String getScheme() {
-        return null;
+        return coyoteRequest.scheme().toString();
     }
 
+
+    /**
+     * @return 返回响应此请求的服务器名
+     */
     @Override
     public String getServerName() {
-        return null;
+        return coyoteRequest.serverName().toString();
     }
 
+
+    /**
+     * @return 返回响应此请求的服务器端口
+     */
     @Override
     public int getServerPort() {
-        return 0;
+        return coyoteRequest.getServerPort();
     }
 
+
+    /**
+     * 取得读取器。以读取器的方式处理输入缓冲区。
+     * 
+     * @return 返回读取器
+     * 
+     * @throws IOException 可能抛出I/O有异常
+     * @throws IllegalStateException 如果输入缓冲区已经以输入流
+     *         的方式被使用了，将抛出此异常
+     */
     @Override
     public BufferedReader getReader() throws IOException {
-        return null;
+        if (usingInputStream) {
+            throw new IllegalStateException("coyoteRequest.getReader.ise");
+        }
+
+        // 设置解码方式
+        if (coyoteRequest.getCharacterEncoding() == null) {
+            Context context = getContext();
+            if (context != null) {
+                String enc = context.getRequestCharacterEncoding();
+                if (enc != null) {
+                    setCharacterEncoding(enc);
+                }
+            }
+        }
+        
+        usingInputStream = true;
+        if (reader == null) {
+            reader = new CoyoteReader(inputBuffer);
+        }
+        
+        return reader;
     }
 
+
+    /**
+     * 返回客户端ip地址。如果不存在，
+     * 则触发请求主机ip属性的钩子
+     * 
+     * @return 返回客户端ip地址
+     */
     @Override
     public String getRemoteAddr() {
-        return null;
+        if (remoteAddr == null) {
+            coyoteRequest.action(ActionCode.REQ_HOST_ADDR_ATTRIBUTE, coyoteRequest);
+            remoteAddr = coyoteRequest.remoteAddr().toString();
+        }
+        return remoteAddr;
     }
 
+
+    /**
+     * 返回客户端主机域名。如果不存在，
+     * 则触发请求客户端主机域名属性的
+     * 钩子
+     * 
+     * @return 返回客户端主机域名
+     */
     @Override
     public String getRemoteHost() {
-        return null;
+        if (remoteHost == null) {
+            if (!connector.getEnableLookups()) {
+                // 如果不允许dns解析，那么ip地址就是主机域名
+                remoteHost = getRemoteAddr(); 
+            } else {
+                // 触发域名解析的钩子
+                coyoteRequest.action(ActionCode.REQ_HOST_ATTRIBUTE, coyoteRequest);
+                remoteHost = coyoteRequest.remoteHost().toString();
+            }
+        }
+        
+        return remoteHost;
     }
 
+
+    /**
+     * 设置属性
+     * 
+     * @param name 属性名
+     * @param o 属性值
+     */
     @Override
     public void setAttribute(String name, Object o) {
-
+        
     }
 
     @Override
