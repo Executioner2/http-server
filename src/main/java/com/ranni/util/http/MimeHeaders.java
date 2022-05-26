@@ -239,6 +239,24 @@ public class MimeHeaders {
 
 
     /**
+     * 返回字段集合中从starting下标开始，第一个符合传入字段名
+     * 的字段下标
+     * 
+     * @param name 字段名
+     * @param starting 起始位置
+     * @return 返回匹配到的字段集合下标，如果没有则返回-1
+     */
+    public int findHeader(String name, int starting) {
+        for (int i = starting; i < count; i++) {
+            if (headers[i].getName().equalsIgnoreCase(name)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    
+    /**
      * 移除字段
      * 
      * @param name 要移除的字段名

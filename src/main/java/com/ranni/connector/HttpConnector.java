@@ -50,6 +50,8 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     protected int redirectPort = 80; // 转发端口
     protected Container container; // 容器
     protected ProcessorPool processorPool; // 处理器池
+    protected int maxPostSize = 2 * 1024 * 1024; // Post的最大请求体积
+    protected int maxParameterCount = 10000; // 容器自动解析参数数量
 
 
     public HttpConnector() {
@@ -87,6 +89,23 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
         return true;
     }
 
+
+    /**
+     * @return 返回Post请求的最大体积
+     */
+    @Override
+    public int getMaxPostSize() {
+        return maxPostSize;
+    }
+
+
+    /**
+     * @return 返回容器自动解析的参数数量
+     */
+    @Override
+    public int getMaxParameterCount() {
+        return maxParameterCount;
+    }
 
     /**
      * 返回容器

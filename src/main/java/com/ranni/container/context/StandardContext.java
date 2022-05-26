@@ -17,11 +17,13 @@ import com.ranni.loader.WebappLoader;
 import com.ranni.naming.*;
 import com.ranni.util.CharsetMapper;
 import com.ranni.util.RequestUtil;
+import com.ranni.util.http.CookieProcessor;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -69,11 +71,14 @@ public class StandardContext extends ContainerBase implements Context {
     private String publicId; // xml公共id
     private String systemId; // xml系统id
     private boolean swallowAbortedUploads = true; // 对请求大小进行约束的标志位
+    private boolean allowCasualMultipartParsing; // 是否允许解析表单数据 
+    private CookieProcessor cookieProcessor; // cookie解析器
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
     protected Map<String, String> servletMappings = new HashMap<>(); // 请求servlet与wrapper容器的映射
     protected boolean filesystemBased; // 关联的目录容器是否是文件类型的目录容器
+    protected boolean createUploadTargets; // 是否新建不存在的上传目标
 
 
     public StandardContext() {
@@ -1353,6 +1358,81 @@ public class StandardContext extends ContainerBase implements Context {
         return swallowAbortedUploads;
     }
 
+
+    @Override
+    public String getSessionCookieName() {
+        return null;
+    }
+
+    @Override
+    public String getSessionCookiePath() {
+        return null;
+    }
+
+    @Override
+    public String getEncodedPath() {
+        return null;
+    }
+
+    @Override
+    public boolean getSessionCookiePathUsesTrailingSlash() {
+        return false;
+    }
+
+
+    /**
+     * @return 如果返回true，则表示已经解析了Multipart
+     */
+    @Override
+    public boolean getAllowCasualMultipartParsing() {
+        return allowCasualMultipartParsing;
+    }
+
+
+    /**
+     * @return 如果为true，则表示允许上传目标不存在时
+     *         新建，否则反之
+     */
+    @Override
+    public boolean getCreateUploadTargets() {
+        return createUploadTargets;
+    }
+
+    @Override
+    public boolean fireRequestDestroyEvent(HttpServletRequest request) {
+        return false;
+    }
+
+    @Override
+    public boolean getDispatchersUseEncodedPaths() {
+        
+        return false;
+    }
+
+    /**
+     * @return 返回请求体的默认编码格式
+     */
+    @Override
+    public String getRequestCharacterEncoding() {
+        return null;
+    }
+
+    @Override
+    public boolean getUseHttpOnly() {
+        return false;
+    }
+
+    @Override
+    public CookieProcessor getCookieProcessor() {
+        return cookieProcessor;
+    }
+
+
+    @Override
+    public String getSessionCookieDomain() {
+        return null;
+    }
+
     @Override
     public String getInfo() {
         return null;
@@ -1944,5 +2024,15 @@ public class StandardContext extends ContainerBase implements Context {
      */
     public void setServletClass(String servletClass) {
         this.servletClass = servletClass;
+    }
+
+    @Override
+    public ClassLoader bind(boolean usePrivilegedAction, ClassLoader originalClassLoader) {
+        return null;
+    }
+
+    @Override
+    public void unbind(boolean usePrivilegedAction, ClassLoader originalClassLoader) {
+
     }
 }

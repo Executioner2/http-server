@@ -3,10 +3,12 @@ package com.ranni.coyote;
 import com.ranni.connector.InputBuffer;
 import com.ranni.util.buf.MessageBytes;
 import com.ranni.util.http.MimeHeaders;
+import com.ranni.util.http.Parameters;
 import com.ranni.util.http.ServerCookies;
 
 import javax.servlet.ReadListener;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 
 /**
@@ -87,7 +89,7 @@ public final class Request {
         return 0;
     }
 
-    public Charset getCharset() {
+    public Charset getCharset() throws UnsupportedEncodingException {
         return charset;
     }
 
@@ -120,6 +122,26 @@ public final class Request {
     }
 
     public MessageBytes queryString() {
+        return null;
+    }
+
+    public MessageBytes requestURI() {
+        return null;
+    }
+
+    public Parameters getParameters() {
+        return null;
+    }
+
+    public Object getAttribute(String name) {
+        return null;
+    }
+
+    public long getContentLengthLong() {
+        return 0;
+    }
+
+    public String getCharacterEncoding() {
         return null;
     }
 }

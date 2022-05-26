@@ -1,5 +1,8 @@
 package com.ranni.connector;
 
+import com.ranni.container.Context;
+import com.ranni.util.http.MimeHeaders;
+
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
@@ -17,6 +20,11 @@ import java.util.Locale;
  * @Date 2022/5/24 21:48
  */
 public class Response implements HttpServletResponse {
+    
+    private Request request;
+    private com.ranni.coyote.Response coyoteResponse;
+
+
     @Override
     public void addCookie(Cookie cookie) {
         
@@ -201,4 +209,49 @@ public class Response implements HttpServletResponse {
     public Locale getLocale() {
         return null;
     }
+
+    public com.ranni.coyote.Response getResponse() {
+        return null;
+    }
+
+    public void addSessionCookieInternal(final Cookie cookie) {
+        if (isCommitted()) {
+            return;
+        }
+
+        String name = cookie.getName();
+        final String headername = "Set-Cookie";
+        final String startsWith = name + "=";
+        String header = generateCookieString(cookie);
+        boolean set = false;
+        MimeHeaders headers = getCoyoteResponse().getMimeHeaders();
+        int n = headers.size();
+        for (int i = 0; i < n; i++) {
+            if (headers.getName(i).toString().equals(headername)) {
+                if (headers.getValue(i).toString().startsWith(startsWith)) {
+                    headers.getValue(i).setString(header);
+                    set = true;
+                }
+            }
+        }
+        if (!set) {
+            addHeader(headername, header);
+        }
+    }
+
+
+    public com.ranni.coyote.Response getCoyoteResponse() {
+        return coyoteResponse;
+    }
+    
+    
+    public Context getContext() {
+        return request.getContext();
+    }
+    
+
+    public String generateCookieString(final Cookie cookie) {
+        return getContext().getCookieProcessor().generateHeader(cookie, request.getRequest());
+    }
+    
 }

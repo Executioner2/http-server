@@ -210,6 +210,28 @@ public abstract class ManagerBase implements Manager {
 
 
     /**
+     * 生成新的session id
+     *
+     * @param session
+     * @return
+     */
+    @Override
+    public String rotateSessionId(Session session) {
+        String newSessionId = null;
+        while (true) {
+            newSessionId = getSessionId();
+            if (findSession(newSessionId) == null) {
+                break;
+            }
+        }
+        
+        session.setId(newSessionId);
+        
+        return newSessionId;
+    }
+    
+
+    /**
      * 生成并返回session id
      *
      * @return
@@ -451,4 +473,6 @@ public abstract class ManagerBase implements Manager {
             throwable.printStackTrace(System.out);
         }
     }
+
+    
 }

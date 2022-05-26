@@ -1,5 +1,7 @@
 package com.ranni.coyote;
 
+import com.ranni.util.http.MimeHeaders;
+
 import javax.servlet.WriteListener;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -82,5 +84,9 @@ public final class Response {
     }
 
     public void checkRegisterForWrite() {
+    }
+
+    public MimeHeaders getMimeHeaders() {
+        return null;
     }
 }

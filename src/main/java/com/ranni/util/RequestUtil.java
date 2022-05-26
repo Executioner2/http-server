@@ -3,6 +3,7 @@ package com.ranni.util;
 import com.ranni.connector.http.ParameterMap;
 
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022-03-07 22:16
+ * @Ref org.apache.catalina.util.RequestUtil
  */
 public class RequestUtil {
     /**
@@ -310,5 +312,34 @@ public class RequestUtil {
         }
 
         return new String(bytes, 0, ox);
+    }
+
+
+    /**
+     * 拼接出请求包的URL
+     * 
+     * @param request HttpServletRequest实例
+     * @return 返回StringBuffer类型的URL字符串
+     */
+    public static StringBuffer getRequestURL(HttpServletRequest request) {
+        StringBuffer url = new StringBuffer();
+        String scheme = request.getScheme();
+        int port = request.getServerPort();
+        if (port < 0) {
+            // Work around java.net.URL bug
+            port = 80;
+        }
+
+        url.append(scheme);
+        url.append("://");
+        url.append(request.getServerName());
+        if ((scheme.equals("http") && (port != 80))
+                || (scheme.equals("https") && (port != 443))) {
+            url.append(':');
+            url.append(port);
+        }
+        url.append(request.getRequestURI());
+
+        return url;
     }
 }

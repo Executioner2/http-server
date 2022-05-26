@@ -173,4 +173,16 @@ public interface Connector {
      * @return 是否重置外观对象
      */
     boolean getDiscardFacades();
+
+
+    /**
+     * @return 返回Post请求包的最大大小
+     */
+    int getMaxPostSize();
+
+
+    /**
+     * @return 返回容器自动解析的参数数量，为0表示无限制
+     */
+    int getMaxParameterCount();
 }

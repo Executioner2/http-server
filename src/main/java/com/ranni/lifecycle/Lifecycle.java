@@ -12,34 +12,64 @@ package com.ranni.lifecycle;
  */
 public interface Lifecycle {
     /**
+     * 初始化前
+     */
+    String BEFORE_INIT_EVENT = "before_init";
+
+
+    /**
+     * 初始化后
+     */
+    String AFTER_INIT_EVENT = "after_init";
+    
+    
+    /**
      * 启动事件
      */
     String START_EVENT = "start";
+    
 
     /**
      * 启动前
      */
     String BEFORE_START_EVENT = "before_start";
+    
 
     /**
      * 启动后
      */
     String AFTER_START_EVENT = "after_start";
+    
 
     /**
      * 停止事件
      */
     String STOP_EVENT = "stop";
+    
 
     /**
      * 停止前
      */
     String BEFORE_STOP_EVENT = "before_stop";
+    
 
     /**
      * 停止后
      */
     String AFTER_STOP_EVENT = "after_stop";
+
+
+    /**
+     * 销毁前
+     */
+    String BEFORE_DESTROY_EVENT = "before_destroy";
+    
+    
+    /**
+     * 销毁后
+     */
+    String AFTER_DESTROY_EVENT = "after_destroy";
+    
 
     /**--------------------------------------分隔线-----------------------------------------**/
 
@@ -82,5 +112,13 @@ public interface Lifecycle {
      * @throws Exception
      */
     void stop() throws LifecycleException;
+
+
+    /**
+     * @return 返回当前生命周期状态
+     */
+    default String getState() {
+        return null; 
+    }
 
 }

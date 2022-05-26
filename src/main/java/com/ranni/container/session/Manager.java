@@ -13,6 +13,7 @@ import java.io.IOException;
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022-04-19 16:27
+ * @Ref org.apache.catalina.Manager
  */
 public interface Manager {
 
@@ -157,4 +158,13 @@ public interface Manager {
      * @return
      */
     boolean getSessionRecycle();
+
+
+    /**
+     * 生成新的session id
+     * 
+     * @param session
+     * @return
+     */
+    String rotateSessionId(Session session);
 }

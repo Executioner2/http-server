@@ -3,8 +3,10 @@ package com.ranni.container;
 import com.ranni.core.FilterDef;
 import com.ranni.deploy.*;
 import com.ranni.util.CharsetMapper;
+import com.ranni.util.http.CookieProcessor;
 
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * Title: HttpServer
@@ -15,7 +17,7 @@ import javax.servlet.ServletContext;
  * @Email 1205878539@qq.com
  * @Date 2022-03-22 18:50
  */
-public interface Context extends Container {
+public interface Context extends Container, ContextBind {
     /**
      * 加载事件
      */
@@ -1081,6 +1083,68 @@ public interface Context extends Container {
      * @return 返回是否对请求大小进行约束的标志位
      */
     boolean getSwallowAbortedUploads();
+
+
+    /**
+     * @return 返回session的cookie名
+     */
+    String getSessionCookieName();
+
+
+    /**
+     * @return 返回session的cookie路径
+     */
+    String getSessionCookiePath();
+
+
+    /**
+     * @return 返回解码后的路径
+     */
+    String getEncodedPath();
+    
+    
+    boolean getSessionCookiePathUsesTrailingSlash();
+
+    
+    String getSessionCookieDomain();
+
+    
+    boolean getUseHttpOnly();
+
+    CookieProcessor getCookieProcessor();
+
+
+    /**
+     * @return 如果返回true，则表示已经解析了Multipart
+     */
+    boolean getAllowCasualMultipartParsing();
+
+
+    /**
+     * @return 如果为true，则表示允许上传目标不存在时
+     *         新建，否则反之
+     */
+    boolean getCreateUploadTargets();
+
+
+    /**
+     * 触发请求销毁事件
+     * 
+     * @param request
+     */
+    boolean fireRequestDestroyEvent(HttpServletRequest request);
+
+
+    /**
+     * @return 调度程序是否允许被编码 
+     */
+    boolean getDispatchersUseEncodedPaths();
+
+
+    /**
+     * @return 返回请求体的默认编码格式
+     */
+    String getRequestCharacterEncoding();
 
 
     /**

@@ -2,6 +2,7 @@ package com.ranni.container;
 
 import com.ranni.container.monitor.InstanceListener;
 
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.UnavailableException;
@@ -231,4 +232,10 @@ public interface Wrapper extends Container {
      * @throws ServletException
      */
     void unload() throws ServletException;
+
+
+    /**
+     * @return 返回Multipart配置
+     */
+    MultipartConfigElement getMultipartConfigElement();
 }

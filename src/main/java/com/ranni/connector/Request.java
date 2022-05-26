@@ -5,20 +5,23 @@ import com.ranni.container.Context;
 import com.ranni.container.Host;
 import com.ranni.container.MappingData;
 import com.ranni.container.Wrapper;
+import com.ranni.container.session.Manager;
 import com.ranni.container.session.Session;
 import com.ranni.core.ApplicationMapping;
+import com.ranni.core.ApplicationSessionCookieConfig;
 import com.ranni.coyote.ActionCode;
+import com.ranni.coyote.Constants;
 import com.ranni.coyote.CoyoteInputStream;
 import com.ranni.util.FastHttpDateFormat;
+import com.ranni.util.RequestUtil;
 import com.ranni.util.buf.B2CConverter;
 import com.ranni.util.buf.MessageBytes;
+import com.ranni.util.http.Parameters;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
+import java.nio.charset.Charset;
 import java.security.Principal;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -101,7 +104,8 @@ public class Request implements HttpServletRequest {
     // 映射数据
     protected final MappingData mappingData = new MappingData();
     private final ApplicationMapping applicationMapping = new ApplicationMapping(mappingData);
-
+    
+    
 
     // ------------------------------ 构造方法 ------------------------------
     
@@ -476,7 +480,7 @@ public class Request implements HttpServletRequest {
     }
 
 
-    // TODO ------------------------------ ServletRequest Methods ------------------------------    
+    // ------------------------------ ServletRequest Methods ------------------------------    
 
 
     /**
@@ -624,28 +628,8 @@ public class Request implements HttpServletRequest {
     public String getQueryString() {
         return coyoteRequest.queryString().toString();
     }
-
-
-    /**
-     * @return TODO 返回进行了用户认证的远程用户
-     */
-    @Override
-    public String getRemoteUser() {
-        return null;
-    }
-
-    /**
-     * TODO 用户是否在此角色中
-     * 
-     * @param role 角色
-     * @return 返回是否被包含
-     */
-    @Override
-    public boolean isUserInRole(String role) {
-        return false;
-    }
-
-
+    
+    
     /**
      * @return 返回请求路径的缓冲区
      */
@@ -653,114 +637,372 @@ public class Request implements HttpServletRequest {
         return mappingData.requestPath;
     }
 
-
+    
     /**
-     * @return TODO 返回用户主体
+     * @return 返回请求包中的session id
      */
     @Override
-    public Principal getUserPrincipal() {
-        return null;
-    }
-
-    @Override
     public String getRequestedSessionId() {
-        return null;
+        return requestedSessionId;
     }
 
+
+    /**
+     * @return 返回请求行中的请求URI
+     */
     @Override
     public String getRequestURI() {
-        return null;
+        return coyoteRequest.requestURI().toString();
     }
 
+
+    /**
+     * @return 返回请求包的URL
+     */
     @Override
     public StringBuffer getRequestURL() {
-        return null;
+        return RequestUtil.getRequestURL(this);
     }
 
+
+    /**
+     * @return 返回请求的Servlet路径
+     */
     @Override
     public String getServletPath() {
-        return null;
+        return mappingData.wrapperPath.toString();
     }
 
+
+    /**
+     * 返回session
+     * 
+     * @param create 如果不存在是否新建一个session
+     * @return 返回session
+     */
     @Override
     public HttpSession getSession(boolean create) {
-        return null;
+        Session session = doGetSession(create);
+        if (session == null) {
+            return null;
+        }
+        
+        return session.getSession();
+    }
+    
+
+    /**
+     * 取得session，如果不存在，根据create来决定是否创建
+     */
+    protected Session doGetSession(boolean create) {
+        Context context = getContext();
+        if (context == null) {
+            return null;
+        }
+
+        // 如果session存在但失效了就返回null，否则返回session
+        if (session != null) {
+            if (!session.isValid()) {
+                session = null;
+            } else {
+                return session;
+            }
+        }
+
+        // 取得session管理器
+        Manager manager = context.getManager();
+
+        // 先根据session id查询
+        if (requestedSessionId != null) {
+            session = manager.findSession(requestedSessionId);
+            if (session != null && !session.isValid())
+                session = null;
+            else if (session != null)
+                return session;
+        }
+
+        // 是否创建新的session
+        if (!create)
+            return null;
+        if (context != null && response != null && context.getCookies()
+                && response.getResponse().isCommitted()) {
+            throw new IllegalStateException("HttpRequestBase.doGetSession  响应已经提交！");
+        }
+
+        session = manager.createSession();
+
+        if (session == null)
+            return null;
+
+        return session;
     }
 
+
+    /**
+     * 取得session，如果不存在就创建一个
+     */
     @Override
     public HttpSession getSession() {
-        return null;
+        return getSession(true);
     }
 
+
+    /**
+     * 更改session id
+     * 
+     * @return 返回新的session id
+     */
     @Override
     public String changeSessionId() {
-        return null;
+        Session session = doGetSession(false);
+        if (session == null) {
+            throw new IllegalStateException("不存在session");
+        }
+
+        Manager manager = this.getContext().getManager();
+        String newSessionId = manager.rotateSessionId(session);
+        changeSessionId(newSessionId);
+        
+        return newSessionId;
     }
 
+
+    /**
+     * 修改session id
+     * 
+     * @param sessionId 新的session id
+     */
+    public void changeSessionId(String sessionId) {
+        if (requestedSessionId != null && requestedSessionId.length() > 0) {
+            requestedSessionId = sessionId;
+        }
+
+        Context context = getContext();
+        if (context != null && !context
+                .getServletContext()
+                .getEffectiveSessionTrackingModes()
+                .contains(SessionTrackingMode.COOKIE)) {
+            
+            return;
+        }
+        
+        if (response != null) {
+            Cookie newCookie = ApplicationSessionCookieConfig.createSessionCookie(context,
+                    sessionId, isSecure());
+            
+            response.addSessionCookieInternal(newCookie);
+        }
+    }
+
+
+    /**
+     * @return 如果返回true，则表示请求参数已经解析了。否则反之。
+     */
+    public boolean isParametersParsed() {
+        return parametersParsed;
+    }
+
+
+    /**
+     * @return 如果返回true，则表示已经读取了所有的请求正文
+     */
+    public boolean isFinished() {
+        return coyoteRequest.isFinished();
+    }
+
+
+    /**
+     * @return 如果返回true，则表示session id还有效
+     */
     @Override
     public boolean isRequestedSessionIdValid() {
-        return false;
+        if (requestedSessionId == null) {
+            return false;
+        }
+
+        Context context = getContext();
+        if (context == null) {
+            return false;
+        }
+
+        Manager manager = context.getManager();
+        if (manager == null) {
+            return false;
+        }
+        
+        Session session = null;
+        try {
+            session = manager.findSession(requestedSessionId);
+        } catch (Exception e) {
+            ;
+        }
+
+        if (session == null || !session.isValid()) {
+             if (getMappingData().contexts == null) {
+                 return false;
+             } else {
+                 for (int i = getMappingData().contexts.length; i > 0; i--) {
+                     Context ctt = getMappingData().contexts[i - 1];
+                     try {
+                         if (ctt.getManager().findSession(requestedSessionId) != null) {
+                             return true;
+                         }
+                     } catch (Exception e) {
+                         ;
+                     }
+                     
+                     return false;
+                 }
+             }
+        }
+        
+        return true;
     }
 
+    
     @Override
     public boolean isRequestedSessionIdFromCookie() {
-        return false;
+        if (requestedSessionId == null) {
+            return false;
+        }
+        
+        return requestedSessionCookie;
     }
 
+    
     @Override
     public boolean isRequestedSessionIdFromURL() {
-        return false;
+        if (requestedSessionId == null) {
+            return false;
+        }
+        
+        return requestedSessionURL;
     }
 
+    
     @Override
     public boolean isRequestedSessionIdFromUrl() {
-        return false;
+        return isRequestedSessionIdFromURL();
     }
-
-    @Override
-    public boolean authenticate(HttpServletResponse response) throws IOException, ServletException {
-        return false;
-    }
-
-    @Override
-    public void login(String username, String password) throws ServletException {
-
-    }
-
-    @Override
-    public void logout() throws ServletException {
-
-    }
-
+    
+    
+    /**
+     * 返回此请求中包含的所有上传文件
+     * 
+     * @return 返回此请求中包含的所有上传文件
+     * @throws IOException 可能抛出I/O异常
+     * @throws ServletException 可能抛出Servlet异常
+     */
     @Override
     public Collection<Part> getParts() throws IOException, ServletException {
-        return null;
+        parseParts(true);
+
+        if (partsParseException != null) {
+            if (partsParseException instanceof IOException) {
+                throw (IOException) partsParseException;
+            } else if (partsParseException instanceof IllegalStateException) {
+                throw (IllegalStateException) partsParseException;
+            } else if (partsParseException instanceof ServletException) {
+                throw (ServletException) partsParseException;
+            }
+        }
+        
+        return parts;
     }
+
 
     @Override
     public Part getPart(String name) throws IOException, ServletException {
+        for (Part part : getParts()) {
+            if (name.equals(part.getName())) {
+                return part;
+            }
+        }
         return null;
     }
 
-    @Override
-    public <T extends HttpUpgradeHandler> T upgrade(Class<T> handlerClass) throws IOException, ServletException {
-        return null;
-    }
 
+    /**
+     * 根据属性名取得属性值
+     * 
+     * @param name 属性名
+     * @return 返回属性值
+     */
     @Override
     public Object getAttribute(String name) {
-        return null;
+        // TODO - 特殊属性
+
+        Object attr = attributes.get(name);
+        if (attr != null) {
+            return attr;
+        }
+
+        attr = coyoteRequest.getAttribute(name);
+        if (attr != null) {
+            return attr;
+        }
+        
+        // TODO - SSL层中拿取
+        
+        return attr;
     }
 
+    
     @Override
     public Enumeration<String> getAttributeNames() {
+        return Collections.enumeration(attributes.keySet());
+    }
+
+
+    /**
+     * @return 返回编码格式
+     */
+    @Override
+    public String getCharacterEncoding() {
+        String ce = coyoteRequest.getCharacterEncoding();
+        if (ce != null) {
+            return ce;
+        }
+
+        Context context = getContext();
+        if (context != null) {
+            return context.getRequestCharacterEncoding();
+        }
+
         return null;
     }
 
-    @Override
-    public String getCharacterEncoding() {
-        return null;
+
+    /**
+     * @return 返回编码器
+     */
+    private Charset getCharset() {
+        Charset charset = null;
+        try {
+            charset = coyoteRequest.getCharset();
+        } catch (UnsupportedEncodingException e) {
+            ;
+        }
+
+        if (charset != null) {
+            return charset;
+        }
+
+        Context context = getContext();
+        if (context != null) {
+            String encoding = context.getRequestCharacterEncoding();
+            if (encoding != null) {
+                try {
+                    return B2CConverter.getCharset(encoding);
+                } catch (UnsupportedEncodingException e) {
+                    ;
+                }
+            }
+        }
+
+        return Constants.DEFAULT_BODY_CHARSET;
     }
+    
 
     @Override
     public void setCharacterEncoding(String env) throws UnsupportedEncodingException {
@@ -774,7 +1016,7 @@ public class Request implements HttpServletRequest {
 
     @Override
     public long getContentLengthLong() {
-        return 0;
+        return coyoteRequest.getContentLengthLong();
     }
 
     @Override
@@ -930,5 +1172,126 @@ public class Request implements HttpServletRequest {
     @Override
     public DispatcherType getDispatcherType() {
         return null;
+    }
+
+
+    // TODO ------------------------------ 未实现 ------------------------------ 
+
+    /**
+     * 解析请求包携带的文件
+     *
+     * @param explicit 如果不能从wrapper获取到MultipartConfigElement，
+     *                 且Context容器不允许进行Multipart解析。那么，参数
+     *                 为true则将抛出异常，否则赋值parts为一个空的集合
+     */
+    private void parseParts(boolean explicit) {
+        if (parts != null || partsParseException != null) {
+            return;
+        }
+
+        Context context = getContext();
+        MultipartConfigElement mce = getWrapper().getMultipartConfigElement();
+
+        if (mce == null) {
+            if (context.getAllowCasualMultipartParsing()) {
+                mce = new MultipartConfigElement(null, connector.getMaxPostSize(),
+                        connector.getMaxPostSize(), connector.getMaxPostSize());
+            } else {
+                if (explicit) {
+                    partsParseException = new IllegalStateException("coyoteRequest.noMultipartConfig");
+                    return;
+                } else {
+                    parts = Collections.emptyList();
+                    return;
+                }
+            }
+        }
+
+        Parameters parameters = coyoteRequest.getParameters();
+        parameters.setLimit(getConnector().getMaxParameterCount());
+
+        boolean success = false;
+
+        File location;
+        String locationStr = mce.getLocation();
+        if (locationStr == null || locationStr.length() == 0) {
+            location = (File) context.getServletContext().getAttribute(ServletContext.TEMPDIR);
+        } else  {
+            location = new File(locationStr);
+            if (!location.isAbsolute()) {
+                location = new File((File) context.getServletContext().getAttribute(ServletContext.TEMPDIR),
+                        locationStr).getAbsoluteFile();
+            }
+        }
+
+        if (!location.exists() && context.getCreateUploadTargets()) {
+            if (!location.mkdirs()) {
+                // XXX - 日志记录
+            }
+        }
+
+        // 必须是个文件夹
+        if (!location.isDirectory()) {
+            parameters.setParseFailedReason(Parameters.FailReason.MULTIPART_CONFIG_INVALID);
+            partsParseException = new IOException("coyoteRequest.uploadLocationInvalid" + location);
+            return;
+        }
+
+        // TODO - 未完成
+
+    }
+
+
+    @Override
+    public <T extends HttpUpgradeHandler> T upgrade(Class<T> handlerClass) throws IOException, ServletException {
+        return null;
+    }
+    
+    
+    /**
+     * @return 返回进行了用户认证的远程用户
+     */
+    @Override
+    public String getRemoteUser() {
+        return null;
+    }
+
+
+    /**
+     * 用户是否在此角色中
+     *
+     * @param role 角色
+     * @return 返回是否被包含
+     */
+    @Override
+    public boolean isUserInRole(String role) {
+        return false;
+    }
+
+
+    /**
+     * @return 返回用户主体
+     */
+    @Override
+    public Principal getUserPrincipal() {
+        return null;
+    }
+
+
+    @Override
+    public boolean authenticate(HttpServletResponse response) throws IOException, ServletException {
+        return false;
+    }
+
+
+    @Override
+    public void login(String username, String password) throws ServletException {
+
+    }
+
+
+    @Override
+    public void logout() throws ServletException {
+
     }
 }
