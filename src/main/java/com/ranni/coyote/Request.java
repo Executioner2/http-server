@@ -1,7 +1,8 @@
 package com.ranni.coyote;
 
-import com.ranni.connector.InputBuffer;
+import com.ranni.connector.ApplicationBufferHandler;
 import com.ranni.util.buf.MessageBytes;
+import com.ranni.util.buf.UDecoder;
 import com.ranni.util.http.MimeHeaders;
 import com.ranni.util.http.Parameters;
 import com.ranni.util.http.ServerCookies;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Title: HttpServer
@@ -26,18 +28,163 @@ import java.util.HashMap;
  */
 public final class Request {
 
+    /**
+     * 钩子事件
+     */
     private ActionHook hook;
-    private ReadListener listener;
+
+    /**
+     * 读取监听器
+     */
+    volatile ReadListener listener;
+
+    /**
+     * 缓冲区可读数据量
+     */
     private int available;
-    
+
+    /**
+     * 内部便签？
+     */
     private final Object notes[] = new Object[Constants.MAX_NOTES];
 
-    private long threadId; // 请求线程id
+    /**
+     * 请求线程id
+     */
+    private long threadId;
+
+    /* ==================================== 消息字节 start ==================================== */
+
+    /**
+     * 请求的协议（HTTP 或 HTTPS）
+     */
+    private final MessageBytes schemeMB = MessageBytes.newInstance();
+
+    /**
+     * 请求的方法
+     */
+    private final MessageBytes methodMB = MessageBytes.newInstance();
+
+    /**
+     * 请求URI
+     */
+    private final MessageBytes uriMB = MessageBytes.newInstance();
+
+    /**
+     * 解码后的URI
+     */
+    private final MessageBytes decodedUriMB = MessageBytes.newInstance();
+
+    /**
+     * GET请求携带的查询参数
+     */
+    private final MessageBytes queryMB = MessageBytes.newInstance();
+
+    /**
+     * 请求协议和协议版本
+     */
+    private final MessageBytes protoMB = MessageBytes.newInstance();
+
+    /**
+     * 请求发起者或最后一个代理服务器的IP
+     */
+    private final MessageBytes remoteAddrMB = MessageBytes.newInstance();
+
+    
+    private final MessageBytes peerAddrMB = MessageBytes.newInstance();
+
+    /**
+     * 接收此请求的服务器名
+     */
+    private final MessageBytes localNameMB = MessageBytes.newInstance();
+
+    /**
+     * 请求发起者或最后一个代理服务器的域名
+     */
+    private final MessageBytes remoteHostMB = MessageBytes.newInstance();
+
+    /**
+     * 接收此请求的服务器IP
+     */
+    private final MessageBytes localAddrMB = MessageBytes.newInstance();
+
+
+    /* ==================================== 消息字节 end ==================================== */
+    
+    /**
+     * 请求头
+     */
+    private final MimeHeaders headers = new MimeHeaders();
+    private final Map<String,String> trailerFields = new HashMap<>();
+
+    /**
+     * 路径参数
+     */
+    private final Map<String,String> pathParameters = new HashMap<>();
+
+    /**
+     * 输入缓冲区 
+     */
+    private InputBuffer inputBuffer = null;
+
+    /**
+     * URL解析器
+     */
+    private final UDecoder urlDecoder = new UDecoder();
+
+    /**
+     * 请求体数据长度
+     */
+    private long contentLength = -1;
+
+    /**
+     * 请求体数据类型
+     */
+    private MessageBytes contentTypeMB;
+
+    /**
+     * 字符编码器
+     */
     private Charset charset;
 
-    private MessageBytes methodMB; // 请求方法
+    /**
+     * 编码格式
+     */
+    private String characterEncoding;
 
+    /**
+     * 请求参数
+     */
+    private final Parameters parameters = new Parameters();
 
+    /**
+     * 属性 
+     */
+    private final HashMap<String,Object> attributes = new HashMap<>();
+    
+    private Response coyoteResponse;
+
+    /**
+     * 读取了的字节数量
+     */
+    private long bytesRead;
+
+    /**
+     * 请求时间
+     */
+    private long startTime = -1;
+
+    /**
+     * 是否允许发送文件
+     */
+    private boolean sendfile = true;
+
+    private Exception errorException;
+    
+    
+    
+    // ------------------------------ 通用方法 ------------------------------
+    
     public final Object getNote(int pos) {
         return notes[pos];
     }
@@ -86,7 +233,7 @@ public final class Request {
     public void setErrorException(IOException ioe) {
     }
 
-    public int doRead(InputBuffer inputBuffer) throws IOException {
+    public int doRead(ApplicationBufferHandler inputBuffer) throws IOException {
         return 0;
     }
 

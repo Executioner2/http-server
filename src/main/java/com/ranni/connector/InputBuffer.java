@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022/5/22 21:04
+ * @Ref org.apache.catalina.connector.InputBuffer
  */
 public class InputBuffer extends Reader 
         implements ByteChunk.ByteInputChannel, ApplicationBufferHandler {

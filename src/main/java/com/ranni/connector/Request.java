@@ -1506,7 +1506,7 @@ public class Request implements HttpServletRequest {
 
 
     /**
-     * @return 返回端口号
+     * @return 返回协议和协议版本
      */
     @Override
     public String getProtocol() {
