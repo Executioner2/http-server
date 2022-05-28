@@ -188,7 +188,7 @@ public class InputBuffer extends Reader
     /**
      * @return 返回是否阻塞，是否阻塞是根据CoyoteRequest是否有读监听器来判断
      */
-    boolean isBlocking() {
+    public boolean isBlocking() {
         return coyoteRequest.getReadListener() == null;
     }
 
