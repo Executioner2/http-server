@@ -10,6 +10,7 @@ import javax.servlet.ReadListener;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 
 /**
  * Title: HttpServer
@@ -180,5 +181,29 @@ public final class Request {
 
     public MessageBytes remoteHost() {
         return null;
+    }
+
+    public void setAttribute(String name, Object value) {
+        
+    }
+
+    public HashMap<String, Object> getAttributes() {
+        return null;
+    }
+
+    public int getRemotePort() {
+        return 0;
+    }
+
+    public MessageBytes localName() {
+        return null;
+    }
+
+    public MessageBytes localAddr() {
+        return null;
+    }
+
+    public int getLocalPort() {
+        return 0;
     }
 }

@@ -11,6 +11,8 @@ package com.ranni.common;
  */
 public final class Globals {
 
+    public static final String SENDFILE_FILENAME_ATTR = "org.apache.tomcat.sendfile.filename";
+
     public static final boolean IS_SECURITY_ENABLED = (System.getSecurityManager() != null);
 
     public static final String PARAMETER_PARSE_FAILED_REASON_ATTR = "com.ranni.parameter_parse_failed_reason";

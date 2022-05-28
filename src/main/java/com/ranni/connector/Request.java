@@ -1,5 +1,6 @@
 package com.ranni.connector;
 
+import com.ranni.common.Globals;
 import com.ranni.connector.http.ParameterMap;
 import com.ranni.container.Context;
 import com.ranni.container.Host;
@@ -17,6 +18,7 @@ import com.ranni.util.RequestUtil;
 import com.ranni.util.buf.B2CConverter;
 import com.ranni.util.buf.ByteChunk;
 import com.ranni.util.buf.MessageBytes;
+import com.ranni.util.http.AcceptLanguage;
 import com.ranni.util.http.Parameters;
 
 import javax.servlet.*;
@@ -51,8 +53,8 @@ public class Request implements HttpServletRequest {
             DateTimeFormatter.ofPattern("EEE MMMM d HH:mm:ss yyyy", Locale.US)
     };
 
-    protected static final Locale defaultLocale = Locale.getDefault();
-    protected final ArrayList<Locale> locales = new ArrayList<>(); // 与此请求关联的本地环境
+    protected static final Locale defaultLocale = Locale.getDefault(); // 默认的请求解析语言
+    protected final ArrayList<Locale> locales = new ArrayList<>(); // 此请求的解析语言。请求头的Accept-Language参数
     protected String authType; // 认证类型
     protected DispatcherType internalDispatcherType; // 转发类型
     protected final InputBuffer inputBuffer = new InputBuffer(); // 输入缓冲区
@@ -931,7 +933,7 @@ public class Request implements HttpServletRequest {
      */
     @Override
     public Object getAttribute(String name) {
-        // TODO - 特殊属性
+        // XXX - 特殊属性
 
         Object attr = attributes.get(name);
         if (attr != null) {
@@ -943,7 +945,7 @@ public class Request implements HttpServletRequest {
             return attr;
         }
         
-        // TODO - SSL层中拿取
+        // XXX - SSL层中拿取
         
         return attr;
     }
@@ -1450,71 +1452,317 @@ public class Request implements HttpServletRequest {
 
 
     /**
-     * 设置属性
+     * 设置属性。属性值为null将会移除该属性名的键值对
      * 
      * @param name 属性名
-     * @param o 属性值
+     * @param value 属性值
      */
     @Override
-    public void setAttribute(String name, Object o) {
+    public void setAttribute(String name, Object value) {
+        if (name == null) {
+            throw new IllegalArgumentException("coyoteRequest.setAttribute.namenull");
+        }
+
+        if (value == null) {
+            removeAttribute(name);
+            return;
+        }
+        
+        // XXX - 特殊属性
+        
+        if (Globals.IS_SECURITY_ENABLED
+            && name.equals(Globals.SENDFILE_FILENAME_ATTR)) {
+            
+            String canonicalPath;
+
+            try {
+                canonicalPath = new File(value.toString()).getCanonicalPath();
+            } catch (IOException e) {
+                throw new SecurityException("coyoteRequest.sendfileNotCanonical" + value);
+            }
+            
+            System.getSecurityManager().checkRead(canonicalPath);
+            value = canonicalPath;
+        }
+
+        Object oldValue = attributes.put(name, value);
+        
+        if (name.startsWith("com.ranni.")) {
+            coyoteRequest.setAttribute(name, value);
+        }
+        
+        // XXX - 属性添加通知
+
+    }
+
+
+    /**
+     * 移除属性
+     * 
+     * @param name 属性名
+     */
+    @Override
+    public void removeAttribute(String name) {
+        if (name.startsWith("com.ranni.")) {
+            coyoteRequest.getAttributes().remove(name);
+        }
+
+        boolean b = attributes.containsKey(name);
+        if (b) {
+            Object value = attributes.get(name);
+            attributes.remove(name);
+            
+            // XXX - 属性删除通知
+        }
+    }
+
+
+    /**
+     * @return 如果没解析，先解析请求头的Accept-Language参数。选取
+     *         这个参数的第一个值作为请求解析的首选语言。如果不存在，
+     *         则返回默认的请求解析语言。
+     */
+    @Override
+    public Locale getLocale() {
+        if (!localesParsed) {
+            parseLocales();
+        }
+        
+        if (locales.size() > 0) {
+            return locales.get(0);
+        }
+        
+        return defaultLocale;
+    }
+
+
+    /**
+     * 解析处理此请求的语言。（解析请求头的Accept-Language属性）<br/>
+     * 例子：<br/>
+     * Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6<br/>
+     * <br/>
+     * zh-CN,zh;q=0.9：zh表示中文（简体中文或繁体中文），zh-CN表示简体中文，q=0.9表示权重<br/>
+     * <br/>
+     * 例子说明：<br/>
+     * <ul>
+     *  <li>优先使用权重为0.9的中文中的简体中文；</li>
+     *  <li>如果没有，使用权重0.8的英文；</li>
+     *  <li>如果没有，使用权重0.7的英式英文；</li>
+     *  <li>如果没有，使用权重0.6的美式英文。</li>
+     * </ul>
+     */
+    protected void parseLocales() {
+        localesParsed = true;
+        
+//        TreeMap<Double, ArrayList<Locale>> locales = new TreeMap<>((key1, key2) -> (int) (key2 - key1)); // 转整型忽略小数会有问题，因此不传入比较器，而是直接令key全都变为相反数
+        TreeMap<Double, ArrayList<Locale>> locales = new TreeMap<>();
+        Enumeration<String> values = getHeaders("accept-language");
+        // 按上面的例子，这里取出来的values迭代器的第一个值就是：zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+        
+        // 解析值
+        while (values.hasMoreElements()) {
+            String value = values.nextElement();
+            parseLocalesHeader(value, locales);
+        }
+        
+        for (ArrayList<Locale> item : locales.values()) {
+            for (Locale locale : item) {
+                addLocale(locale);
+            }
+        }
         
     }
 
-    @Override
-    public void removeAttribute(String name) {
 
+    /**
+     * 添加请求处理语言
+     * 
+     * @param locale 添加的处理语言
+     */
+    public void addLocale(Locale locale) {
+        locales.add(locale);
     }
 
-    @Override
-    public Locale getLocale() {
-        return null;
+
+    /**
+     * 解析此请求的处理语言并按权重存放到传入的tree型map中
+     * 
+     * @param value accept-language的值
+     * @param locales 要存入的TreeMap
+     */
+    private void parseLocalesHeader(String value, TreeMap<Double, ArrayList<Locale>> locales) {
+        List<AcceptLanguage> acceptLanguages = null; // 语言处理器
+
+        try {
+            // 解析accept-language的值
+            acceptLanguages = AcceptLanguage.parse(new StringReader(value));
+        } catch (IOException e) {
+            return;
+        }
+        
+        // 按权重放入locales中
+        for (AcceptLanguage acceptLanguage : acceptLanguages) {
+            Double key = -acceptLanguage.getQuality(); // 变为负数使得成为期望的升序排序
+            ArrayList<Locale> values = locales.get(key);
+            if (values == null) {
+                values = new ArrayList<>();
+                locales.put(key, values);
+            }
+            values.add(acceptLanguage.getLocale());
+        }
     }
 
+
+    /**
+     * @return 返回请求处理语言的迭代器
+     */
     @Override
     public Enumeration<Locale> getLocales() {
-        return null;
+        if (!localesParsed) {
+            parseLocales();
+        }
+        
+        if (locales.size() > 0) {
+            return Collections.enumeration(locales);
+        }
+
+        ArrayList<Locale> res = new ArrayList<>();
+        res.add(defaultLocale);
+        return Collections.enumeration(res);
     }
 
+
+    /**
+     * @return 返回安全标志位
+     */
     @Override
     public boolean isSecure() {
-        return false;
+        return secure;
     }
 
-    @Override
-    public RequestDispatcher getRequestDispatcher(String path) {
-        return null;
-    }
 
+    /**
+     * @return 返回虚拟路径转换后的真实路径
+     *
+     * @param path 要转换的路径
+     *             
+     * @deprecated 在Servlet API 2.1版本，将使用
+     *  <code>ServletContext.getRealPath()</code>
+     */
+    @Deprecated
     @Override
     public String getRealPath(String path) {
-        return null;
+        Context context = getContext();
+
+        if (context == null) {
+            return null;
+        }
+
+        ServletContext servletContext = context.getServletContext();
+        
+        try {
+            return servletContext.getRealPath(path);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
+
+    /**
+     * @return 返回发起请求的主机端口或者最后一个代理主机的端口
+     */
     @Override
     public int getRemotePort() {
-        return 0;
+        if (remotePort == -1) {
+            coyoteRequest.action(ActionCode.REQ_REMOTEPORT_ATTRIBUTE, coyoteRequest);
+            remotePort = coyoteRequest.getRemotePort();
+        }
+
+        return remotePort;
     }
 
+
+    /**
+     * @return 返回接收此请求的服务器名
+     */
     @Override
     public String getLocalName() {
-        return null;
+        if (localName == null) {
+            coyoteRequest.action(ActionCode.REQ_LOCAL_NAME_ATTRIBUTE, coyoteRequest);
+            localName = coyoteRequest.localName().toString();
+        }
+        
+        return localName;
     }
 
+
+    /**
+     * @return 返回处理此请求的服务器IP地址
+     */
     @Override
     public String getLocalAddr() {
-        return null;
+        if (localAddr == null) {
+            coyoteRequest.action(ActionCode.REQ_LOCAL_ADDR_ATTRIBUTE, coyoteRequest);
+            localAddr = coyoteRequest.localAddr().toString();
+        }
+        
+        return localAddr;
     }
 
+
+    /**
+     * @return 返回处理此请求的服务器端口号
+     */
     @Override
     public int getLocalPort() {
-        return 0;
+        if (localPort == -1) {
+            coyoteRequest.action(ActionCode.REQ_LOCALPORT_ATTRIBUTE, coyoteRequest);
+            localPort = coyoteRequest.getLocalPort();
+        }
+        
+        return localPort;
     }
 
+
+    /**
+     * @return 返回此请求关联的webapp的全局上下文作用域
+     */
     @Override
     public ServletContext getServletContext() {
-        return null;
+        Context context = getContext();
+        if (context == null) {
+            return null;
+        }
+
+        ServletContext servletContext = context.getServletContext();
+
+        return servletContext;
     }
 
+
+    /**
+     * @return 返回此请求的调度类型。（如普通请求，转发请求等类型）
+     * 
+     * @see DispatcherType
+     */
+    @Override
+    public DispatcherType getDispatcherType() {
+        if (internalDispatcherType == null) {
+            return DispatcherType.REQUEST;
+        }
+
+        return this.internalDispatcherType;
+    }
+
+
+    // TODO ------------------------------ 未实现 ------------------------------
+
+    /**
+     * 异步响应容器
+     *
+     * @return 返回异步响应容器
+     * @throws IllegalStateException
+     */
     @Override
     public AsyncContext startAsync() throws IllegalStateException {
         return null;
@@ -1539,15 +1787,20 @@ public class Request implements HttpServletRequest {
     public AsyncContext getAsyncContext() {
         return null;
     }
-
+    
+    
+    /**
+     * 取得请求转发器
+     *
+     * @param path 转发路径
+     * @return 返回请求转发器
+     */
     @Override
-    public DispatcherType getDispatcherType() {
+    public RequestDispatcher getRequestDispatcher(String path) {
         return null;
     }
-
-
-    // TODO ------------------------------ 未实现 ------------------------------ 
-
+    
+    
     /**
      * 解析请求包携带的文件
      *
