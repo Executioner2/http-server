@@ -570,6 +570,11 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         }
     }
 
+    @Override
+    public MultipartConfigElement getMultipartConfigElement() {
+        return null;
+    }
+
 
     @Override
     public String getInfo() {

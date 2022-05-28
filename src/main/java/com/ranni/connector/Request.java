@@ -42,10 +42,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Request implements HttpServletRequest {
 
     private static final String HTTP_UPGRADE_HEADER_NAME = "upgrade";
-    
-    private Connector connector; // 与此请求关联的连接器
 
-    // 日期格式化
+    /**
+     * 与此请求关联的连接器
+     */
+    private Connector connector;
+
+    /**
+     * 日期格式化
+     */
     private static final DateTimeFormatter formats[] = {
             DateTimeFormatter.ofPattern(FastHttpDateFormat.RFC1123_DATE, Locale.US),
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.CHINA),
@@ -53,59 +58,219 @@ public class Request implements HttpServletRequest {
             DateTimeFormatter.ofPattern("EEE MMMM d HH:mm:ss yyyy", Locale.US)
     };
 
-    protected static final Locale defaultLocale = Locale.getDefault(); // 默认的请求解析语言
-    protected final ArrayList<Locale> locales = new ArrayList<>(); // 此请求的解析语言。请求头的Accept-Language参数
-    protected String authType; // 认证类型
-    protected DispatcherType internalDispatcherType; // 转发类型
-    protected final InputBuffer inputBuffer = new InputBuffer(); // 输入缓冲区
-    protected CoyoteInputStream inputStream = new CoyoteInputStream(inputBuffer); // 输入流
-    protected CoyoteReader reader = new CoyoteReader(inputBuffer); // 输入缓冲区读取器
-    
-    protected boolean usingInputStream; // 是使用了输入流
-    protected boolean usingReader; // 是否使用了缓冲区读取器
-    protected boolean parametersParsed; // 参数是否已经解析过了
-    protected boolean cookiesParsed; // cookies是否已经解析过了
-    protected boolean cookiesConverted; // 是否已经将cookies进行了转换
-    protected boolean sslAttributesParsed; // 在SSL下的字段解析了吗
-    protected boolean secure; // 安全标志位
-    
+    /**
+     * 默认的请求解析语言
+     */
+    protected static final Locale defaultLocale = Locale.getDefault();
+
+    /**
+     * 此请求的解析语言。请求头的Accept-Language参数
+     */
+    protected final ArrayList<Locale> locales = new ArrayList<>();
+
+    /**
+     * 认证类型
+     */
+    protected String authType;
+
+    /**
+     * 转发类型
+     */
+    protected DispatcherType internalDispatcherType;
+
+    /**
+     * 输入缓冲区
+     */
+    protected final InputBuffer inputBuffer = new InputBuffer();
+
+    /**
+     * 输入流
+     */
+    protected CoyoteInputStream inputStream = new CoyoteInputStream(inputBuffer);
+
+    /**
+     * 输入缓冲区读取器
+     */
+    protected CoyoteReader reader = new CoyoteReader(inputBuffer);
+
+    /**
+     * 是使用了输入流
+     */
+    protected boolean usingInputStream;
+
+    /**
+     * 是否使用了缓冲区读取器
+     */
+    protected boolean usingReader;
+
+    /**
+     * 参数是否已经解析过了
+     */
+    protected boolean parametersParsed;
+
+    /**
+     * cookies是否已经解析过了
+     */
+    protected boolean cookiesParsed;
+
+    /**
+     * 是否已经将cookies进行了转换
+     */
+    protected boolean cookiesConverted;
+
+    /**
+     * 在SSL下的字段解析了吗
+     */
+    protected boolean sslAttributesParsed;
+
+    /**
+     * 安全标志位
+     */
+    protected boolean secure;
+
+
+    /**
+     * cookie集合
+     */
     protected Cookie[] cookies;
-    protected FilterChain filterChain; // 过滤链
-    protected ParameterMap<String, String[]> parameterMap = new ParameterMap<>(); // 请求参数
+
+    /**
+     * 过滤链
+     */
+    protected FilterChain filterChain;
+
+    /**
+     * 请求参数
+     */
+    protected ParameterMap<String, String[]> parameterMap = new ParameterMap<>();
+
+    /**
+     * 请求实例的属性集合
+     */
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
-    private final transient HashMap<String, Object> notes = new HashMap<>(); // Catalina 组件和事件侦听器与此请求相关的内部注释。（不可被序列化）
-    
-    // post数据缓存
+
+    /**
+     * Catalina 组件和事件侦听器与此请求相关的内部注释。（不可被序列化）
+     */
+    private final transient HashMap<String, Object> notes = new HashMap<>();
+
+    /**
+     * post数据（请求体数据）缓存大小
+     */
     protected static final int CACHED_POST_LEN = 8192;
-    protected byte[] postData = null;    
-    protected Collection<Part> parts = null; // 随请求上传的部分
-    
-    protected Exception partsParseException;  // 解析part抛出的异常（如果有异常的话）
-    
-    protected Session session; // Session
-    protected Object requestDispatcherPath; // 转发路径
-    protected boolean requestedSessionCookie; // 是否用cookie作为session的id
-    protected boolean requestedSessionURL; // session id是否在URL中 
-    protected String requestedSessionId; // 请求中的session id
+
+    /**
+     * post数据（请求体数据）缓存
+     */
+    protected byte[] postData = null;
+
+    /**
+     * 随请求上传的部分
+     */
+    protected Collection<Part> parts = null;
+
+    /**
+     * 解析part抛出的异常（如果有异常的话）
+     */
+    protected Exception partsParseException;
+
+    /**
+     * Session
+     */
+    protected Session session;
+
+    /**
+     * 转发路径
+     */
+    protected Object requestDispatcherPath;
+
+    /**
+     * 是否用cookie作为session的id
+     */
+    protected boolean requestedSessionCookie;
+
+    /**
+     * session id是否在URL中
+     */
+    protected boolean requestedSessionURL;
+
+    /**
+     * 请求中的session id
+     */
+    protected String requestedSessionId;
+
     protected boolean requestedSessionSSL;
+
+    /**
+     * URI字节转URI字符的转换器
+     */
     protected B2CConverter URIConverter;
 
-    protected boolean localesParsed; // 是否已经解析了处理语言环境（请求头中的accept-language字段）
-    protected int localPort = -1; // 接收这个请求的服务器端口号
-    protected String localAddr; // 接收这个请求的服务器IP
-    protected String localName; // 接收这个请求的服务器名
-    protected String remoteAddr; // 与此请求关联的远程客户端IP地址
-    protected int remotePort = -1; // 此请求关联的远程客户端端口
-    protected String remoteHost; // 远程主机域名
+    /**
+     * 是否已经解析了处理语言环境（请求头中的accept-language字段）
+     */
+    protected boolean localesParsed;
+
+    /**
+     * 接收这个请求的服务器端口号
+     */
+    protected int localPort = -1;
+
+    /**
+     * 接收这个请求的服务器IP
+     */
+    protected String localAddr;
+
+    /**
+     * 接收这个请求的服务器名
+     */
+    protected String localName;
+
+    /**
+     * 与此请求关联的远程客户端IP地址
+     */
+    protected String remoteAddr;
+
+    /**
+     * 此请求关联的远程客户端端口
+     */
+    protected int remotePort = -1;
+
+    /**
+     * 远程主机域名
+     */
+    protected String remoteHost;
+    
     protected String peerAddr;
 
+    /**
+     * webapp的全局上下文作用域
+     */
     private HttpServletRequest applicationRequest;
-    protected com.ranni.coyote.Request coyoteRequest;
-    protected Response response;
-    protected RequestFacade facade; // HttpServletRequest请求的外观类
 
-    // 映射数据
+    /**
+     * coyoteRequest
+     */
+    protected com.ranni.coyote.Request coyoteRequest;
+
+    /**
+     * 响应对象
+     */
+    protected Response response;
+
+    /**
+     * HttpServletRequest请求的外观类
+     */
+    protected RequestFacade facade;
+
+    /**
+     * 映射数据（取代了tomcat 4中的mapper）
+     */
     protected final MappingData mappingData = new MappingData();
+
+    /**
+     * 映射数据（取代了tomcat 4中的mapper）
+     */
     private final ApplicationMapping applicationMapping = new ApplicationMapping(mappingData);
     
     

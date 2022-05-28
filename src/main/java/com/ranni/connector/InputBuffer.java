@@ -592,7 +592,7 @@ public class InputBuffer extends Reader
             clear(cb);
         } else {
             // 如果cb进行过扩容（容量大于设定的缓冲区大小的两倍也符合条件）
-            // 且读取的内容已经超过了一半
+            // 且读取的内容已经超过了一半，就进行压缩
             if (cb.capacity() > 2 * size
                 && cb.remaining() < cb.position()) {
                 cb.compact();
