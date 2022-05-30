@@ -197,7 +197,7 @@ public final class Request {
     /**
      * 属性 
      */
-    private final HashMap<String,Object> attributes = new HashMap<>();
+    private final HashMap<String, Object> attributes = new HashMap<>();
     
     private Response coyoteResponse;
 

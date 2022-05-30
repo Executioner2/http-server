@@ -14,9 +14,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.ranni.core;
+package com.ranni.coyote.http11;
 
 
+import com.ranni.core.InputBuffer;
 import com.ranni.coyote.Request;
 import com.ranni.util.buf.ByteChunk;
 
