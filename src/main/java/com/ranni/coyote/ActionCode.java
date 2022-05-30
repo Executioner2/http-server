@@ -206,13 +206,12 @@ public enum ActionCode {
     NB_WRITE_INTEREST,
 
     /**
-     * Indicates if the request body has been fully read.
+     * 请求体是否已经读取完所有数据
      */
     REQUEST_BODY_FULLY_READ,
 
     /**
-     * Indicates that the container needs to trigger a call to onDataAvailable()
-     * for the registered non-blocking read listener.
+     * 容器需要为注册的非阻塞监听器触发onDataAvailable()
      */
     DISPATCH_READ,
 

@@ -181,7 +181,7 @@ public class InputBuffer extends Reader
             return true;
         }
 
-        return coyoteRequest.isRead();
+        return coyoteRequest.isReady();
     }
 
 
