@@ -748,7 +748,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
                 headerData.lastSignificantChar = pos;
                 break;
             } else if (!HttpParser.isToken(chr)) {
-                // 不是合法的标头值字符，跳过这一行
+                // 不是合法的标头名字符，跳过这一行
                 headerData.lastSignificantChar = pos;
                 byteBuffer.position(byteBuffer.position() - 1); // 退回这个不合法的字符
                 return skipLine();
@@ -765,8 +765,97 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
             return skipLine();
         }
         
-        
+        // 开始解析标头值。可以跨越多行
+        while (headerParsePos == HeaderParsePosition.HEADER_VALUE_START || 
+               headerParsePos == HeaderParsePosition.HEADER_VALUE ||
+               headerParsePos == HeaderParsePosition.HEADER_MULTI_LINE) { // main while start
+            
+            // 解析标头值之前的预处理（跳过空格、水平制表符）
+            if (headerParsePos == HeaderParsePosition.HEADER_VALUE_START) {
+                while (true) {
+                    if (byteBuffer.position() >= byteBuffer.limit()) {
+                        if (!fill(false)) {
+                            return HeaderParseStatus.NEED_MORE_DATA;
+                        }
+                    }
+                    
+                    chr = byteBuffer.get();
+                    if (!(chr == Constants.SP || chr == Constants.HT)) {
+                        headerParsePos = HeaderParsePosition.HEADER_VALUE;
+                        byteBuffer.position(byteBuffer.position() - 1); // 回退不是空格也不是水平制表符的那个字符
+                        break;
+                    }
+                } // inner while end                
+            } // if end
+            
+            // 读取标头值
+            if (headerParsePos == HeaderParsePosition.HEADER_VALUE) {
+                boolean eol = false;
+                while (!eol) {
+                    if (byteBuffer.position() >= byteBuffer.limit()) {
+                        if (!fill(false)) {
+                            return HeaderParseStatus.NEED_MORE_DATA;
+                        }
+                    }
+                    
+                    prevChr = chr;
+                    chr = byteBuffer.get();
+                    if (chr == Constants.CR) {
+                        // 可能要结束标头，下一个值必须是LF，否则当作无效标头跳过
+                    } else if (chr == Constants.LF) {
+                        eol = true;
+                    } else if (prevChr == Constants.CR) {
+                        // 无效标头，删除刚刚添加的标头名
+                        headers.removeHeader(headers.size() - 1);
+                        return skipLine();
+                    } else if (chr != Constants.HT && HttpParser.isControl(chr)) {
+                        // 非法字符，跳过此行
+                        headers.removeHeader(headers.size() - 1);
+                        return skipLine();
+                    } else if (chr == Constants.SP || chr == Constants.HT) {
+                        // headerData.lastSignificantChar不包括LWS
+                        byteBuffer.put(headerData.realPos, chr);
+                        headerData.realPos++;
+                    } else {
+                        byteBuffer.put(headerData.realPos, chr);
+                        headerData.realPos++;
+                        headerData.lastSignificantChar = headerData.realPos;
+                    }
+                } // inner while end
+                
+                // 最后一个有效非LWS字符的下标
+                headerData.realPos = headerData.lastSignificantChar;
+                headerParsePos = HeaderParsePosition.HEADER_MULTI_LINE;
+            } // if end
+            
+            if (byteBuffer.position() >= byteBuffer.limit()) {
+                if (!fill(false)) {
+                    return HeaderParseStatus.NEED_MORE_DATA;
+                }
+            }
+            
+            
+            // 读取最后一个字符，判断一个标头名是否包含标头值
+            byte peek = byteBuffer.get(byteBuffer.position()); // byteBuffer.get(下标) 读取指定位置的数据，不改变position
+            if (headerParsePos == HeaderParsePosition.HEADER_MULTI_LINE) {
+                if (peek != Constants.SP && peek != Constants.HT) {
+                    headerParsePos = HeaderParsePosition.HEADER_START;
+                    break;
+                } else {
+                    // 此标头有多个值，多标头值之间需要空格或水平制表符做分隔
+                    // 这里就需要添加多标头值之间的分隔，因为循环到
+                    // HEADER_VALUE_START的if时会跳过空格和水平制表符
+                    byteBuffer.put(headerData.realPos, peek);
+                    headerData.realPos++;
+                    headerParsePos = HeaderParsePosition.HEADER_VALUE_START;
+                }
+            } // if end
 
+        } // main while end
+
+        // 设置标头值
+        headerData.headerValue.setBytes(byteBuffer.array(), 
+                headerData.start, headerData.lastSignificantChar - headerData.start);
         headerData.recycle();
         return HeaderParseStatus.HAVE_MORE_HEADERS;
     }
@@ -793,7 +882,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
             prevChr = chr;
             chr = byteBuffer.get();
             if (chr == Constants.CR) {
-                // 可能要结束一个标头
+                // 可能要结束一个标头，忽略
             } else if (chr == Constants.LF) {
                 eol = true;
             } else {
