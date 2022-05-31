@@ -17,7 +17,7 @@
 package com.ranni.coyote.http11;
 
 
-import com.ranni.core.InputBuffer;
+import com.ranni.coyote.InputBuffer;
 import com.ranni.coyote.Request;
 import com.ranni.util.buf.ByteChunk;
 

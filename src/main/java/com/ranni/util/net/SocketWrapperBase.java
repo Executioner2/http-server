@@ -44,4 +44,12 @@ public abstract class SocketWrapperBase<E> {
             this.readTimeout = -1;
         }
     }
+
+
+    /**
+     * @return 如果返回<b>true</b>，表示还有数据可读
+     */
+    public boolean hasDataToRead() {
+        return true;
+    }
 }

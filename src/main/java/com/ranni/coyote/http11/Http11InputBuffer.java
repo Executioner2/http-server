@@ -14,6 +14,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 /**
  * Title: HttpServer
@@ -80,6 +81,11 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
      * 输入过滤器
      */
     private InputFilter[] activeFilters;
+
+    /**
+     * 输入过滤器
+     */
+    private InputFilter[] filterLibrary;
 
     /**
      * 最后一个可执行的过滤器
@@ -170,6 +176,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
         this.rejectIllegalHeader = rejectIllegalHeader;
         this.httpParser = httpParser;
 
+        filterLibrary = new InputFilter[0];
         activeFilters = new InputFilter[0];
         lastActiveFilter = -1;
 
@@ -988,28 +995,149 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
         }
     }
     
+    
     @Override
     public void setByteBuffer(ByteBuffer buffer) {
-        
+        byteBuffer = buffer;
     }
+    
 
     @Override
     public ByteBuffer getByteBuffer() {
-        return null;
+        return byteBuffer;
     }
+    
 
     @Override
     public void expand(int size) {
-
+        if (byteBuffer.capacity() >= size) {
+            byteBuffer.limit(size);
+        }
+        
+        ByteBuffer tmp = ByteBuffer.allocate(size);
+        tmp.put(byteBuffer);
+        byteBuffer = tmp;
+        byteBuffer.mark();
     }
+    
 
     @Override
     public int doRead(ApplicationBufferHandler handler) throws IOException {
         return 0;
     }
+    
 
     @Override
     public int available() {
-        return 0;
+        return available(false);
     }
+    
+    
+    int available(boolean read) {
+        int available;
+        
+        if (lastActiveFilter == -1) {
+            available = inputStreamInputBuffer.available();
+        } else {
+            available = activeFilters[lastActiveFilter].available();
+        }
+        
+        try {
+            if (available == 0 && read && !byteBuffer.hasRemaining()
+                && wrapper.hasDataToRead()) {
+                
+                fill(false);
+                available = byteBuffer.remaining();
+            }
+        } catch (IOException ioe) {
+            available = -1;
+        }
+        
+        return available;
+    }     
+    
+    
+    boolean isFinished() {
+        if (lastActiveFilter >= 0) {
+            return activeFilters[lastActiveFilter].isFinished();
+        } else {
+            return false;
+        }
+    }
+
+
+    /**
+     * @return 返回剩余数据，返回的数据是拷贝的，对返回数据进行修改不会影响源数据
+     */
+    ByteBuffer getLeftover() {
+        int available = byteBuffer.remaining();
+        if (available > 0) {
+            return ByteBuffer.wrap(byteBuffer.array(), byteBuffer.position(), available);
+        } else {
+            return null;
+        }
+    }
+    
+    
+    boolean isChunking() {
+        for (int i = 0; i < lastActiveFilter; i++) {
+            if (activeFilters[i] == filterLibrary[Constants.CHUNKED_FILTER]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    void addFilter(InputFilter filter) {
+
+        if (filter == null) {
+            throw new NullPointerException("iib.filter.npe");
+        }
+
+        InputFilter[] newFilterLibrary = Arrays.copyOf(filterLibrary, filterLibrary.length + 1);
+        newFilterLibrary[filterLibrary.length] = filter;
+        filterLibrary = newFilterLibrary;
+
+        activeFilters = new InputFilter[filterLibrary.length];
+    }
+
+    
+    InputFilter[] getFilters() {
+        return filterLibrary;
+    }
+
+
+    void addActiveFilter(InputFilter filter) {
+
+        if (lastActiveFilter == -1) {
+            filter.setBuffer(inputStreamInputBuffer);
+        } else {
+            for (int i = 0; i <= lastActiveFilter; i++) {
+                if (activeFilters[i] == filter) {
+                    return;
+                }
+            }
+            filter.setBuffer(activeFilters[lastActiveFilter]);
+        }
+
+        activeFilters[++lastActiveFilter] = filter;
+
+        filter.setRequest(coyoteRequest);
+    }
+
+    
+    void endRequest() throws IOException {
+
+        if (swallowInput && (lastActiveFilter != -1)) {
+            int extraBytes = (int) activeFilters[lastActiveFilter].end();
+            byteBuffer.position(byteBuffer.position() - extraBytes);
+        }
+    }
+    
+
+    int getParsingRequestLinePhase() {
+        return parsingRequestLinePhase;
+    }
+    
 }
