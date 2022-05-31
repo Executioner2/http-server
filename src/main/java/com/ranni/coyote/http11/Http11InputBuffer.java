@@ -18,7 +18,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Title: HttpServer
  * Description:
- * 用于HTTP的请求输入处理。可以对请求头进行解析以及数据编码
+ * 用于HTTP的请求输入处理。可以对请求行、请求头进行解析以及数据编码
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -29,10 +29,22 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
     
     
     // ------------------------------ 属性字段 ------------------------------
-    
+
+    /**
+     * 内部请求实例 
+     */
     private final Request coyoteRequest;
+
+    /**
+     * 复合请求头
+     */
     private final MimeHeaders headers;
+
+    /**
+     * 如果存在非法标头，是否抛出异常
+     */
     private final boolean rejectIllegalHeader;
+    
 
     /**
      * HTTP/2.0请求的序言
@@ -51,7 +63,11 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
     private ByteBuffer byteBuffer;
 
     /**
-     * 缓冲区中请求行结束的位置，请求头开始的位置
+     * 可代表以下两种意义：</br>
+     * <ul>
+     *  <li>缓冲区中请求行结束的位置，请求头开始的位置</li>
+     *  <li>缓冲区中请求头结束的位置，请求体开始的位置</li>
+     * </ul>
      */
     private int end;
 
@@ -85,13 +101,18 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
      * socket包装实例
      */
     private SocketWrapperBase<?> wrapper;
-    
-    
+
+
+    /* ==================================== 解析相关参数 start ==================================== */
+
     /**
-     * 解析相关参数
+     * 上一个读取的字符
      */
-    
     private byte prevChr = 0;
+
+    /**
+     * 当前读取的字符
+     */
     private byte chr = 0;
 
     /**
@@ -100,19 +121,41 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
     private volatile boolean parsingRequestLine;
 
     /**
-     * 解析请求行的阶段
+     * 请求行解析的各个阶段
      */
     private int parsingRequestLinePhase = 0;
+
+    /**
+     * 解析请求行是否到达边界
+     */
     private boolean parsingRequestLineEol = false;
 
     /**
      * 请求行解析的第一个有效字符的位置
      */
     private int parsingRequestLineStart = 0;
+
+    /**
+     * URL后携带参数在数据缓冲区中的下标，如果为-1，表示URL后没有携带参数
+     */
     private int parsingRequestLineQPos = -1;
+
+    /**
+     * 请求头解析的各个阶段
+     */
     private HeaderParsePosition headerParsePos;
+
+    /**
+     * 请求头解析时的数据下标记录
+     */
     private final HeaderParseData headerData = new HeaderParseData();
+
+    /**
+     * HTTP解析时的字符合法性判断
+     */
     private final HttpParser httpParser;
+
+    /* ==================================== 解析相关参数 end ==================================== */
 
 
     // ------------------------------ 构造方法 ------------------------------
@@ -144,7 +187,6 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
 
 
     // ------------------------------ 内部类 ------------------------------
-
 
     private class SocketInputBuffer implements InputBuffer {
 
@@ -179,7 +221,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
 
 
     /**
-     * 请求头行解析数据记录
+     * 请求头解析数据记录
      */
     private static class HeaderParseData {
         /**
@@ -572,9 +614,9 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
                 prevChr = chr;
                 chr = byteBuffer.get();
                 if (chr == Constants.CR) {
-                    // 请求行可能结束，需要下一个字符是LF，抛出异常
+                    // 请求行可能结束，需要下一个字符是LF，否则抛出异常
                 } else if (prevChr == Constants.CR && chr == Constants.LF) {
-                    end = pos - 1; // 减去多出的那个CR
+                    end = pos - 1; // 减去多出的那个CR（pos记录的是chr前一个字符的下标）
                     parsingRequestLineEol = true;
                 } else if (chr == Constants.LF) {
                     // 遇到LF可以直接跳出循环
@@ -605,6 +647,171 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
         
         throw new IllegalStateException("Http11InputBuffer.parseRequestLine  解析失败！ " + parsingRequestLinePhase);
     }
+
+
+    /**
+     * 解析请求头全部数据
+     * 
+     * @return 如果返回<b>true</b>，则表示解析成功
+     * @throws IOException 可能抛出I/O异常
+     */
+    boolean parseHeaders() throws IOException {
+        if (!parsingHeader) {
+            throw new IllegalStateException("Http11InputBuffer.parseHeaders  请求头已经解析完了！");
+        }
+
+        HeaderParseStatus status;
+        
+        do {
+            status = parseHeader();
+            
+            // 请求头超出限制的大小
+            if (byteBuffer.position() > headerBufferSize 
+                || byteBuffer.capacity() < byteBuffer.position()) {
+                throw new IllegalArgumentException("Http11InputBuffer.parseHeaders  请求头太长！");
+            }
+        } while (status == HeaderParseStatus.HAVE_MORE_HEADERS); // 还有数据
+        
+        if (status == HeaderParseStatus.DONE) {
+            // 解析完成
+            parsingHeader = false;
+            end = byteBuffer.position();
+            return true;
+        } else {
+            // 还差数据
+            return false;
+        }
+        
+    }
+
+
+    /**
+     * 解析请求头一个标头的数据
+     * 
+     * @return 返回请求头解析状态 {@link HeaderParseStatus}
+     * @throws IOException 可能抛出I/O异常
+     */
+    private HeaderParseStatus parseHeader() throws IOException {
+        
+        // 开始解析标头，检查是否是空白行（请求头与请求体之间做分隔的空白块）
+        while (headerParsePos == HeaderParsePosition.HEADER_START) {
+            if (byteBuffer.position() >= byteBuffer.limit()) {
+                if (!fill(false)) {
+                    return HeaderParseStatus.NEED_MORE_DATA;
+                }
+            }
+            
+            prevChr = chr;
+            chr = byteBuffer.get();
+            
+            if (chr == Constants.CR && prevChr != Constants.CR) {
+                // 当前字符是'\r'，请求头可能要结束了
+            } else if (chr == Constants.LF) {
+                // 遇到'\n'直接完成请求头的解析
+                return HeaderParseStatus.DONE;
+            } else {
+                if (prevChr == Constants.CR) {
+                    // prev是'\r'且chr不是'\n'，prev和chr视为有效字符，退回读取的这两个字符
+                    byteBuffer.position(byteBuffer.position() - 2);
+                } else {
+                    // chr不是'\n'，退回读取的这个chr
+                    byteBuffer.position(byteBuffer.position() - 1);
+                }
+                break;
+            }
+        } // while end
+        
+        if (headerParsePos == HeaderParsePosition.HEADER_START) {
+            headerData.start = byteBuffer.position();
+            headerData.lineStart = headerData.start;
+            headerParsePos = HeaderParsePosition.HEADER_NAME; // 应该开始解析标头名了
+        }
+        
+        // 开始解析标头名。总是使用ASCII编码方式
+        while (headerParsePos == HeaderParsePosition.HEADER_NAME) {
+            if (byteBuffer.position() >= byteBuffer.limit()) {
+                if (!fill(false)) {
+                    return HeaderParseStatus.NEED_MORE_DATA;
+                }
+            }
+            
+            int pos = byteBuffer.position();
+            chr = byteBuffer.get();
+            if (chr == Constants.COLON) {
+                // 结束标头名读取
+                headerParsePos = HeaderParsePosition.HEADER_VALUE_START;
+                headerData.headerValue = headers.addValue(byteBuffer.array(),
+                        headerData.start, pos - headerData.start);
+                pos = byteBuffer.position(); // ':'之后一个字符的位置
+                headerData.start = pos;
+                headerData.realPos = pos;
+                headerData.lastSignificantChar = pos;
+                break;
+            } else if (!HttpParser.isToken(chr)) {
+                // 不是合法的标头值字符，跳过这一行
+                headerData.lastSignificantChar = pos;
+                byteBuffer.position(byteBuffer.position() - 1); // 退回这个不合法的字符
+                return skipLine();
+            }
+            
+            // 转小写
+            if (chr >= Constants.A && chr <= Constants.Z) {
+                byteBuffer.put(pos, (byte) (chr - Constants.LC_OFFSET));
+            }
+        }
+        
+        // why - 跳过该行
+        if (headerParsePos == HeaderParsePosition.HEADER_SKIP_LINE) {
+            return skipLine();
+        }
+        
+        
+
+        headerData.recycle();
+        return HeaderParseStatus.HAVE_MORE_HEADERS;
+    }
+
+
+    /**
+     * 跳过请求头的一个标头
+     * 
+     * @return 返回请求头解析状态 {@link HeaderParseStatus}
+     * @throws IOException 可能抛出I/O异常
+     */
+    private HeaderParseStatus skipLine() throws IOException {
+        headerParsePos = HeaderParsePosition.HEADER_SKIP_LINE;
+        boolean eol = false;
+        
+        while (!eol) {
+            if (byteBuffer.position() >= byteBuffer.limit()) {
+                if (!fill(false)) {
+                    return HeaderParseStatus.NEED_MORE_DATA;
+                }
+            }
+            
+            int pos = byteBuffer.position();
+            prevChr = chr;
+            chr = byteBuffer.get();
+            if (chr == Constants.CR) {
+                // 可能要结束一个标头
+            } else if (chr == Constants.LF) {
+                eol = true;
+            } else {
+                headerData.lastSignificantChar = pos;
+            }
+        } // while end
+        
+        // 是否对非法的标头抛出异常
+        if (rejectIllegalHeader) {
+            String  message = HeaderUtil.toPrintableString(byteBuffer.array(), headerData.lineStart,
+                    headerData.lastSignificantChar - headerData.lineStart + 1);
+            throw new IllegalArgumentException("非法标头！ " + message);
+        }
+        
+        headerParsePos = HeaderParsePosition.HEADER_START;
+        return HeaderParseStatus.HAVE_MORE_HEADERS;
+    }
+
 
     private String parseInvalid(int startPos, ByteBuffer byteBuffer) {
         byte b = 0;
