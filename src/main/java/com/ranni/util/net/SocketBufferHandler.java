@@ -61,11 +61,17 @@ public class SocketBufferHandler {
     }
 
 
+    /**
+     * 把读缓冲区配置为写模式
+     */
     public void configureReadBufferForWrite() {
         setReadBufferConfiguredForWrite(true);
     }
 
 
+    /**
+     * 把读缓冲区配置为读模式
+     */
     public void configureReadBufferForRead() {
         setReadBufferConfiguredForWrite(false);
     }
@@ -154,11 +160,17 @@ public class SocketBufferHandler {
     }
 
 
+    /**
+     * 把写缓冲区配置为写模式
+     */
     public void configureWriteBufferForWrite() {
         setWriteBufferConfiguredForWrite(true);
     }
 
 
+    /**
+     * 把写缓冲区配置为读模式
+     */
     public void configureWriteBufferForRead() {
         setWriteBufferConfiguredForWrite(false);
     }
