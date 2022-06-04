@@ -6,14 +6,8 @@ import javax.management.ObjectName;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Title: HttpServer
@@ -31,7 +25,7 @@ public abstract class AbstractEndpoint<S, U> {
         
 
     /**
-     * 是否使用内部执行器（executor为null时此字段为true）
+     * 是否使用内部执行器（即是否使用此实例自己创建的线程池）
      */
     protected volatile boolean internalExecutor = true;
     
@@ -56,7 +50,7 @@ public abstract class AbstractEndpoint<S, U> {
    private volatile LimitLatch connectionLimitLatch = null;
 
     /**
-     * 接收器
+     * 连接请求接收器
      */
     protected Acceptor<U> acceptor;
 
@@ -101,12 +95,12 @@ public abstract class AbstractEndpoint<S, U> {
     private int maxConnections = 8 * 1024;
 
     /**
-     * 多线程执行器
+     * 多线程执行器（线程池）
      */
     private Executor executor;
 
     /**
-     * 线程池
+     * 定时任务
      */
     private ScheduledExecutorService utilityExecutor = null;
 
@@ -114,7 +108,6 @@ public abstract class AbstractEndpoint<S, U> {
      * server socket 端口号
      */
     private int port = -1;
-    
 
     /**
      * why - 端口偏移
@@ -139,10 +132,20 @@ public abstract class AbstractEndpoint<S, U> {
     private boolean bindOnInit = true;
 
     /**
+     * 绑定状态
+     */
+    private volatile BindState bindState = BindState.UNBOUND;
+
+    /**
      * keep-alive属性连接的超时时长，如果未设置则为soTimeout
      */
     private Integer keepAliveTimeout = null;
 
+    /**
+     * 设置初始的核心线程数
+     */
+    private int minSpareThreads = 10;
+    
     /**
      * 工作最大线程数
      */
@@ -152,14 +155,14 @@ public abstract class AbstractEndpoint<S, U> {
      * 工作线程优先级
      */
     protected int threadPriority = Thread.NORM_PRIORITY;
-
+    
     /**
      * keep-alive属性连接的最大数量
      */
     private int maxKeepAliveRequests = 100;
 
     /**
-     * 线程池的名称
+     * 线程池的名称 xxx - 在线程池没有用到，在接收器线程倒是用到了
      */
     private String name = "TP";
 
@@ -182,6 +185,11 @@ public abstract class AbstractEndpoint<S, U> {
      * 接收端点属性
      */
     protected HashMap<String, Object> attributes = new HashMap<>();
+
+    /**
+     * 协议集合
+     */
+    protected final List<String> negotiableProtocols = new ArrayList<>();
     
     
     // ==================================== 内部类 ====================================
@@ -261,11 +269,6 @@ public abstract class AbstractEndpoint<S, U> {
         }
     }
     
-
-    // ==================================== 基本方法 ====================================
-
-    protected abstract InetSocketAddress getLocalAddress() throws IOException;
-
 
     // ==================================== 基本方法 ====================================
 
@@ -368,6 +371,9 @@ public abstract class AbstractEndpoint<S, U> {
         }
         return utilityExecutor;
     }
+
+    
+    /* 端口 */
     
     public int getPort() {
         return port;
@@ -387,11 +393,6 @@ public abstract class AbstractEndpoint<S, U> {
         }
         this.portOffset = portOffset;
     }
-
-    public boolean isRunning() {
-        return running;
-    }
-
 
     /**
      * @return 如果port &gt; 0，则返回 port + portOffset。否则仅返回port
@@ -420,26 +421,496 @@ public abstract class AbstractEndpoint<S, U> {
         }
     }
 
+
+    protected abstract InetSocketAddress getLocalAddress() throws IOException;
+    
+    
+    /* ip */
+    
+    public InetAddress getAddress() {
+        return address;
+    }
+    
+    public void setAddress(InetAddress address) {
+        this.address = address;
+    }
+    
+    
+    /* 最大等待连接数 */
+    
+    public int getAcceptCount() {
+        return acceptCount;
+    }
+    
+    public void setAcceptCount(int acceptCount) {
+        if (acceptCount > 0) {
+            this.acceptCount = acceptCount;
+        }
+    }
+
+    
+    /* 端口绑定时机 */
+
+    /**
+     * server socket 端口绑定时机
+     * 
+     * @return 如果为<b>true</b>，则表示在{@link #init()}时绑定，在{@link #destroy()}解绑<br>
+     *         否则，在{@link #start()}时绑定，在{@link #stop()}时解绑 
+     */
+    public boolean getBindOnInit() {
+        return bindOnInit;
+    }
+
+
+    /**
+     * 设置server socket 端口绑定时机
+     * 
+     * @param bindOnInit 如果为<b>true</b>，则表示在{@link #init()}时绑定，在{@link #destroy()}解绑<br>
+     *                   否则，在{@link #start()}时绑定，在{@link #stop()}时解绑
+     */
+    public void setBindOnInit(boolean bindOnInit) {
+        this.bindOnInit = bindOnInit;
+    }
+    
+    
+    /* 绑定状态 */
+    
+    public BindState getBindState() {
+        return bindState;
+    }
+    
+    
+    /* keep-alive的超时时间 */
+    
+    public int getKeepAliveTimeout() {
+        if (keepAliveTimeout == null) {
+            return getConnectionTimeout();
+        } else {
+            return keepAliveTimeout.intValue();
+        }
+    }
+    
+    public void setKeepAliveTimeout(int keepAliveTimeout) {
+        this.keepAliveTimeout = Integer.valueOf(keepAliveTimeout);
+    }
+    
+    
+    /* 设置连接超时 */
+    
+    public int getConnectionTimeout() {
+        return socketProperties.getSoTimeout();
+    }
+    
+    public void setConnectionTimeout(int timeout) {
+        socketProperties.setSoTimeout(timeout);
+    }
+
+
+    /* 设置线程池核心线程数 */
+    
+    /**
+     * 设置线程池的核心线程数
+     * 
+     * @param minSpareThreads 核心线程数
+     */
+    public void setMinSpareThreads(int minSpareThreads) {
+        this.minSpareThreads = minSpareThreads;
+        Executor executor = this.executor;
+        
+        if (internalExecutor && executor instanceof ThreadPoolExecutor) {
+            ((ThreadPoolExecutor) executor).setCorePoolSize(minSpareThreads);
+        }
+    }
+    
+    public int getMinSpareThreads() {
+        return Math.min(getMinSpareThreadsInternal(), getMaxThreads());
+    }
+
+    private int getMinSpareThreadsInternal() {
+        if (internalExecutor) {
+            return minSpareThreads;
+        } else {
+            return -1;
+        }
+    }
+
+    
+    /* 设置线程池最大线程数 */
+
+    /**
+     * 设置线程池的最大线程数
+     * 
+     * @param maxThreads 最大线程数
+     */
+    public void setMaxThreads(int maxThreads) {
+        this.maxThreads = maxThreads;
+        Executor executor = this.executor;
+        if (internalExecutor && executor instanceof ThreadPoolExecutor) {
+            ((ThreadPoolExecutor) executor).setMaximumPoolSize(maxThreads);
+        }
+    }
+    
+    public int getMaxThreads() {
+        if (internalExecutor) {
+            return maxThreads;
+        } else {
+            return -1;
+        }
+    }
+    
+    
+    /* 设置线程优先级 */
+    
+    public void setThreadPriority(int threadPriority) {
+        this.threadPriority = threadPriority;
+    }
+    
+    public int getThreadPriority() {
+        if (internalExecutor) {
+            return threadPriority;
+        } else {
+            return -1;
+        }
+    }
+    
+    
+    /**
+     * 设置套接字延迟
+     * 
+     * @param tcpNoDelay 套接字延迟标志位
+     */
+    public void setTcpNoDelay(boolean tcpNoDelay) {
+        socketProperties.setTcpNoDelay(tcpNoDelay);
+    }
+
+    
+    /**
+     * @return 返回套接字延迟标志
+     */
+    public boolean getTcpNoDelay() {
+        return socketProperties.getTcpNoDelay();
+    }
+
+
+    /**
+     * @return 返回连接延迟时间
+     */
+    public int getConnectionLinger() { return socketProperties.getSoLingerTime(); }
+
+    /**
+     * 设置连接延迟时间
+     * 
+     * @param connectionLinger 连接延迟时间
+     */
+    public void setConnectionLinger(int connectionLinger) {
+        socketProperties.setSoLingerTime(connectionLinger);
+        socketProperties.setSoLingerOn(connectionLinger >= 0);
+    }
+
+
+    /**
+     * @return 返回允许keep-alive的最大请求数
+     */
+    public int getMaxKeepAliveRequests() {
+        if (bindState.isBound()) {
+            return maxKeepAliveRequests;
+        } else {
+            return -1;
+        }
+    }
+    
+    public void setMaxKeepAliveRequests(int maxKeepAliveRequests) {
+        this.maxKeepAliveRequests = maxKeepAliveRequests;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public void setDomain(String domain) {
+        this.domain = domain;
+    }
+    
+    public String getDomain() {
+        return domain;
+    }
+    
+    public void setDaemon(boolean daemon) {
+        this.daemon = daemon;
+    }
+    
+    public boolean getDaemon() {
+        return daemon;
+    }
+
+    public String getId() {
+        return null;
+    }    
+
+    public void addNegotiatedProtocol(String negotiableProtocol) {
+        negotiableProtocols.add(negotiableProtocol);
+    }
+    
+    public boolean hasNegotiableProtocols() {
+        return (negotiableProtocols.size() > 0);
+    }
+
     public Handler<S> getHandler() {
         return handler;
     }
-    
+
     public void setHandler(Handler<S> handler) {
         this.handler = handler;
     }
 
+    public void setAttribute(String name, Object value) {
+        attributes.put(name, value);
+    }
 
+    public Object getAttribute(String key) {
+        return attributes.get(key);
+    }
+
+    
     // ==================================== 核心方法 ====================================
 
+    public boolean isRunning() {
+        return running;
+    }
+
+    public boolean isPaused() {
+        return paused;
+    }
+    
+    
     /**
-     * 释放连接限制阀门的资源
+     * @return 返回线程池当前管理的线程数
      */
-    private void releaseConnectionLatch() {
-        LimitLatch latch = this.connectionLimitLatch;
-        if (latch != null) {
-            latch.releaseAll();
+    public int getCurrentThreadCount() {
+        Executor executor = this.executor;
+        if (executor != null) {
+            if (executor instanceof ThreadPoolExecutor) {
+                return ((ThreadPoolExecutor) executor).getPoolSize();
+            } else {
+                return -1;
+            }
+        } else {
+            return -2;
         }
-        connectionLimitLatch = null;
+    }
+
+
+    /**
+     * @return 返回线程池正在使用的线程
+     */
+    public int getCurrentThreadBusy() {
+        Executor executor = this.executor;
+        if (executor != null) {
+            if (executor instanceof ThreadPoolExecutor) {
+                return ((ThreadPoolExecutor) executor).getActiveCount();
+            } else {
+                return -1;
+            }
+        } else {
+            return -2;
+        }
+    }
+    
+
+    /**
+     * 创建线程池
+     */
+    public void createExecutor() {
+        internalExecutor = true;
+        executor = new ThreadPoolExecutor(getMinSpareThreads(), getMaxThreads(), 60, 
+                    TimeUnit.SECONDS, new LinkedBlockingQueue<>(), Executors.defaultThreadFactory());
+    }
+
+
+    /**
+     * 关闭线程池
+     */
+    public void shutdownExecutor() {
+        Executor executor = this.executor;
+        if (executor != null && internalExecutor) {
+            this.executor = null;
+            if (executor instanceof ThreadPoolExecutor) {
+                ThreadPoolExecutor tpe = (ThreadPoolExecutor) executor;
+                tpe.shutdownNow();
+                long timeout = getExecutorTerminationTimeoutMillis();
+                if (timeout > 0) {
+                    // 等待关闭
+                    try {
+                        tpe.awaitTermination(timeout, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        ;
+                    }
+                    if (tpe.isTerminating()) {
+                        System.out.println("线程池已关闭！"); // XXX - sout
+                    }
+                }
+            }
+        }
+    }
+    
+
+    /**
+     * 执行SocketWrapper的特定事件
+     *
+     * @param socketWrapper 要处理的socket包装类
+     * @param event socket 要处理的socket事件
+     * @param dispatch 是否应该再新的容器线程上处理（是否交给线程池执行）
+     *                 
+     * @return 如果返回<b>ture</b>，则表示成功处理
+     */
+    public boolean processSocket(SocketWrapperBase<S> socketWrapper, SocketEvent event, boolean dispatch) {
+        try {
+            if (socketWrapper == null) {
+                return false;
+            }
+            
+            SocketProcessorBase<S> sc = null;
+            if (processorCache != null) {
+                sc = processorCache.pop();
+            }
+            if (sc == null) {
+                sc = createSocketProcessor(socketWrapper, event);
+            } else {
+                sc.reset(socketWrapper, event);
+            }
+
+            Executor executor = getExecutor();
+            if (dispatch && executor != null) {
+                // 使用线程池执行
+                executor.execute(sc);
+            } else {
+                // 独自执行
+                sc.run();
+            }            
+        } catch (RejectedExecutionException ree) {
+            ree.printStackTrace();
+            return false;
+        } catch (Throwable t) {
+            t.printStackTrace();
+            return false;
+        }
+            
+        return true;
+    }
+
+    protected abstract SocketProcessorBase<S> createSocketProcessor(SocketWrapperBase<S> socketWrapper, SocketEvent event);
+
+
+    // ==================================== 生命周期管理 ====================================
+    
+    public abstract void bind() throws Exception;
+    public abstract void unbind() throws Exception;
+    public abstract void startInternal() throws Exception;
+    public abstract void stopInternal() throws Exception;
+
+
+    /**
+     * 尝试绑定。如果触发异常，则清除绑定
+     * 
+     * @throws Exception 可能抛出异常
+     */
+    private void bindWithCleanup() throws Exception {
+        try {
+            bind();
+        } catch (Throwable t) {
+            unbind();
+            throw t;
+        }
+    }
+
+
+    /**
+     * 初始化
+     * 
+     * @throws Exception 可能抛出异常
+     */
+    public  final void init() throws Exception {
+        if (bindOnInit) {
+            bindWithCleanup();
+            bindState = BindState.BOUND_ON_INIT;
+        }
+        // XXX - 域名注册
+    }
+    
+    
+    public final void start() throws Exception {
+        if (bindState == BindState.UNBOUND) {
+            bindWithCleanup();
+            bindState = BindState.BOUND_ON_START;
+        }
+        startInternal();
+    }
+
+
+    /**
+     * 启动接收器线程。接收HTTP请求
+     */
+    protected void startAcceptorThread() {
+        acceptor = new Acceptor<>(this);
+        String threadName = getName() + "-Acceptor";
+        acceptor.setThreadName(threadName);
+        Thread thread = new Thread(acceptor, threadName);
+        thread.setPriority(getAcceptorThreadPriority());
+        thread.setDaemon(getDaemon());
+        thread.start();
+    }
+
+
+    /**
+     * 暂停此端点，释放连接限制阀门的资源。why - 解锁接收器
+     */
+    public void pause() {
+        if (running && !paused) {
+            paused = true;
+            releaseConnectionLatch();
+            getHandler().pause();
+        }
+    }
+
+
+    /**
+     * 恢复暂停端点
+     */
+    public void resume() {
+        if (running) {
+            paused = false;
+        }
+    }
+
+
+    /**
+     * 停止端点
+     * 
+     * @throws Exception 可能抛出异常
+     */
+    public final void stop() throws Exception {
+        stopInternal();
+        if (bindState == BindState.BOUND_ON_START || bindState == BindState.SOCKET_CLOSED_ON_STOP) {
+            unbind();
+            bindState = BindState.UNBOUND;
+        }
+    }
+
+
+    /**
+     * 销毁端点
+     * 
+     * @throws Exception 可能抛出异常
+     */
+    public final void destroy() throws Exception {
+        if (bindState == BindState.BOUND_ON_INIT) {
+            unbind();
+            bindState = BindState.UNBOUND;
+        }
     }
 
 
@@ -458,26 +929,116 @@ public abstract class AbstractEndpoint<S, U> {
         }
         return connectionLimitLatch;
     }
-    
+
+
     /**
-     * 连接数量加1
+     * 释放连接限制阀门的资源
+     */
+    private void releaseConnectionLatch() {
+        LimitLatch latch = this.connectionLimitLatch;
+        if (latch != null) {
+            latch.releaseAll();
+        }
+        connectionLimitLatch = null;
+    }
+
+
+    // ==================================== 连接统计 ====================================
+
+    /**
+     * LimitLatch中的连接数+1
      * 
-     * @return 返回当前连接数
+     * @throws InterruptedException 如果等待的线程被中断则抛出此异常
+     */
+    protected void countUpOrAwaitConnection() throws InterruptedException {
+        if (maxConnections == -1) {
+            return;
+        }
+
+        LimitLatch latch = this.connectionLimitLatch;
+        if (latch != null) {
+            latch.countUpOrAwait();
+        }
+    }
+
+
+    /**
+     * LimitLatch中的连接数-1
+     *
+     * @return 返回当前连接数，如果返回-1则表示没有设置最大连接数或连接限制阀为null
      */
     protected long countDownConnection() {
-        return 0;
+        if (maxConnections == -1) {
+            return -1;
+        }
+
+        LimitLatch latch = this.connectionLimitLatch;
+        if (latch != null) {
+            return latch.countDown();
+        }
+        
+        return -1;
     }
 
 
     /**
-     * 处理特定状态的SocketWrapper
-     * 
-     * @param eSocketWrapperBase
-     * @param socketStatus
-     * @param dispatch
-     * @return
+     * 关闭服务socket
      */
-    public boolean processSocket(SocketWrapperBase<S> eSocketWrapperBase, SocketEvent socketStatus, boolean dispatch) {
-        return false;
+    public final void closeServerSocketGraceful() {
+        if (bindState == BindState.BOUND_ON_START) {
+            acceptor.stop(-1);
+            releaseConnectionLatch();
+            
+            getHandler().pause();
+            
+            bindState = BindState.SOCKET_CLOSED_ON_STOP;
+            
+            try {
+                doCloseServerSocket();
+            } catch (IOException ioe) {
+                System.err.println(ioe + "\n" + "server socket关闭失败！");
+            }
+        }
     }
+
+
+    /**
+     * 等待关闭客户端连接
+     * 
+     * @param waitMillis 等待时长
+     * @return 返回正真等待了的时长
+     */
+    public final long awaitConnectionsClose(long waitMillis) {
+        while (waitMillis > 0 && !connections.isEmpty()) {
+            try {
+                Thread.sleep(50);
+                waitMillis -= 50;
+            } catch (InterruptedException e) {
+                Thread.interrupted();
+                waitMillis = 0;
+            }
+        }
+        
+        return waitMillis;
+    }
+
+
+    protected abstract void doCloseServerSocket() throws IOException;
+    protected abstract U serverSocketAccept() throws Exception;
+    protected abstract boolean setSocketOptions(U socket);
+    protected abstract void destroySocket(U socket);
+    
+
+    /**
+     * 关闭套接字
+     * 
+     * @param socket 要关闭的套接字
+     */
+    protected void closeSocket(U socket) {
+        SocketWrapperBase<S> socketWrapper = connections.get(socket);
+        if (socketWrapper != null) {
+            socketWrapper.close();
+        }
+    }
+    
 }

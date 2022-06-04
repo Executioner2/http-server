@@ -11,4 +11,7 @@ package com.ranni.util.net;
  * @Ref org.apache.tomcat.util.net.SocketProcessorBase
  */
 public abstract class SocketProcessorBase<S> implements Runnable {
+    public void reset(SocketWrapperBase<S> socketWrapper, SocketEvent event) {
+        
+    }
 }
