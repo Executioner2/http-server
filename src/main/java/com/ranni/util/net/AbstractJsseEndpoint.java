@@ -11,5 +11,5 @@ package com.ranni.util.net;
  * @Email 1205878539@qq.com
  * @Date 2022/6/1 20:03
  */
-public abstract class AbstractJsseEndpoint<S,U> extends AbstractEndpoint {
+public abstract class AbstractJsseEndpoint<S,U> extends AbstractEndpoint<S,U> {
 }

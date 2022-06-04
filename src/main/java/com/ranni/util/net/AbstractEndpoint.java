@@ -13,7 +13,10 @@ import java.util.concurrent.*;
  * Title: HttpServer
  * Description:
  * 抽象的接收端点
- *
+ * 
+ * @param <S> 信道包装类型。NIO、NIO2 或者 APR。也有可能和U一样
+ * @param <U> 底层信道类型。如AsynchronousSocketChannel。也有可能和S一样
+ * 
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022/5/31 11:56
@@ -22,7 +25,7 @@ import java.util.concurrent.*;
 public abstract class AbstractEndpoint<S, U> {
 
     // ==================================== 属性字段 ====================================
-        
+
 
     /**
      * 是否使用内部执行器（即是否使用此实例自己创建的线程池）
