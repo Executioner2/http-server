@@ -276,7 +276,10 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
     protected void startAcceptorThread() {
         if (acceptor == null) {
             acceptor = new Nio2Acceptor(this);
+            acceptor.setThreadName(getName() + "-Acceptor");
         }
+        acceptor.state = Acceptor.AcceptorState.RUNNING;
+        getExecutor().execute(acceptor);
     }
 
     @Override
