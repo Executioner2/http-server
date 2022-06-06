@@ -73,7 +73,7 @@ public abstract class AbstractEndpoint<S, U> {
     private ObjectName objectName;
 
     /**
-     * 保存相同套接字的连接
+     * 保存相同信道的套接字
      */
     protected Map<U, SocketWrapperBase<S>> connections = new ConcurrentHashMap<>();
 
@@ -778,6 +778,7 @@ public abstract class AbstractEndpoint<S, U> {
             
             SocketProcessorBase<S> sc = null;
             if (processorCache != null) {
+                // 复用socket处理器
                 sc = processorCache.pop();
             }
             if (sc == null) {
@@ -791,7 +792,7 @@ public abstract class AbstractEndpoint<S, U> {
                 // 使用线程池执行
                 executor.execute(sc);
             } else {
-                // 独自执行
+                // 和接收器一个线程执行
                 sc.run();
             }            
         } catch (RejectedExecutionException ree) {

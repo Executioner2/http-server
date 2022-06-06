@@ -43,7 +43,7 @@ public class Nio2Channel implements AsynchronousByteChannel {
      * @param channel 信道
      * @param socketWrapper 套接字包装实例
      */
-    public void rest(AsynchronousSocketChannel channel, SocketWrapperBase<Nio2Channel> socketWrapper) {
+    public void reset(AsynchronousSocketChannel channel, SocketWrapperBase<Nio2Channel> socketWrapper) {
         this.sc = channel;
         this.socketWrapper = socketWrapper;
         bufHandler.reset();
@@ -78,6 +78,19 @@ public class Nio2Channel implements AsynchronousByteChannel {
     }
 
 
+    /**
+     * 关闭连接
+     * 
+     * @param force 是否强制关闭底层套接字
+     * @throws IOException 可能抛出I/O异常
+     */
+    public void close(boolean force) throws IOException {
+        if (isOpen() || force) {
+            close();
+        }
+    }
+
+
     @Override
     public String toString() {
         return super.toString() + ":" + sc.toString();
@@ -90,8 +103,23 @@ public class Nio2Channel implements AsynchronousByteChannel {
     public AsynchronousSocketChannel getIOChannel() {
         return sc;
     }
-    
-    
+
+    /**
+     * @return 如果返回<b>true</b>，则表示SSL层的握手完成
+     */
+    public boolean isHandshakeComplete() {
+        return true;
+    }
+
+    /**
+     * 这个SSL才有用。非SSL并无作用
+     * 
+     * @return 返回0
+     * @throws IOException 不会抛出I/O异常
+     */
+    public int handshake() throws IOException {
+        return 0;
+    }
 
     @Override
     public Future<Integer> read(ByteBuffer dst) {
@@ -220,6 +248,7 @@ public class Nio2Channel implements AsynchronousByteChannel {
         @Override
         public void close() throws IOException {
         }
+
         @Override
         public boolean isOpen() {
             return false;

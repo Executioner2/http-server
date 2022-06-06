@@ -576,6 +576,16 @@ public abstract class SocketWrapperBase<E> {
         }
     }
 
+
+    /**
+     * 是否使用异步IO
+     * 
+     * @return 如果返回<b>true</b>，则表示连接器启用了此功能
+     */
+    public boolean hasAsyncIO() {
+        return (readPending != null);
+    }
+    
     
     /**
      * <b>拿走</b>processor。设置此实例中的为null
@@ -606,9 +616,39 @@ public abstract class SocketWrapperBase<E> {
     /**
      * 连接器是否需要信号量
      * 
-     * @return 默认返回false，socket包装器根据自己去重写
+     * @return 默认返回false，socket包装器根据自己的需求去重写
      */
     public boolean needSemaphores() {
+        return false;
+    }
+
+
+    /**
+     * 是否正在处理读取请求
+     * 
+     * @return 默认返回false，socket包装器根据自己的需求去重写
+     */
+    public boolean isReadPending() {
+        return false;
+    }
+
+
+    /**
+     * 是否正在处理写入请求
+     * 
+     * @return 默认返回false，socket包装器根据自己的需求去重写
+     */
+    public boolean isWritePending() {
+        return false;
+    }
+
+
+    /**
+     * 是否启用操作超时
+     * 
+     * @return 默认返回false，socket包装器根据自己的需求去重写
+     */
+    public boolean hasPerOperationTimeout() {
         return false;
     }
     
