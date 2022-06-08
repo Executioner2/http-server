@@ -51,6 +51,11 @@ public class Acceptor<U> implements Runnable {
 
 
     // ==================================== 核心方法 ====================================
+
+
+    public AcceptorState getState() {
+        return state;
+    }
     
     @Override
     public void run() {

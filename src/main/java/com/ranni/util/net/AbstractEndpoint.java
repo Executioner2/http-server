@@ -6,6 +6,8 @@ import javax.management.ObjectName;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -759,6 +761,120 @@ public abstract class AbstractEndpoint<S, U> {
             }
         }
     }
+
+
+    /**
+     * 此方法的作用是建立一个连接，使准备暂停（暂停标志位设为了true）的
+     * Acceptor能够及时进入到暂停状态。否则，准备暂停将等到下一个请求
+     * 到来才会使Acceptor进入到暂停状态。
+     */
+    protected void unlockAccept() {
+        if (acceptor == null || acceptor.getState() != Acceptor.AcceptorState.RUNNING) {
+            return;
+        }
+        
+        InetSocketAddress unlockAddress = null;
+        InetSocketAddress localAddress = null;
+
+        try {
+            localAddress = getLocalAddress();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        
+        if (localAddress == null) {
+            return;
+        }
+        
+        try {
+            unlockAddress = getUnlockAddress(localAddress);
+            
+            try (Socket s = new Socket()) {
+                int stmo = 2 * 1000;
+                int utmo = 2 * 1000;
+                
+                if (getSocketProperties().getSoTimeout() > stmo) {
+                    stmo = getSocketProperties().getSoTimeout();
+                }
+                if (getSocketProperties().getUnlockTimeout() > utmo) {
+                    utmo = getSocketProperties().getUnlockTimeout();
+                }
+                
+                s.setSoTimeout(stmo);
+                s.setSoLinger(getSocketProperties().getSoLingerOn(), utmo); // 设置是否超时发送RST包关闭连接
+                s.connect(unlockAddress, utmo);
+            }
+            
+            // 等待连接退出。等待1000ms。每1毫秒检查一次
+            long startTime = System.nanoTime(); // 返回纳秒
+            while (startTime + 1000000000 > System.nanoTime()) {
+                if (startTime + 1000000 < System.nanoTime()) {
+                    Thread.sleep(1);
+                }
+            }
+            
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
+    }
+
+
+    /**
+     * 获取真实的连接地址
+     * 
+     * @param localAddress 连接地址
+     * @return 返回真实的连接地址
+     * @throws SocketException 可能抛出套接字异常
+     */
+    private static InetSocketAddress getUnlockAddress(InetSocketAddress localAddress) throws SocketException {
+        if (localAddress.getAddress().isAnyLocalAddress()) {
+            // 没有重写的类，不会进入到此方法中
+            
+//            // Need a local address of the same type (IPv4 or IPV6) as the
+//            // configured bind address since the connector may be configured
+//            // to not map between types.
+//            InetAddress loopbackUnlockAddress = null;
+//            InetAddress linkLocalUnlockAddress = null;
+//
+//            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+//            while (networkInterfaces.hasMoreElements()) {
+//                NetworkInterface networkInterface = networkInterfaces.nextElement();
+//                Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
+//                while (inetAddresses.hasMoreElements()) {
+//                    InetAddress inetAddress = inetAddresses.nextElement();
+//                    if (localAddress.getAddress().getClass().isAssignableFrom(inetAddress.getClass())) {
+//                        if (inetAddress.isLoopbackAddress()) {
+//                            if (loopbackUnlockAddress == null) {
+//                                loopbackUnlockAddress = inetAddress;
+//                            }
+//                        } else if (inetAddress.isLinkLocalAddress()) {
+//                            if (linkLocalUnlockAddress == null) {
+//                                linkLocalUnlockAddress = inetAddress;
+//                            }
+//                        } else {
+//                            // Use a non-link local, non-loop back address by default
+//                            return new InetSocketAddress(inetAddress, localAddress.getPort());
+//                        }
+//                    }
+//                }
+//            }
+//            // Prefer loop back over link local since on some platforms (e.g.
+//            // OSX) some link local addresses are not included when listening on
+//            // all local addresses.
+//            if (loopbackUnlockAddress != null) {
+//                return new InetSocketAddress(loopbackUnlockAddress, localAddress.getPort());
+//            }
+//            if (linkLocalUnlockAddress != null) {
+//                return new InetSocketAddress(linkLocalUnlockAddress, localAddress.getPort());
+//            }
+//            // Fallback
+//            return new InetSocketAddress("localhost", localAddress.getPort());
+        } else {
+//            return localAddress;
+        }
+
+        return localAddress;
+    }
     
 
     /**
@@ -870,12 +986,13 @@ public abstract class AbstractEndpoint<S, U> {
 
 
     /**
-     * 暂停此端点，释放连接限制阀门的资源。why - 解锁接收器
+     * 暂停此端点，释放连接限制阀门的资源。
      */
     public void pause() {
         if (running && !paused) {
             paused = true;
             releaseConnectionLatch();
+            unlockAccept(); // 使acceptor能够及时进入到停止状态
             getHandler().pause();
         }
     }

@@ -1392,9 +1392,17 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
         getExecutor().execute(acceptor);
     }
 
+
+    /**
+     * TODO 停止此端点。同时会停止此端点管理的所有线程
+     * 
+     * @throws Exception 可能抛出异常
+     */
     @Override
     public void stopInternal() throws Exception {
-
+        if (!paused) {
+            pause();
+        }
     }
 
     @Override
@@ -1409,7 +1417,8 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
 
 
     /**
-     * 为请求分配处理的信道，为信道创建一个socket缓冲区处理器
+     * 为请求分配处理的信道，为信道创建一个socket缓冲区处理
+     * 器。占用接收器线程执行一个读取事件
      * 
      * @param socket 要处理的socket通道
      * @return 如果返回<b>true</b>，则表示处理成功
@@ -1461,8 +1470,19 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
         return false;
     }
 
+
+    /**
+     * 销毁socket。进行连接数-1并且关闭socket的操作
+     * 
+     * @param socket 要关闭的socket
+     */
     @Override
     protected void destroySocket(AsynchronousSocketChannel socket) {
-
+        countDownConnection();
+        try {
+            socket.close();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
     }
 }
