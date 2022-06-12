@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -201,6 +202,16 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler {
         this.handler = handler;
     }
 
+    @Override
+    public ScheduledExecutorService getUtilityExecutor() {
+        return endpoint.getUtilityExecutor();
+    }
+
+    @Override
+    public void setUtilityExecutor(ScheduledExecutorService utilityExecutor) {
+        endpoint.setUtilityExecutor(utilityExecutor);
+    }
+    
     
     /**
      * @return 返回协议前缀，如（Http，Ajp）
