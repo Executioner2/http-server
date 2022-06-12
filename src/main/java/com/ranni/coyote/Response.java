@@ -89,4 +89,8 @@ public final class Response {
     public MimeHeaders getMimeHeaders() {
         return null;
     }
+
+    public String getContentType() {
+        return null;
+    }
 }

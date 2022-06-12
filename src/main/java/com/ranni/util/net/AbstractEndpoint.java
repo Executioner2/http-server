@@ -350,7 +350,7 @@ public abstract class AbstractEndpoint<S, U> {
         }
     }
     
-    public long getMaxConnections() {
+    public int getMaxConnections() {
         return maxConnections;
     }
     
@@ -1109,6 +1109,11 @@ public abstract class AbstractEndpoint<S, U> {
         if (bindState == BindState.BOUND_ON_START) {
             acceptor.stop(-1);
             releaseConnectionLatch();
+            
+            // 如果是Nio2的的端点实例则此方法没有具体的执行，
+            // 因为acceptor.stop(-1)将acceptor的状态设
+            // 置为了ENDED
+            unlockAccept(); 
             
             getHandler().pause();
             

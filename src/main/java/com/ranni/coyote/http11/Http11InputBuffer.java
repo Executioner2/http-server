@@ -6,7 +6,7 @@ import com.ranni.coyote.InputBuffer;
 import com.ranni.coyote.Request;
 import com.ranni.util.buf.MessageBytes;
 import com.ranni.util.http.HeaderUtil;
-import com.ranni.util.http.HttpParser;
+import com.ranni.util.http.parse.HttpParser;
 import com.ranni.util.http.MimeHeaders;
 import com.ranni.util.net.SocketWrapperBase;
 

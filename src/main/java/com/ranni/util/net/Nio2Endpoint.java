@@ -114,7 +114,7 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
 
 
         /**
-         * 停止接收器
+         * 停止接收器。仅仅更改Acceptor状态为停止状态
          * 
          * @param waitSeconds 此参数在NIO2中忽略
          */
@@ -1394,7 +1394,13 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
 
 
     /**
-     * TODO 停止此端点。同时会停止此端点管理的所有线程
+     * 停止此端点。但不会关闭线程池<br>
+     * 执行的操作：
+     * <ol>
+     *     <li>线程池执行一个关闭所有socket的线程</li>
+     *     <li>释放所有信道的内存空间</li>
+     *     <li>清空处理器缓存</li>
+     * </ol>
      * 
      * @throws Exception 可能抛出异常
      */
@@ -1403,16 +1409,66 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
         if (!paused) {
             pause();
         }
+        
+        if (running) {
+            running = false;
+            acceptor.stop(10); 
+            
+            // 线程池执行一个关闭所有socket的线程
+            getExecutor().execute(() -> {
+                try {
+                    for (SocketWrapperBase<Nio2Channel> wrapper : getConnections()) {
+                        wrapper.close();
+                    }
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                } finally {
+                    allClosed = true;
+                }
+            });
+
+            // 释放所有信道的内存空间
+            if (nioChannels != null) {
+                Nio2Channel socket;
+                while ((socket = nioChannels.pop()) != null) {
+                    socket.free();
+                }
+                nioChannels = null;
+            }
+            
+            // 清空处理器缓存
+            if (processorCache != null) {
+                processorCache.clear();
+                processorCache = null;
+            }
+        }
     }
 
+
+    /**
+     * 关闭server socket
+     * 
+     * @throws IOException 可能抛出I/O异常
+     */
     @Override
     protected void doCloseServerSocket() throws IOException {
-
+        if (serverSocket != null) {
+            serverSocket.close();
+            serverSocket = null;
+        }
     }
 
+
+    /**
+     * 接收请求
+     * 
+     * @return 返回同意连接的socket通信信道
+     * @throws Exception 可能抛出异常
+     */
     @Override
     protected AsynchronousSocketChannel serverSocketAccept() throws Exception {
-        return null;
+        AsynchronousSocketChannel channel = serverSocket.accept().get();
+        return channel;
     }
 
 

@@ -16,6 +16,9 @@
  */
 package com.ranni.util.http;
 
+import com.ranni.util.http.parse.HttpParser;
+import com.ranni.util.http.parse.SkipResult;
+
 import java.nio.charset.StandardCharsets;
 
 
