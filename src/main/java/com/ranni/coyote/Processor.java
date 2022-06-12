@@ -1,6 +1,7 @@
 package com.ranni.coyote;
 
 import com.ranni.util.net.AbstractEndpoint;
+import com.ranni.util.net.AbstractEndpoint.Handler.SocketState;
 import com.ranni.util.net.SocketEvent;
 import com.ranni.util.net.SocketWrapperBase;
 
@@ -97,4 +98,33 @@ public interface Processor {
      *         async timeout was triggered
      */
     boolean checkAsyncTimeoutGeneration();
+
+
+    /**
+     * 调度分派，处理非标准HTTP通信流程。<br>
+     * 如Servlet 3.0的异步容器处理
+     * 
+     * @param event 调度事件
+     * @return 返回socket状态
+     * @throws IOException 可能抛出I/O异常
+     */
+    SocketState dispatch(SocketEvent event) throws IOException;
+
+
+    /**
+     * 处理请求的方法，会调用适配器然后由适配器交付给对应的容器
+     *
+     * @param socketWrapper 要处理的socket包装实例
+     * @return 返回socket状态
+     * @throws IOException 可能抛出I/O异常
+     */
+    SocketState service(SocketWrapperBase<?> socketWrapper) throws IOException;
+
+    
+    /**
+     * 异步处理
+     * 
+     * @return 返回异步处理后的socket状态
+     */
+    SocketState asyncPostProcess();
 }

@@ -7,6 +7,8 @@ import com.ranni.container.Container;
 import com.ranni.core.Service;
 import com.ranni.lifecycle.LifecycleException;
 
+import java.nio.charset.Charset;
+
 /**
  * Title: HttpServer
  * Description:
@@ -201,4 +203,16 @@ public interface Connector {
      *         请求体，否则反之
      */
     boolean isParseBodyMethod(String method);
+
+
+    /**
+     * @return 返回一个请求中允许携带的cookie的最大数量
+     */
+    int getMaxCookieCount();
+
+
+    /**
+     * @return 返回URI编码方式
+     */
+    Charset getURICharset();
 }

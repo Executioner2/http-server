@@ -20,6 +20,8 @@ import com.ranni.util.LifecycleSupport;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.net.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 
 /**
@@ -46,7 +48,8 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     private String address; // IP地址
     private int acceptCount = 10; // 最大连接数
     private Service service; // 所属的服务实例
-
+    private Charset uriCharset = StandardCharsets.UTF_8; // URI编码方式
+    
     protected String scheme; // 协议类型
     protected int redirectPort = 80; // 转发端口
     protected Container container; // 容器
@@ -55,7 +58,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     protected int maxParameterCount = 10000; // 容器自动解析参数数量
     protected boolean useBodyEncodingForURI; // 是否将请求体的解码格式应用于URI
     protected HashSet<String> parseBodyMethodsSet; // 可以被解析请求体的请求方法集合
-    protected String parseBodyMethods = "POST"; // 可以被解析请求体的请求方法
+    protected String parseBodyMethods = "POST"; // 可以被解析请求体的请求方法    
 
 
     public HttpConnector() {
@@ -132,7 +135,17 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     public boolean isParseBodyMethod(String method) {
         return parseBodyMethodsSet.contains(method);
     }
-    
+
+    @Override
+    public int getMaxCookieCount() {
+        return 0;
+    }
+
+
+    @Override
+    public Charset getURICharset() {
+        return uriCharset;
+    }
 
     /**
      * 返回容器

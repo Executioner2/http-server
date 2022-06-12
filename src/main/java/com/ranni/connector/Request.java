@@ -19,7 +19,9 @@ import com.ranni.util.buf.B2CConverter;
 import com.ranni.util.buf.ByteChunk;
 import com.ranni.util.buf.MessageBytes;
 import com.ranni.util.http.AcceptLanguage;
+import com.ranni.util.http.CookieProcessor;
 import com.ranni.util.http.Parameters;
+import com.ranni.util.http.ServerCookies;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
@@ -2082,5 +2084,36 @@ public class Request implements HttpServletRequest {
     @Override
     public void logout() throws ServletException {
 
+    }
+
+
+    protected void parseCookies() {
+        if (cookiesParsed) {
+            return;
+        }
+
+        cookiesParsed = true;
+
+        ServerCookies serverCookies = coyoteRequest.getCookies();
+        serverCookies.setLimit(connector.getMaxCookieCount());
+        CookieProcessor cookieProcessor = getContext().getCookieProcessor();
+        cookieProcessor.parseCookieHeader(coyoteRequest.getMimeHeaders(), serverCookies);
+    }
+    
+    
+    public ServerCookies getServerCookies() {
+        return coyoteRequest.getCookies();
+    }
+
+    public void setRequestedSessionId(String id) {
+        this.requestedSessionId = id;
+    }
+
+    public void setRequestedSessionCookie(boolean b) {
+        this.requestedSessionCookie = b;
+    }
+
+    public void setRequestedSessionURL(boolean b) {
+        this.requestedSessionURL = b;
     }
 }
