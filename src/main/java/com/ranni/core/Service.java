@@ -1,7 +1,7 @@
 package com.ranni.core;
 
 import com.ranni.connector.Connector;
-import com.ranni.container.Container;
+import com.ranni.container.Engine;
 import com.ranni.lifecycle.LifecycleException;
 
 /**
@@ -18,15 +18,15 @@ public interface Service {
      * 
      * @return
      */
-    Container getContainer();
+    Engine getContainer();
 
 
     /**
      * 设置此服务关联容器
      * 
-     * @param container
+     * @param engine
      */
-    void setContainer(Container container);
+    void setContainer(Engine engine);
 
 
     /**

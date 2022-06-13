@@ -5,7 +5,6 @@ import com.ranni.container.Container;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
 import com.ranni.container.Mapper;
-import com.ranni.container.host.StandardHost;
 import com.ranni.logger.Logger;
 
 /**
@@ -17,6 +16,7 @@ import com.ranni.logger.Logger;
  * @Email 1205878539@qq.com
  * @Date 2022/5/5 15:06
  */
+@Deprecated
 public class StandardEngineMapper implements Mapper {
     protected Engine engine; // 此映射器关联的Context容器
     protected String protocol; // 该映射器负责处理的协议

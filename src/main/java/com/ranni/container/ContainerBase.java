@@ -1,7 +1,7 @@
 package com.ranni.container;
 
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
+import com.ranni.connector.Request;
+import com.ranni.connector.Response;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.lifecycle.LifecycleListener;
@@ -490,7 +490,8 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
      * @return
      */
     @Override
-    public Container map(Request request, boolean update) {
+    @Deprecated
+    public Container map(com.ranni.connector.http.request.Request request, boolean update) {
         // 根据请求协议查询mapper
         Mapper mapper = findMapper(request.getRequest().getProtocol());
 

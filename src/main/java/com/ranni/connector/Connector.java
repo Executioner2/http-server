@@ -1,7 +1,5 @@
 package com.ranni.connector;
 
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
 import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
 import com.ranni.core.Service;
@@ -215,4 +213,18 @@ public interface Connector {
      * @return 返回URI编码方式
      */
     Charset getURICharset();
+
+
+    /**
+     * 是否在响应头中标明后端使用的什么框架或语言
+     * 
+     * @return 如果返回<b>true</b>，则开启X-Powered-By。
+     */
+    boolean getXPoweredBy();
+
+
+    /**
+     * @param xPoweredBy 如果为<b>true</b>，则表示要开启X-Powered-By
+     */
+    void setXPoweredBy(boolean xPoweredBy);
 }

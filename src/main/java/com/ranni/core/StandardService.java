@@ -18,7 +18,7 @@ import com.ranni.util.LifecycleSupport;
  * @Date 2022/5/6 10:53
  */
 public final class StandardService implements Lifecycle, Service {
-    private Container container; // 关联的容器
+    private Engine container; // 关联的容器
     private String name; // 服务名称
     private Server server; // 关联的服务器
     private Connector[] connectors = new Connector[0]; // 连接器集合
@@ -33,7 +33,7 @@ public final class StandardService implements Lifecycle, Service {
      * @return
      */
     @Override
-    public Container getContainer() {
+    public Engine getContainer() {
         return this.container;
     }
 
@@ -41,10 +41,10 @@ public final class StandardService implements Lifecycle, Service {
     /**
      * 设置关联的容器
      * 
-     * @param container
+     * @param engine
      */
     @Override
-    public void setContainer(Container container) {
+    public void setContainer(Engine engine) {
         Container oldContainer = this.container;
         
         // 设服务为null，不再接收请求
@@ -52,9 +52,9 @@ public final class StandardService implements Lifecycle, Service {
             ((Engine) oldContainer).setService(null);
         
         // 新的容器关联此服务实例并启动（如果服务已经启动了的话）
-        this.container = container;
+        this.container = engine;
         if (this.container != null && this.container instanceof Engine)
-            ((Engine) this.container).setService(this);
+            this.container.setService(this);
         if (started && this.container != null
             && this.container instanceof Lifecycle) {
             try {

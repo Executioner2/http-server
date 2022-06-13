@@ -18,11 +18,19 @@ import java.util.Locale;
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022/5/24 21:48
+ * @Ref org.apache.catalina.connector.Response
  */
 public class Response implements HttpServletResponse {
     
     private Request request;
     private com.ranni.coyote.Response coyoteResponse;
+    private OutputBuffer outputBuffer;
+    private Connector connector;
+
+    
+    public Response(Connector connector) {
+        this.connector = connector;
+    }
 
 
     @Override
@@ -253,5 +261,20 @@ public class Response implements HttpServletResponse {
     public String generateCookieString(final Cookie cookie) {
         return getContext().getCookieProcessor().generateHeader(cookie, request.getRequest());
     }
-    
+
+    public void setCoyoteRequest(com.ranni.coyote.Response coyoteResponse) {
+        this.coyoteResponse = coyoteResponse;
+        outputBuffer.setResponse(coyoteResponse);
+    }
+
+    public void setRequest(Request request) {
+        this.request = request;
+    }
+
+    public void recycle() {
+    }
+
+    public void finishResponse() throws IOException {
+        outputBuffer.close();
+    }
 }

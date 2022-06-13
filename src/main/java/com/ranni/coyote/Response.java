@@ -93,4 +93,12 @@ public final class Response {
     public String getContentType() {
         return null;
     }
+
+    public Object getNote(int pos) {
+        return null;
+    }
+
+    public void setNote(int pos, com.ranni.connector.Response response) {
+        
+    }
 }

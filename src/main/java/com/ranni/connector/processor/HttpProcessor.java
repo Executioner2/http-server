@@ -273,8 +273,8 @@ public class HttpProcessor implements Processor {
         keepAlive = true; // 默认保持连接
         
         try {
-            request = (HttpRequestBase) connector.createRequest();
-            response = (HttpResponseBase) connector.createResponse();
+//            request = (HttpRequestBase) connector.createRequest();
+//            response = (HttpResponseBase) connector.createResponse();
 
             try (InputStream inputStream = socket.getInputStream()) {
                 

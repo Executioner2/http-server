@@ -19,6 +19,7 @@ package com.ranni.util.http;
 
 import com.ranni.util.buf.ByteChunk;
 import com.ranni.util.buf.MessageBytes;
+import com.ranni.util.http.parse.Cookie;
 
 import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.Charset;

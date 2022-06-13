@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ranni.util.http;
+package com.ranni.util.http.parse;
 
-import com.ranni.util.http.parse.HttpParser;
-import com.ranni.util.http.parse.SkipResult;
+import com.ranni.util.http.ServerCookie;
+import com.ranni.util.http.ServerCookies;
 
 import java.nio.charset.StandardCharsets;
 

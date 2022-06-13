@@ -2,6 +2,7 @@ package com.ranni.connector;
 
 import com.ranni.container.Context;
 import com.ranni.coyote.Adapter;
+import com.ranni.util.ServerInfo;
 import com.ranni.util.SessionConfig;
 import com.ranni.util.buf.B2CConverter;
 import com.ranni.util.buf.ByteChunk;
@@ -42,6 +43,20 @@ public class CoyoteAdapter implements Adapter {
             Boolean.parseBoolean(System.getProperty("com.ranni.connector.CoyoteAdapter.ALLOW_BACKSLASH", "false"));
 
 
+    /**
+     * 保存在CoyoteRequest/CoyoteResponse 的Note中的 HttpServletRequest/HttpServletResponse
+     */
+    public static final int ADAPTER_NOTES = 1;
+
+    /**
+     * 响应头中X-Powered-By属性的信息
+     */
+    private static final String POWERED_BY = "Servlet/4.0 JSP/2.3 " +
+            "(" + ServerInfo.getServerInfo() + " Java/" +
+            System.getProperty("java.vm.vendor") + "/" +
+            System.getProperty("java.runtime.version") + ")";
+    
+
     // ==================================== 构造方法 ====================================
     
     public CoyoteAdapter(Connector connector) {
@@ -60,8 +75,81 @@ public class CoyoteAdapter implements Adapter {
      * @throws Exception 可能抛出I/O异常
      */
     @Override
+    @Deprecated // XXX - 这个标记仅表明此方法实现不完整
     public void service(com.ranni.coyote.Request req, com.ranni.coyote.Response res) throws Exception {
+        Request request = (Request) req.getNote(ADAPTER_NOTES);
+        Response response = (Response) res.getNote(ADAPTER_NOTES);
+
+        if (request == null) {
+            // 如果coyoteRequest中没有保存，就创建
+            request = connector.createRequest();
+            request.setCoyoteRequest(req);
+            response = connector.createResponse();
+            response.setCoyoteRequest(res);
+            
+            // request和response相互关联
+            request.setResponse(response);
+            response.setRequest(request);
+            
+            // 绑定至CoyoteRequest/CoyoteResponse中
+            req.setNote(ADAPTER_NOTES, request);
+            res.setNote(ADAPTER_NOTES, response);
+            
+            req.getParameters().setQueryStringCharset(connector.getURICharset());
+        }
         
+        if (connector.getXPoweredBy()) {
+            response.addHeader("X-Powered-By", POWERED_BY);
+        }
+        
+        boolean async = false; // 是否是异步请求
+        boolean postParseSuccess = false; // 是否预解析成功
+        
+        req.setRequestThread();
+        
+        try {
+            // 解析部分请求参数设置处理请求的容器
+            postParseSuccess = postParseRequest(req, request, res, response);
+            if (postParseSuccess) {
+                connector.getService().getContainer().invoke(request, response);
+            }
+            
+            if (request.isAsync()) {
+                // XXX - 异步请求未实现
+            } else {
+                request.finishRequest();
+                response.finishResponse();
+            }
+            
+            
+        } catch (IOException e) {
+            
+        } finally {
+            
+            req.clearRequestThread();
+            
+            if (!async) {
+                request.recycle();
+                response.recycle();
+            }
+        }
+    }
+
+
+    /**
+     * 解析请求行、请求头以及设置处理请求的容器。
+     * 
+     * @param req coyoteRequest
+     * @param request HttpServletRequest
+     * @param res coyoteResponse
+     * @param response HttpServletResponse
+     *                 
+     * @exception IOException 可能抛出I/O异常
+     *                 
+     * @return 如果返回<b>true</b>，则表示处理成功。否则反之
+     */
+    protected boolean postParseRequest(com.ranni.coyote.Request req, Request request, com.ranni.coyote.Response res, Response response) throws IOException {
+        return false;
     }
 
     @Override

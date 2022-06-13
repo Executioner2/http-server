@@ -1,9 +1,5 @@
 package com.ranni.connector;
 
-import com.ranni.connector.http.request.HttpRequestImpl;
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.HttpResponseImpl;
-import com.ranni.connector.http.response.Response;
 import com.ranni.connector.processor.DefaultProcessorPool;
 import com.ranni.connector.processor.Processor;
 import com.ranni.connector.processor.ProcessorPool;
@@ -49,6 +45,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     private int acceptCount = 10; // 最大连接数
     private Service service; // 所属的服务实例
     private Charset uriCharset = StandardCharsets.UTF_8; // URI编码方式
+    private boolean xPoweredBy; // 是否开启X-Powered-By标签
     
     protected String scheme; // 协议类型
     protected int redirectPort = 80; // 转发端口
@@ -146,6 +143,27 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
     public Charset getURICharset() {
         return uriCharset;
     }
+
+    
+    /**
+     * 是否在响应头中标明后端使用的什么框架或语言
+     *
+     * @return 如果返回<b>true</b>，则开启X-Powered-By。
+     */
+    @Override
+    public boolean getXPoweredBy() {
+        return xPoweredBy;
+    }
+
+
+    /**
+     * @param xPoweredBy 如果为<b>true</b>，则表示要开启X-Powered-By
+     */
+    @Override
+    public void setXPoweredBy(boolean xPoweredBy) {
+        this.xPoweredBy = xPoweredBy;
+    }
+    
 
     /**
      * 返回容器
@@ -318,8 +336,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      */
     @Override
     public Request createRequest() {
-        HttpRequestImpl request = new HttpRequestImpl();
-        request.setConnector(this);
+        Request request = new Request(this);
         return request;
     }
     
@@ -330,8 +347,7 @@ public class HttpConnector implements Connector, Runnable, Lifecycle {
      */
     @Override
     public Response createResponse() {
-        HttpResponseImpl response = new HttpResponseImpl();
-        response.setConnector(this);
+        Response response = new Response(this);
         return response;
     }
     

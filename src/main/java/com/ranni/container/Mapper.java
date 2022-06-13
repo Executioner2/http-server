@@ -11,6 +11,7 @@ import com.ranni.connector.http.request.Request;
  * @Email 1205878539@qq.com
  * @Date 2022-03-28 16:53
  */
+@Deprecated
 public interface Mapper {
     /**
      * 返回与此映射器关联的容器

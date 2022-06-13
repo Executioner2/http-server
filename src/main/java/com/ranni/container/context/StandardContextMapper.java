@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
  * @Email 1205878539@qq.com
  * @Date 2022-03-28 17:13
  */
+@Deprecated
 public class StandardContextMapper implements Mapper {
     protected Context context; // 此映射器关联的Context容器
     protected String protocol; // 该映射器负责处理的协议

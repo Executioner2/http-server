@@ -7,6 +7,8 @@ import com.ranni.container.Context;
 import com.ranni.container.Host;
 import com.ranni.container.Mapper;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * Title: HttpServer
  * Description:
@@ -16,6 +18,7 @@ import com.ranni.container.Mapper;
  * @Email 1205878539@qq.com
  * @Date 2022-04-10 16:11
  */
+@Deprecated
 public class StandardHostMapper implements Mapper {
     protected Host host; // 此映射器关联的Context容器
     protected String protocol; // 该映射器负责处理的协议
@@ -81,7 +84,7 @@ public class StandardHostMapper implements Mapper {
         if (!update && request.getContext() != null)
             return request.getContext();
 
-        String uri = ((HttpRequest) request).getDecodedRequestURI();
+        String uri = ((HttpServletRequest) request).getRequestURI();
         Context context = host.map(uri);
 
         // 是否更新容器，就算context为null

@@ -1,7 +1,7 @@
 package com.ranni.container;
 
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
+import com.ranni.connector.Request;
+import com.ranni.connector.Response;
 import com.ranni.loader.Loader;
 import com.ranni.logger.Logger;
 import com.ranni.container.session.Manager;
@@ -308,7 +308,8 @@ public interface Container {
      * @param update
      * @return
      */
-    Container map(Request request, boolean update);
+    @Deprecated
+    Container map(com.ranni.connector.http.request.Request request, boolean update);
 
 
     /**
@@ -341,4 +342,6 @@ public interface Container {
      * @param listener
      */
     void removePropertyChangeListener(PropertyChangeListener listener);
+
+    
 }

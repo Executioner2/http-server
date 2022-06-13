@@ -1,7 +1,7 @@
 package com.ranni.container.pip;
 
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
+import com.ranni.connector.Request;
+import com.ranni.connector.Response;
 
 import javax.servlet.ServletException;
 import java.io.IOException;

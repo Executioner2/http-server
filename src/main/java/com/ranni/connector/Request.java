@@ -18,7 +18,7 @@ import com.ranni.util.RequestUtil;
 import com.ranni.util.buf.B2CConverter;
 import com.ranni.util.buf.ByteChunk;
 import com.ranni.util.buf.MessageBytes;
-import com.ranni.util.http.AcceptLanguage;
+import com.ranni.util.http.parse.AcceptLanguage;
 import com.ranni.util.http.CookieProcessor;
 import com.ranni.util.http.Parameters;
 import com.ranni.util.http.ServerCookies;
@@ -2115,5 +2115,20 @@ public class Request implements HttpServletRequest {
 
     public void setRequestedSessionURL(boolean b) {
         this.requestedSessionURL = b;
+    }
+
+    public void setCoyoteRequest(com.ranni.coyote.Request coyoteRequest) {
+        this.coyoteRequest = coyoteRequest;
+        inputBuffer.setRequest(coyoteRequest);
+    }
+
+
+    /**
+     * servlet/3.0及以后的异步容器，暂不支持
+     * 
+     * @return 返回是否支持异步处理。暂未实现，固定返回<b>false</b>
+     */
+    public boolean isAsync() {
+        return false;
     }
 }
