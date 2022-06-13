@@ -238,4 +238,10 @@ public interface Wrapper extends Container {
      * @return 返回Multipart配置
      */
     MultipartConfigElement getMultipartConfigElement();
+
+
+    /**
+     * servlet支持的方法
+     */
+    String[] getServletMethods() throws ServletException;
 }

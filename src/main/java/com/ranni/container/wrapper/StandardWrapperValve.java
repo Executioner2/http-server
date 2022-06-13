@@ -1,11 +1,11 @@
 package com.ranni.container.wrapper;
 
 import com.ranni.common.Globals;
-import com.ranni.connector.http.request.HttpRequest;
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
+import com.ranni.connector.Response;
+import com.ranni.connector.Request;
 import com.ranni.container.Container;
 import com.ranni.container.Context;
+import com.ranni.container.Wrapper;
 import com.ranni.container.context.StandardContext;
 import com.ranni.container.pip.ValveBase;
 import com.ranni.container.pip.ValveContext;
@@ -44,7 +44,7 @@ public class StandardWrapperValve extends ValveBase {
     /**
      * 调用对应的servlet执行相应的service()
      * 必要的操作：
-     * 1、调用wrapper的allocate()获取servlet实例 {@link StandardWrapper#allocate()}
+     * 1、调用wrapper的allocate()获取servlet实例 {@link Wrapper#allocate(Request, Response)}
      * 2、调用私有方法createFilterChain()，创建过滤链
      * 3、调用过滤链的doFilter()方法，doFilter()中有对servlet实例的service()方法调用
      * 4、释放过滤器的链
@@ -64,33 +64,25 @@ public class StandardWrapperValve extends ValveBase {
         boolean unavailable = false; // 是否不可用
         
         StandardWrapper wrapper = (StandardWrapper) getContainer();
-        ServletRequest sreq = request.getRequest();
-        ServletResponse sres = response.getResponse();
         Throwable throwable = null;
         Servlet servlet = null;
 
-        HttpServletRequest hreq = null;
-        HttpServletResponse hres = null;
-        if (sreq instanceof HttpServletRequest)
-            hreq = (HttpServletRequest) sreq;
-        if (sres instanceof HttpServletResponse)
-            hres = (HttpServletResponse) sres;
 
         // 检查此Web应用程序是否可用
         if (!((Context) wrapper.getParent()).getAvailable()) {
-            hres.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+            response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
                     "StandardWrapper.getAvailable  此WebApp不可用，" + wrapper.getName());
             unavailable = true;
         }
 
         // 检查servlet是否未到可用时间或永久不可用
         if (!unavailable && wrapper.isUnavailable()) {
-            if (hres != null) {
+            if (response != null) {
                 long available = wrapper.getAvailable();
                 if (available > 0L && available < Long.MAX_VALUE) {
-                    hres.setDateHeader("Retry-After", available);
+                    response.setDateHeader("Retry-After", available);
                 }
-                hres.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
                         "StandardWrapper.isUnavailable  此Servlet未到可用时间或永久不可用，" + wrapper.getName());
             }
 
@@ -99,7 +91,7 @@ public class StandardWrapperValve extends ValveBase {
 
         try {
             if (!unavailable) {
-                servlet = wrapper.allocate();
+                servlet = wrapper.allocate(, );
             }
         } catch (Throwable e) {
             throwable = e;
@@ -114,32 +106,32 @@ public class StandardWrapperValve extends ValveBase {
         try {
             String jspFile = wrapper.getJspFile();
             if (jspFile != null) {
-                sreq.setAttribute(Globals.JSP_FILE_ATTR, jspFile);
+                request.setAttribute(Globals.JSP_FILE_ATTR, jspFile);
             } else {
-                sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+                request.removeAttribute(Globals.JSP_FILE_ATTR);
             }
             if (servlet != null && filterChain != null) {
-                filterChain.doFilter(sreq, sres);
+                filterChain.doFilter(request, response);
             }
-            sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+            request.removeAttribute(Globals.JSP_FILE_ATTR);
         } catch (IOException e) {
-            sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+            request.removeAttribute(Globals.JSP_FILE_ATTR);
             throwable = e;
             exception(request, response, e);
         } catch (UnavailableException e) {
-            sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+            request.removeAttribute(Globals.JSP_FILE_ATTR);
             wrapper.unavailable(e);
             long available = wrapper.getAvailable();
             if ((available > 0L) && (available < Long.MAX_VALUE))
-                hres.setDateHeader("Retry-After", available);
+                response.setDateHeader("Retry-After", available);
             throwable = e;
-            hres.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "StandardWrapper.isUnavailable" + wrapper.getName());
+            response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "StandardWrapper.isUnavailable" + wrapper.getName());
         } catch (ServletException e) {
-            sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+            request.removeAttribute(Globals.JSP_FILE_ATTR);
             throwable = e;
             exception(request, response, e);
         } catch (Throwable e) {
-            sreq.removeAttribute(Globals.JSP_FILE_ATTR);
+            request.removeAttribute(Globals.JSP_FILE_ATTR);
             throwable = e;
             exception(request, response, e);
         }
@@ -212,16 +204,15 @@ public class StandardWrapperValve extends ValveBase {
         
         // 实例化所有过滤器
         String requestPath = null;
-        if (request instanceof HttpRequest) {
-            HttpServletRequest hreq = (HttpServletRequest) request.getRequest();
-            String contextPath = hreq.getContextPath();
-            if (contextPath == null) 
-                contextPath = "";
-            
-            String requestURI = ((HttpRequest) request).getDecodedRequestURI();            
-            if (requestURI.length() >= contextPath.length())
-                requestPath = requestURI.substring(contextPath.length());
+        HttpServletRequest hreq = request.getRequest();
+        String contextPath = hreq.getContextPath();
+        if (contextPath == null) {
+            contextPath = "";
         }
+
+        String requestURI = request.getRequestURI();
+        if (requestURI.length() >= contextPath.length())
+            requestPath = requestURI.substring(contextPath.length());
 
         String servletName = wrapper.getName();
         int count = 0;
@@ -335,9 +326,7 @@ public class StandardWrapperValve extends ValveBase {
         ServletRequest servletRequest = request.getRequest();
         servletRequest.setAttribute(Globals.EXCEPTION_ATTR, exception);
 
-        ServletResponse servletResponse = response.getResponse();
-        if (servletResponse instanceof HttpServletResponse)
-            ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
     }
     
 }

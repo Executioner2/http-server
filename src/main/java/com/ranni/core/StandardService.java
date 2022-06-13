@@ -1,8 +1,9 @@
 package com.ranni.core;
 
-import com.ranni.connector.Connector;
 import com.ranni.container.Container;
+import com.ranni.connector.Connector;
 import com.ranni.container.Engine;
+import com.ranni.connector.Mapper;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.lifecycle.LifecycleListener;
@@ -136,6 +137,11 @@ public final class StandardService implements Lifecycle, Service {
         this.server = server;
     }
 
+
+    @Override
+    public Mapper getMapper() {
+        return null;
+    }
 
     /**
      * 添加连接器

@@ -2,7 +2,7 @@ package com.ranni.startup;
 
 import com.ranni.common.Globals;
 import com.ranni.common.SystemProperty;
-import com.ranni.connector.HttpConnector;
+import com.ranni.connector.Connector;
 import com.ranni.container.Context;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
@@ -139,14 +139,14 @@ public final class WebApplication {
     private static Context fitApplicationConfigure(Class webappBootstrapClazz, Server server, ApplicationConfigure configure) {
         URL url = webappBootstrapClazz.getResource("");
         StandardContext context = null;
-        HttpConnector connector = null;
+        Connector connector = null;
         String docBase = "";
         String appBase = "";
         String prefix = "/classes";
         
         if ("file".equals(url.getProtocol())) {
             // 文件URL协议
-            connector = new HttpConnector();
+            connector = new Connector();
             context = new StandardContext();
 
             Engine engine = (Engine) server.findServices()[0].getContainer();

@@ -1,6 +1,5 @@
 package com.ranni.deploy;
 
-import com.ranni.connector.Connector;
 import com.ranni.container.Context;
 
 /**

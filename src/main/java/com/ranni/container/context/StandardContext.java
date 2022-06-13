@@ -2,8 +2,8 @@ package com.ranni.container.context;
 
 import com.ranni.common.Globals;
 import com.ranni.common.SystemProperty;
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
+import com.ranni.connector.Request;
+import com.ranni.connector.Response;
 import com.ranni.container.*;
 import com.ranni.container.host.StandardHost;
 import com.ranni.container.scope.ApplicationContext;
@@ -73,6 +73,11 @@ public class StandardContext extends ContainerBase implements Context {
     private boolean swallowAbortedUploads = true; // 对请求大小进行约束的标志位
     private boolean allowCasualMultipartParsing; // 是否允许解析表单数据 
     private CookieProcessor cookieProcessor; // cookie解析器
+
+    /**
+     * 容器版本
+     */
+    private String webappVersion;
 
     protected boolean cachingAllowed = true; // 是否允许在代理容器对象中缓存目录容器中的资源
     protected String servletClass; // 要加载的servlet类全限定名
@@ -160,6 +165,7 @@ public class StandardContext extends ContainerBase implements Context {
      *
      * @return
      */
+    @Override
     public boolean getPaused() {
         return paused;
     }
@@ -1408,6 +1414,31 @@ public class StandardContext extends ContainerBase implements Context {
         
         return false;
     }
+
+    
+    /**
+     * @return 返回容器版本
+     */
+    @Override
+    public String getWebappVersion() {
+        return webappVersion;
+    }
+
+    
+    /**
+     * 设置容器版本
+     *
+     * @param webappVersion 容器版本
+     */
+    @Override
+    public void setWebappVersion(String webappVersion) {
+        if (null == webappVersion) {
+            this.webappVersion = "";
+        } else {
+            this.webappVersion = webappVersion;
+        }
+    }
+    
 
     /**
      * @return 返回请求体的默认编码格式

@@ -1,6 +1,6 @@
 package com.ranni.connector.processor;
 
-import com.ranni.connector.HttpConnector;
+import com.ranni.connector.Connector;
 import com.ranni.connector.SocketInputStream;
 import com.ranni.connector.http.request.HttpHeader;
 import com.ranni.connector.http.request.HttpRequestLine;
@@ -45,7 +45,7 @@ public class HttpProcessor implements Processor {
     protected boolean working; // 工作状态标志位
     protected HttpRequestBase request;
     protected HttpResponseBase response;
-    protected HttpConnector connector;
+    protected Connector connector;
     protected Container container;
     
     
@@ -231,7 +231,7 @@ public class HttpProcessor implements Processor {
      * @param connector
      */
     @Override
-    public void setHttpConnector(HttpConnector connector) {
+    public void setHttpConnector(Connector connector) {
         this.connector = connector;
     }
 

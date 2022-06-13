@@ -1,10 +1,8 @@
 package com.ranni.container.wrapper;
 
 import com.ranni.connector.Constants;
-import com.ranni.connector.http.request.HttpRequestBase;
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.HttpResponseBase;
-import com.ranni.connector.http.response.Response;
+import com.ranni.connector.Request;
+import com.ranni.connector.Response;
 import com.ranni.container.*;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
@@ -376,14 +374,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         // 调用servlet的init()
         try {
             servlet.init(facade);
-            if (loadOnStartup > 0 && jspFile != null) {
-                HttpRequestBase hreq = new HttpRequestBase();
-                HttpResponseBase hres = new HttpResponseBase();
-                hreq.setServletPath(jspFile);
-                hreq.setQueryString("jsp_precompile=true");
-                servlet.service(hreq, hres);
-            }
-        } catch (IOException e) {
+        } catch (ServletException e) {
             e.printStackTrace();
         }
 
@@ -568,6 +559,12 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                 Thread.currentThread().setContextClassLoader(oldClassLoader);
             }
         }
+    }
+
+
+    @Override
+    public String[] getServletMethods() throws ServletException {
+        return new String[0];
     }
 
     @Override

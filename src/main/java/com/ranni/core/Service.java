@@ -1,8 +1,9 @@
 package com.ranni.core;
 
-import com.ranni.connector.Connector;
 import com.ranni.container.Engine;
+import com.ranni.connector.Mapper;
 import com.ranni.lifecycle.LifecycleException;
+import com.ranni.connector.Connector;
 
 /**
  * Title: HttpServer
@@ -99,4 +100,10 @@ public interface Service {
      * @throws LifecycleException
      */
     void initialize() throws LifecycleException;
+
+
+    /**
+     * @return 返回映射器
+     */
+    Mapper getMapper();
 }

@@ -48,7 +48,7 @@ public class Request implements HttpServletRequest {
     /**
      * 与此请求关联的连接器
      */
-    private Connector connector;
+    protected Connector connector;
 
     /**
      * 日期格式化
@@ -1526,6 +1526,8 @@ public class Request implements HttpServletRequest {
 
 
     /**
+     * 这个值的获取是在请求包中取出来的
+     * 
      * @return 返回响应此请求的服务器名
      */
     @Override
@@ -1535,6 +1537,8 @@ public class Request implements HttpServletRequest {
 
 
     /**
+     * 这个值的获取是在请求包中取出来的
+     * 
      * @return 返回响应此请求的服务器端口
      */
     @Override
@@ -1850,7 +1854,14 @@ public class Request implements HttpServletRequest {
 
 
     /**
-     * @return 返回接收此请求的服务器名
+     * 返回接收此请求的服务器名。说直白点就是与服务器通信的
+     * 那个信道（channel）中的服务器名，如果没有，就会把
+     * IP地址作为服务器名<br>
+     * 
+     * 具体的实现方法：<br>
+     * @see com.ranni.util.net.Nio2Endpoint#populateLocalAddr()
+     * 
+     * @return 返回接收此请求的服务器名。
      */
     @Override
     public String getLocalName() {
@@ -1864,6 +1875,12 @@ public class Request implements HttpServletRequest {
 
 
     /**
+     * 返回处理此请求的服务器IP地址。说直白点就是与服务器通信的
+     * 那个信道（channel）中的服务器IP地址<br>
+     * 
+     * 具体的实现方法：<br>
+     * @see com.ranni.util.net.Nio2Endpoint#populateLocalAddr()
+     * 
      * @return 返回处理此请求的服务器IP地址
      */
     @Override
@@ -1878,6 +1895,12 @@ public class Request implements HttpServletRequest {
 
 
     /**
+     * 返回处理此请求的服务器端口号。说直白点就是与服务器通信的
+     * 那个信道（channel）中的服务器端口号<br>
+     * 
+     * 具体的实现方法：<br>
+     * @see com.ranni.util.net.Nio2Endpoint#populateLocalPort()
+     * 
      * @return 返回处理此请求的服务器端口号
      */
     @Override
@@ -2117,6 +2140,13 @@ public class Request implements HttpServletRequest {
         this.requestedSessionURL = b;
     }
 
+    /**
+     * @param b 如果为<b>true</b>，则表示 session id存放在SSL中
+     */
+    public void setRequestedSessionSSL(boolean b) {
+        this.requestedSessionSSL = b;
+    }
+
     public void setCoyoteRequest(com.ranni.coyote.Request coyoteRequest) {
         this.coyoteRequest = coyoteRequest;
         inputBuffer.setRequest(coyoteRequest);
@@ -2131,4 +2161,5 @@ public class Request implements HttpServletRequest {
     public boolean isAsync() {
         return false;
     }
+    
 }

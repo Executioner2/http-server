@@ -155,7 +155,9 @@ public final class Request {
     private final Map<String,String> trailerFields = new HashMap<>();
 
     /**
-     * 路径参数
+     * 路径参数。例如在url中携带的jsessionid<br>
+     * 例子：<br>
+     * http://localhost/test;jsessionid=F0D358CE192599DE7BF6AD271394D3BF
      */
     private final Map<String,String> pathParameters = new HashMap<>();
 
@@ -380,6 +382,11 @@ public final class Request {
 
     public void setRequestThread() {
         threadId = Thread.currentThread().getId();
+    }
+    
+    
+    public UDecoder getURLDecoder() {
+        return this.urlDecoder;
     }
 
 
@@ -664,6 +671,9 @@ public final class Request {
         return schemeMB;
     }
     
+    public MessageBytes decodedURI() {
+        return decodedUriMB;
+    }
 
     public MessageBytes serverName() {
         return serverNameMB;
@@ -816,5 +826,5 @@ public final class Request {
             }
         }
     }
-    
+
 }

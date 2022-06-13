@@ -1148,6 +1148,26 @@ public interface Context extends Container, ContextBind {
 
 
     /**
+     * @return 返回容器版本 
+     */
+    String getWebappVersion();
+
+
+    /**
+     * 设置容器版本
+     * 
+     * @param webappVersion 容器版本
+     */
+    void setWebappVersion(String webappVersion);
+
+
+    /**
+     * @return 如果返回<b>true</b>，则表示容器处于暂停状态
+     */
+    boolean getPaused();
+
+
+    /**
      * 添加controller类
      *
      * @param controller

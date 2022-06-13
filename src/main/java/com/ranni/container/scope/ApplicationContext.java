@@ -433,7 +433,7 @@ public class ApplicationContext implements ServletContext {
 
     @Override
     public Set<SessionTrackingMode> getEffectiveSessionTrackingModes() {
-        return null;
+        return Collections.EMPTY_SET;
     }
 
     @Override

@@ -2,7 +2,7 @@ package com.ranni.startup;
 
 import com.ranni.common.Constants;
 import com.ranni.common.Globals;
-import com.ranni.connector.HttpConnector;
+import com.ranni.connector.Connector;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
 import com.ranni.container.context.StandardContext;
@@ -55,7 +55,7 @@ public class ApplicationConfigureParse extends ConfigureParseBase {
         ApplicationConfigure applicationConfigure = (ApplicationConfigure) load;
         URL url = webappBootstrapClazz.getResource("");
         StandardContext context = null;
-        HttpConnector connector = null;
+        Connector connector = null;
         String docBase = "";
         String appBase = "";
 
@@ -86,7 +86,7 @@ public class ApplicationConfigureParse extends ConfigureParseBase {
                 }
             }            
 
-            connector = new HttpConnector();
+            connector = new Connector();
             context = new StandardContext();
 
             Engine engine = (Engine) server.findServices()[0].getContainer();

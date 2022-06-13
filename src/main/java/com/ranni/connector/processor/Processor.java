@@ -1,6 +1,6 @@
 package com.ranni.connector.processor;
 
-import com.ranni.connector.HttpConnector;
+import com.ranni.connector.Connector;
 import com.ranni.container.Container;
 
 import java.net.Socket;
@@ -34,7 +34,7 @@ public interface Processor extends Runnable {
      *
      * @param connector
      */
-    void setHttpConnector(HttpConnector connector);
+    void setHttpConnector(Connector connector);
 
 
     /**

@@ -1,21 +1,29 @@
 package com.ranni.connector;
 
 import com.ranni.container.Context;
+import com.ranni.container.Wrapper;
+import com.ranni.coyote.ActionCode;
 import com.ranni.coyote.Adapter;
 import com.ranni.util.ServerInfo;
 import com.ranni.util.SessionConfig;
+import com.ranni.util.URLEncoder;
 import com.ranni.util.buf.B2CConverter;
 import com.ranni.util.buf.ByteChunk;
 import com.ranni.util.buf.CharChunk;
 import com.ranni.util.buf.MessageBytes;
+import com.ranni.util.http.EncodedSolidusHandling;
 import com.ranni.util.http.ServerCookie;
 import com.ranni.util.http.ServerCookies;
+import com.ranni.util.net.SSLSupport;
 import com.ranni.util.net.SocketEvent;
 
+import javax.servlet.ServletException;
 import javax.servlet.SessionTrackingMode;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
 
 /**
  * Title: HttpServer
@@ -55,6 +63,13 @@ public class CoyoteAdapter implements Adapter {
             "(" + ServerInfo.getServerInfo() + " Java/" +
             System.getProperty("java.vm.vendor") + "/" +
             System.getProperty("java.runtime.version") + ")";
+
+
+    /**
+     * session id存储模式
+     */
+    private static final EnumSet<SessionTrackingMode> SSL_ONLY =
+            EnumSet.of(SessionTrackingMode.SSL);
     
 
     // ==================================== 构造方法 ====================================
@@ -139,19 +154,328 @@ public class CoyoteAdapter implements Adapter {
     /**
      * 解析请求行、请求头以及设置处理请求的容器。
      * 
-     * @param req coyoteRequest
+     * @param req CoyoteRequest
      * @param request HttpServletRequest
-     * @param res coyoteResponse
+     * @param res CoyoteResponse
      * @param response HttpServletResponse
      *                 
      * @exception IOException 可能抛出I/O异常
      *                 
-     * @return 如果返回<b>true</b>，则表示处理成功。否则反之
+     * @return 如果返回<b>true</b>，则表示可以将请求送到容器的管道里。否则反之
      */
-    protected boolean postParseRequest(com.ranni.coyote.Request req, Request request, com.ranni.coyote.Response res, Response response) throws IOException {
-        return false;
+    protected boolean postParseRequest(com.ranni.coyote.Request req, Request request, com.ranni.coyote.Response res, Response response) throws IOException, ServletException {
+        
+        if (req.scheme().isNull()) {
+            // 以连接器协议为准
+            req.scheme().setString(connector.getScheme());
+            request.setSecure(connector.getSecure());            
+        } else {
+            request.setSecure(req.scheme().equals("https"));
+        }
+
+        String proxyName = connector.getProxyName();
+        int proxyPort = connector.getProxyPort();
+        if (proxyPort != 0) {
+            req.setServerPort(proxyPort);
+        } else if (req.getServerPort() == -1) {
+            if (req.scheme().equals("https")) {
+                req.setServerPort(443);
+            } else {
+                req.setServerPort(80);
+            }
+        }
+
+        if (proxyName != null) {
+            req.serverName().setString(proxyName);
+        }
+
+        MessageBytes undecodedURI = req.requestURI();
+
+        if (undecodedURI.equals("*")) {
+            // 没有具体的URI，检查是否是预检请求
+            if (req.method().equalsIgnoreCase("OPTIONS")) {
+                StringBuilder allow = new StringBuilder();
+                allow.append("GET, HEAD, POST, PUT, DELETE, OPTIONS");
+                if (connector.getAllowTrace()) {
+                    allow.append(", TRACE");
+                }
+                res.setHeader("Allow", allow.toString());
+                return false;
+                
+            } else {
+                response.sendError(400, "Invalid URI");
+            }
+        }
+
+        MessageBytes decodedURI = req.decodedURI();
+        
+        if (undecodedURI.getType() == MessageBytes.T_BYTES) {
+            decodedURI.duplicate(undecodedURI);
+
+            // 解析路径参数
+            parsePathParameters(req, request);
+            
+            try {
+                req.getURLDecoder().convert(decodedURI.getByteChunk(), EncodedSolidusHandling.REJECT);
+            } catch (IOException ioe) {
+                response.sendError(400, "invalid URI: " + ioe.getMessage());
+            }
+            
+            // 标准化
+            if (normalize(decodedURI)) {
+                // 转换为字符格式
+                convertURI(decodedURI, request);
+                
+                if (!checkNormalize(req.decodedURI())) {
+                    response.sendError(400, "Invalid URI");
+                }
+                
+            } else {
+                response.sendError(400, "Invalid URI");
+            }
+            
+        } else {
+            decodedURI.toChars();
+            CharChunk uriCC = decodedURI.getCharChunk();
+            int semicolon = uriCC.indexOf(';');
+            if (semicolon > 0) {
+                decodedURI.setChars(uriCC.getBuffer(), uriCC.getStart(), semicolon);
+            }
+        }
+        
+        MessageBytes serverName;
+        if (connector.getUseIPVHosts()) {
+            // 需要从socket信道中取服务名
+            serverName = req.localName();
+            if (serverName.isNull()) {
+                res.action(ActionCode.REQ_LOCAL_NAME_ATTRIBUTE, null);
+            }
+        } else {
+            serverName = req.serverName();
+        }
+
+
+        String version = null;
+        Context versionContext = null;
+        boolean mapRequired = true;
+        
+        if (response.isError()) {
+            // URI无效
+            decodedURI.recycle();
+        }
+        
+        main_loop:
+        while (mapRequired) {
+            connector.getService().getMapper().map(serverName, decodedURI, version, request.getMappingData());
+            
+            if (request.getContext() == null) {
+                // 没有容器，可能没有部署web项目
+                return true;
+            }
+            
+            // 尝试从路径参数中设置sessionID
+            String sessionID;
+            if (request.getServletContext().getEffectiveSessionTrackingModes()
+                    .contains(SessionTrackingMode.URL)) {
+                // 从路径参数中取的sessionID
+                sessionID = request.getPathParameter(SessionConfig.
+                        getSessionUriParamName(request.getContext()));
+                
+                if (sessionID != null) {
+                    request.setRequestedSessionId(sessionID);
+                    request.setRequestedSessionURL(true);
+                }
+            }
+
+            // 尝试从cookie中取得sessionID并做设置
+            try {
+                parseSessionCookiesId(request);
+            } catch (IllegalArgumentException e) {
+                // 有多个cookie
+                if (!response.isError()) {
+                    response.setError();
+                    response.sendError(400);
+                }
+                return true;
+            }
+            
+            parseSessionSslId(request);
+            
+            sessionID = request.getRequestedSessionId();
+            
+            mapRequired = false;
+            if (version == null || request.getContext() != versionContext) {
+                // 没得到版本号对应的context，匹配合适的context
+                version = null;
+                versionContext = null;
+
+                Context[] contexts = request.getMappingData().contexts;
+                if (contexts != null && sessionID != null) {
+                    for (int i = contexts.length - 1; i >= 0; i--) {
+                        Context context = contexts[i];
+                        if (context.getManager().findSession(sessionID) != null) {
+                            // 就是这个Context了
+                            if (!context.equals(request.getMappingData().context)) {
+                                // 换绑
+                                version = context.getWebappVersion();
+                                versionContext = context;
+                                
+                                request.getMappingData().recycle();
+                                request.recycle();
+                                request.recycleCookieInfo(true);
+                            }
+                            
+                            continue main_loop;
+                        }
+                    }
+                }
+            }
+            
+            // 走到这儿就说明匹配上容器了
+            if (request.getContext().getPaused()) {
+                // 就是这个context容器，但是这个容器处于暂停状态。
+                // wrapper容器可能会被更改，所以不能用这个容器
+                request.getMappingData().recycle();
+                mapRequired = true;                
+            }
+            
+        } // while end
+
+
+        // 如果重定向路径不为空，设置重定向路径
+        MessageBytes redirectPathMB = request.getMappingData().redirectPath;
+        if (!redirectPathMB.isNull()) {
+            String redirectPath = URLEncoder.DEFAULT.encode(
+                    redirectPathMB.toString(), StandardCharsets.UTF_8);
+
+            String query = request.getQueryString();
+
+            // session id从url中取得的，与转发路径进行拼装
+            if (request.isRequestedSessionIdFromURL()) {
+                redirectPath = redirectPath + ";" + SessionConfig
+                        .getSessionUriParamName(request.getContext()) +
+                        "=" + request.getRequestedSessionId();
+            }
+
+            // 把url中的查询字符串拼接到转发路径后
+            if (query != null) {
+                redirectPath = redirectPath + "?" + query;
+            }
+
+            // 转发请求
+            response.sendRedirect(redirectPath);
+            return false;
+        }
+        
+        // 如果连接器不支持TRACE方法，那么过滤它
+        if (!connector.getAllowTrace()
+            && req.method().equalsIgnoreCase("TRACE")) {
+            
+            Wrapper wrapper = request.getWrapper();
+            String header = null;
+            if (wrapper != null) {
+                String[] methods = wrapper.getServletMethods();
+                if (methods != null) {
+                    for (String method : methods) {
+                        if ("TRACE".equals(method)) {
+                            continue;
+                        }
+                        if (header == null) {
+                            header = method;
+                        } else {
+                            header += ", " + method;
+                        }
+                    }
+                }
+            }
+            
+            if (header != null) {
+                res.addHeader("Allow", header);
+            }
+            response.sendError(405, "TRACE method is not allowed");
+            
+            return true;
+        }
+        
+        return true;
     }
 
+
+    /**
+     * 解析路径参数。例如取出url中携带的jsessionid<br>
+     * http://localhost/test;jsessionid=F0D358CE192599DE7BF6AD271394D3BF
+     * 
+     * @param req CoyoteRequest
+     * @param request HttpServletRequest
+     */
+    protected void parsePathParameters(com.ranni.coyote.Request req, Request request) {
+        // 转字节块处理
+        req.decodedURI().toBytes();
+
+        ByteChunk uriBC = req.decodedURI().getByteChunk();
+        
+        int semicolon = uriBC.indexOf(';', 0);
+        
+        if (semicolon == -1) {
+            // 没有路径参数，直接i返回
+            return;
+        }
+
+        Charset charset = connector.getURICharset();
+        
+        while (semicolon > -1) {
+            int start = uriBC.getStart();
+            int end = uriBC.getEnd();
+            
+            int parameterStart = semicolon + 1;
+            int parameterEnd = ByteChunk.findBytes(uriBC.getBuffer(), start + parameterStart, end, new byte[]{';', '/'});
+            
+            String pv = null;
+            
+            if (parameterEnd >= 0) {
+                if (charset != null) {
+                    pv = new String(uriBC.getBuffer(), start + parameterStart,
+                            parameterEnd - parameterStart, charset);
+                }
+                
+                // 将后面的往前移动，覆盖已经读取了的
+                byte[] buf = uriBC.getBuffer();
+                for (int i = 0; i < end - start - parameterEnd; i++) {
+                    buf[start + semicolon + i] = buf[start + parameterEnd + i];
+                }
+                
+                // 下面这个长度计算的说明： 
+                // "cnmd/test;n1=123;n2=321/dnmd"  说明："/test;n1=123;n2=321"为字节块在缓冲区中对应的数据部分
+                // semicolon = 5; start = 4; end = 23 ; parameterStart = 6; parameterEnd = 12
+                // 当"n1=123"被取出来后，这段数据被后面的数据覆盖，缓冲区变为：
+                // "cnmd/test;n2=321/dnmd"
+                // len = 12 = end - start - parameterEnd + semicolon = 23 - 4 - 12 + 5 = 11 
+                uriBC.setBytes(buf, start, end - start - parameterEnd + semicolon);
+                
+            } else {
+                if (charset != null) {
+                    pv = new String(uriBC.getBuffer(), start + parameterStart,
+                            end - start - parameterStart, charset);
+                }
+                uriBC.setEnd(start + semicolon);
+            }
+            
+            // 存放到request中
+            if (pv != null) {
+                int equals = pv.indexOf('=');
+                if (equals > -1) {
+                    String name = pv.substring(0, equals);
+                    String value = pv.substring(equals + 1);
+                    request.addPathParameter(name, value);
+                }
+            }
+            
+            semicolon = uriBC.indexOf(';', semicolon);
+        }
+
+    }
+
+    
     @Override
     public boolean prepare(com.ranni.coyote.Request req, com.ranni.coyote.Response res) throws Exception {
         return false;
@@ -184,6 +508,20 @@ public class CoyoteAdapter implements Adapter {
 
     // ==================================== 字符串处理 ====================================
 
+    protected void parseSessionSslId(Request request) {
+        if (request.getRequestedSessionId() == null &&
+                SSL_ONLY.equals(request.getServletContext()
+                        .getEffectiveSessionTrackingModes()) &&
+                request.connector.secure) {
+            String sessionId = (String) request.getAttribute(SSLSupport.SESSION_ID_KEY);
+            if (sessionId != null) {
+                request.setRequestedSessionId(sessionId);
+                request.setRequestedSessionSSL(true);
+            }
+        }
+    }
+    
+    
     /**
      * Parse session id in Cookie.
      *

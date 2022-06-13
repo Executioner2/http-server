@@ -115,8 +115,6 @@ public final class MessageBytes implements Serializable, Cloneable {
     }
     
     
-    // ------------------------------  ------------------------------
-    
     @Override
     public String toString() {
         if (strValue != null) {
@@ -385,7 +383,7 @@ public final class MessageBytes implements Serializable, Cloneable {
 
 
     /**
-     * 克隆数据
+     * 克隆数据<br>
      * 
      * 在为新的数据空间分配大小时，以src数据长度的2倍为初始化大小，可能会出
      * 现int溢出或超过 {@link AbstractChunk#ARRAY_MAX_SIZE} 的值。

@@ -101,4 +101,10 @@ public final class Response {
     public void setNote(int pos, com.ranni.connector.Response response) {
         
     }
+
+    public void setHeader(String allow, String toString) {
+    }
+
+    public void addHeader(String allow, String header) {
+    }
 }

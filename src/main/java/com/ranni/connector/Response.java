@@ -277,4 +277,11 @@ public class Response implements HttpServletResponse {
     public void finishResponse() throws IOException {
         outputBuffer.close();
     }
+
+    public boolean isError() {
+        return false;
+    }
+
+    public void setError() {
+    }
 }
