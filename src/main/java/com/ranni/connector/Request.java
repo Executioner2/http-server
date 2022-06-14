@@ -201,6 +201,9 @@ public class Request implements HttpServletRequest {
      */
     protected String requestedSessionId;
 
+    /**
+     * 安全套接字中的session id
+     */
     protected boolean requestedSessionSSL;
 
     /**

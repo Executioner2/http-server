@@ -255,7 +255,6 @@ public class CoyoteAdapter implements Adapter {
         }
 
 
-        String version = null;
         Context versionContext = null;
         boolean mapRequired = true;
         
@@ -266,7 +265,7 @@ public class CoyoteAdapter implements Adapter {
         
         main_loop:
         while (mapRequired) {
-            connector.getService().getMapper().map(serverName, decodedURI, version, request.getMappingData());
+            connector.getService().getMapper().map(serverName, decodedURI, request.getMappingData());
             
             if (request.getContext() == null) {
                 // 没有容器，可能没有部署web项目
@@ -301,35 +300,35 @@ public class CoyoteAdapter implements Adapter {
             
             parseSessionSslId(request);
             
-            sessionID = request.getRequestedSessionId();
+//            sessionID = request.getRequestedSessionId();
             
             mapRequired = false;
-            if (version == null || request.getContext() != versionContext) {
-                // 没得到版本号对应的context，匹配合适的context
-                version = null;
-                versionContext = null;
-
-                Context[] contexts = request.getMappingData().contexts;
-                if (contexts != null && sessionID != null) {
-                    for (int i = contexts.length - 1; i >= 0; i--) {
-                        Context context = contexts[i];
-                        if (context.getManager().findSession(sessionID) != null) {
-                            // 就是这个Context了
-                            if (!context.equals(request.getMappingData().context)) {
-                                // 换绑
-                                version = context.getWebappVersion();
-                                versionContext = context;
-                                
-                                request.getMappingData().recycle();
-                                request.recycle();
-                                request.recycleCookieInfo(true);
-                            }
-                            
-                            continue main_loop;
-                        }
-                    }
-                }
-            }
+//            if (version == null || request.getContext() != versionContext) {
+//                // 没得到版本号对应的context，匹配合适的context
+//                version = null;
+//                versionContext = null;
+//
+//                Context[] contexts = request.getMappingData().contexts;
+//                if (contexts != null && sessionID != null) {
+//                    for (int i = contexts.length - 1; i >= 0; i--) {
+//                        Context context = contexts[i];
+//                        if (context.getManager().findSession(sessionID) != null) {
+//                            // 就是这个Context了
+//                            if (!context.equals(request.getMappingData().context)) {
+//                                // 换绑
+//                                version = context.getWebappVersion();
+//                                versionContext = context;
+//                                
+//                                request.getMappingData().recycle();
+//                                request.recycle();
+//                                request.recycleCookieInfo(true);
+//                            }
+//                            
+//                            continue main_loop;
+//                        }
+//                    }
+//                }
+//            }
             
             // 走到这儿就说明匹配上容器了
             if (request.getContext().getPaused()) {
