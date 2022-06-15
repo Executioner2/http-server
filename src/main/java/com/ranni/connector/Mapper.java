@@ -468,6 +468,22 @@ public final class Mapper {
         hosts = mappedHosts;
         return true;
     }
+    
+
+    /**
+     * 取得Host容器
+     *
+     * @param name 可以是别名也可以是真实名
+     * @return 返回Host容器
+     */
+    public synchronized MappedHost getHost(String name) {
+        MappedHost host = exactFind(hosts, name);
+        if (host == null) {
+            return null;
+        }
+
+        return host.realHost;
+    }
 
 
     /**
@@ -511,21 +527,18 @@ public final class Mapper {
             }    
         }
     }
-    
-    
+
+
     /**
-     * 取得Host容器
+     * 删除MappedContext
      * 
-     * @param name 可以是别名也可以是真实名
-     * @return 返回Host容器
+     * @param name 要删除的MappedContext名 
+     * @param host 要删除的Context所属的主机映射
+     * @return 如果返回<b>true</b>，则表示删除成功
      */
-    public synchronized MappedHost getHost(String name) {
-        MappedHost host = exactFind(hosts, name);
-        if (host == null) {
-            return null;
-        }
-        
-        return host.realHost;
+    public boolean removeContext(String name, MappedHost host) {
+        ContextList res = host.contextList.removeContext(name);
+        return res != null;
     }
 
 
@@ -694,6 +707,13 @@ public final class Mapper {
     private final void internalMapWrapper(MappedContext context, CharChunk uri, MappingData mappingData) {
         // XXX - 当前只做严格匹配
         // 做个字典树匹配，以便精准匹配
+        MappedWrapper mappedWrapper = context.wrapperDictTree.getMappedWrapper(uri);
+        if (mappedWrapper == null) {
+            return;
+        }
+        
+        mappingData.wrapper = mappedWrapper.obj;
+        mappingData.wrapperPath.setString(mappedWrapper.name);
     }
 
 
@@ -705,7 +725,7 @@ public final class Mapper {
      * @param str 源字符串
      * @return 返回统计的斜杠'/'数量
      */
-    private static final int slashCount(String str) {
+    private static int slashCount(String str) {
         int pos = -1;
         int count = 0;
         while ((pos = str.indexOf('/', pos + 1)) != -1) {
@@ -722,7 +742,7 @@ public final class Mapper {
      * @param name 匹配的target值
      * @return 返回查询到的元素
      */
-    private static final <T, E extends MapElement<T>> E exactFind(E[] map, String name) {
+    private static <T, E extends MapElement<T>> E exactFind(E[] map, String name) {
         int pos = find(map, name);
         if (pos >= 0) {
             E result = map[pos];
@@ -741,7 +761,7 @@ public final class Mapper {
      * @param name 匹配的target值
      * @return 返回查询到的元素
      */
-    private static final <T, E extends MapElement<T>> E exactFind(E[] map, CharChunk name) {
+    private static <T, E extends MapElement<T>> E exactFind(E[] map, CharChunk name) {
         int pos = find(map, name);
         if (pos >= 0) {
             E result = map[pos];
@@ -756,7 +776,7 @@ public final class Mapper {
     /**
      * @return 返回最后一个斜杠'/'的下标
      */
-    private static final int lastSlash(CharChunk name) {
+    private static int lastSlash(CharChunk name) {
         char[] c = name.getBuffer();
         int end = name.getEnd();
         int start = name.getStart();
@@ -779,7 +799,7 @@ public final class Mapper {
      * @param n 第n个斜杠
      * @return 返回第n个斜杠的下标（如果有的话）
      */
-    private static final int nthSlash(CharChunk name, int n) {
+    private static int nthSlash(CharChunk name, int n) {
         char[] c = name.getBuffer();
         int end = name.getEnd();
         int start = name.getStart();
@@ -806,7 +826,7 @@ public final class Mapper {
      * @param mapElement 要添加的元素数组
      * @return 如果返回<b>true</b>，则表示插入成功
      */
-    private static final <T> boolean insertMap(MapElement<T>[] oldMap, MapElement<T>[] newMap, MapElement<T> mapElement) {
+    private static <T> boolean insertMap(MapElement<T>[] oldMap, MapElement<T>[] newMap, MapElement<T> mapElement) {
         int i = find(oldMap, mapElement.name);
         if (i != -1 && oldMap[i].name.equals(mapElement.name)) {
             return false;
@@ -828,7 +848,7 @@ public final class Mapper {
      * @param name 要删除的元素名
      * @return 如果返回<b>true</b>，则表示删除成功
      */
-    private static final <T> boolean removeMap(MapElement<T>[] oldMap, MapElement<T>[] newMap, String name) {
+    private static <T> boolean removeMap(MapElement<T>[] oldMap, MapElement<T>[] newMap, String name) {
         int i = find(oldMap, name);
         if (i == -1 || !oldMap[i].name.equals(name)) {
             return false;
@@ -849,7 +869,7 @@ public final class Mapper {
      * @param compareTo 匹配的字符串
      * @return 返回-1，0 或 1。-1小于，0等于，1大于
      */
-    private static final int compareIgnoreCase(CharChunk name, int start, int end,
+    private static int compareIgnoreCase(CharChunk name, int start, int end,
                                                String compareTo) {
         int result = 0;
         char[] c = name.getBuffer();
@@ -884,7 +904,7 @@ public final class Mapper {
      * @param compareTo 匹配的字符串
      * @return 返回-1，0 或 1。-1小于，0等于，1大于
      */
-    private static final int compare(CharChunk name, int start, int end,
+    private static int compare(CharChunk name, int start, int end,
                                      String compareTo) {
         int result = 0;
         char[] c = name.getBuffer();
@@ -917,7 +937,7 @@ public final class Mapper {
      * @param name 匹配目标
      * @return 如果找到了就返回匹配的元素
      */
-    private static final <T, E extends MapElement<T>> E exactFindIgnoreCase(E[] map, CharChunk name) {
+    private static <T, E extends MapElement<T>> E exactFindIgnoreCase(E[] map, CharChunk name) {
         int index = findIgnoreCase(map, name);
         if (index >= 0) {
             // 还要进行字符匹配，因为返回的可能是个匹配结果较为接近的下标
@@ -930,7 +950,7 @@ public final class Mapper {
     }
     
     
-    private static final <T> int findIgnoreCase(MapElement<T>[] map, CharChunk name) {
+    private static <T> int findIgnoreCase(MapElement<T>[] map, CharChunk name) {
         return findIgnoreCase(map, name, name.getStart(), name.getEnd());
     }
     
@@ -944,7 +964,7 @@ public final class Mapper {
      * @param end 字节块的结束位置
      * @return 如果查询到了匹配项返回对应的下标<b>或者集合中至少有两个元素，即使都不匹配，也会根据大小返回其中一个的下标</b>，否则返回-1
      */
-    private static final <T> int findIgnoreCase(MapElement<T>[] map, CharChunk name, int start, int end) {
+    private static <T> int findIgnoreCase(MapElement<T>[] map, CharChunk name, int start, int end) {
 
         int a = 0;
         int b = map.length - 1;
@@ -997,7 +1017,7 @@ public final class Mapper {
      * @param end 字节块的结束位置
      * @return 如果查询到了匹配项返回对应的下标<b>或者集合中至少有两个元素，即使都不匹配，也会根据大小返回其中一个的下标</b>，否则返回-1
      */
-    private static final <T> int find(MapElement<T>[] map, CharChunk name, int start, int end) {
+    private static <T> int find(MapElement<T>[] map, CharChunk name, int start, int end) {
 
         int a = 0;
         int b = map.length - 1;
@@ -1044,7 +1064,7 @@ public final class Mapper {
      * @param name 要查询的名字 
      * @return 如果查询到了匹配项返回对应的下标<b>或者集合中至少有两个元素，即使都不匹配，也会根据大小返回其中一个的下标</b>，否则返回-1
      */
-    private static final <T> int find(MapElement<T>[] map, String name) {
+    private static <T> int find(MapElement<T>[] map, String name) {
 
         int a = 0;
         int b = map.length - 1;
