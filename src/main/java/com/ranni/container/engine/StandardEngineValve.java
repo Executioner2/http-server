@@ -1,7 +1,7 @@
 package com.ranni.container.engine;
 
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
+import com.ranni.connector.Request;
+import com.ranni.connector.Response;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
 import com.ranni.container.pip.ValveBase;
@@ -61,16 +61,13 @@ public class StandardEngineValve extends ValveBase {
         // 如果是HTTP/1.1请求，就必须携带serverName
         if ("HTTP/1.1".equals(hsr.getProtocol())
             && hsr.getServerName() == null) {
-            ((HttpServletResponse) response.getResponse())
-                    .sendError(HttpServletResponse.SC_BAD_REQUEST, request.getRequest().getServerName());
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, request.getRequest().getServerName());
         }
         
-        Engine engine = (Engine) getContainer();
-        Host host = (Host) engine.map(request, true);
+        Host host = request.getHost();
         
         if (host == null) {
-            ((HttpServletResponse) response.getResponse())
-                    .sendError(HttpServletResponse.SC_BAD_REQUEST, "没有找到对应的Host！");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "没有找到对应的Host！");
             return;
         }
            

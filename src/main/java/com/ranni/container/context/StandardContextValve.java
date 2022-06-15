@@ -1,8 +1,8 @@
 package com.ranni.container.context;
 
 import com.ranni.connector.http.request.HttpRequest;
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
+import com.ranni.connector.Request;
+import com.ranni.connector.Response;
 import com.ranni.container.Context;
 import com.ranni.container.Wrapper;
 import com.ranni.container.pip.ValveBase;
@@ -49,24 +49,21 @@ public class StandardContextValve extends ValveBase {
     public void invoke(Request request, Response response, ValveContext valveContext) throws IOException, ServletException {
         if (!(request instanceof HttpServletRequest) || !(response instanceof HttpServletResponse)) return;
 
-        HttpServletResponse hsrp = (HttpServletResponse)response;
         String requestURI = ((HttpRequest)request).getDecodedRequestURI();
-        Context context = (Context) this.container;
 
         Wrapper wrapper = null;
 
         try {
-            wrapper = (Wrapper) context.map(request, true);
+            wrapper = request.getWrapper();
         } catch (IllegalArgumentException e) {
-            hsrp.sendError(HttpServletResponse.SC_BAD_REQUEST, requestURI);
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, requestURI);
         }
 
         if (wrapper == null) {
-            hsrp.sendError(HttpServletResponse.SC_NOT_FOUND, requestURI);
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, requestURI);
             return;
         }
-
-        response.setContext(context);
+        
         wrapper.invoke(request, response);
     }
 }

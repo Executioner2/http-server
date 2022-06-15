@@ -85,6 +85,13 @@ public final class Mapper {
             aliases = new ArrayList<>();
         }
 
+        public MappedHost(String alias, MappedHost realHost) {
+            super(alias, realHost.obj);
+            this.realHost = realHost;
+            contextList = realHost.contextList;
+            aliases = null; // 不允许别名还有别名
+        }
+        
 
         /**
          * @return 如果返回<b>true</b>，则表示此ContextList实例是个别名
@@ -161,6 +168,7 @@ public final class Mapper {
             return null;
         }
 
+        
         /**
          * 删除容器映射
          *
@@ -184,7 +192,6 @@ public final class Mapper {
     protected final class MappedContext extends MapElement<Context> {
 
         private volatile boolean paused;
-        public volatile MappedWrapper[] wrappers = new MappedWrapper[0];
         public volatile WrapperDictTree wrapperDictTree = new WrapperDictTree();
         public final int slashCount;
         public final WebResourceRoot webResourceRoot;
@@ -230,7 +237,7 @@ public final class Mapper {
          * @param uri 处理此请求的servlet路径
          * @param wrapper wrapper实例
          */
-        public void addMappedWrapper(CharChunk uri, Wrapper wrapper) {
+        public void addMappedWrapper(String uri, Wrapper wrapper) {
             Node node = root;
 
             for (int i = 0; i < uri.length(); i++) {
@@ -244,7 +251,24 @@ public final class Mapper {
                 node = node.map[index];
             }
             
-            node.mappedWrapper = new MappedWrapper(uri.toString(), wrapper);            
+            node.mappedWrapper = new MappedWrapper(uri, wrapper);            
+        }
+
+        public void addMappedWrapper(MappedWrapper wrapper) {
+            Node node = root;
+            
+            for (char ch : wrapper.name.toCharArray()) {
+                if (ch == '/') {
+                    continue;
+                }
+                int index = ch - 'a';
+                if (node.map[index] == null) {
+                    node.map[index] = new Node();
+                }
+                node = node.map[index];
+            }
+
+            node.mappedWrapper = wrapper;
         }
 
 
@@ -304,6 +328,31 @@ public final class Mapper {
             
             return res;            
         }
+
+        public MappedWrapper getMappedWrapper(String uri) {
+            Node node = root;
+            Node prev = node;
+            MappedWrapper res = null;
+            
+            for (int i = uri.charAt(0) == '/' ? 1 : 0; i < uri.length(); i++) {
+                if (uri.charAt(i) == '/' && prev.mappedWrapper != null) {
+                    res = prev.mappedWrapper;
+                }
+
+                int index = uri.charAt(i) - 'a';
+                if (node.map[index] == null) {
+                    return res;
+                }
+                prev = node;
+                node = node.map[index];
+            }
+
+            if (uri.charAt(uri.length() - 1) != '/' && prev.mappedWrapper != null) {
+                res = prev.mappedWrapper;
+            }
+
+            return res;
+        }
         
         public void recycle() {
             root = new Node();
@@ -330,30 +379,191 @@ public final class Mapper {
      * @param aliases 别名
      * @param host host容器
      */
-    public synchronized void addHost(String name, String aliases, Host host) {
-        // TODO
+    public synchronized void addHost(String name, String[] aliases, Host host) {
+        MappedHost mappedHost = new MappedHost(name, host);
+        MappedHost[] newHosts = new MappedHost[hosts.length + 1];
+        if (insertMap(hosts, newHosts, mappedHost)) {
+            hosts = newHosts;
+            if (mappedHost.name.equals(defaultHostName)) {
+                defaultHost = mappedHost;
+            }
+        } else {
+            // 插入失败，已经有这个名字的Host映射了看相同名字的
+            // Host映射实例是否相等，如果不等，则直接返回，否则
+            // 为此容器添加新的别名
+            int i = find(hosts, name);
+            if (i >= 0) {
+                mappedHost = hosts[i]; 
+            } else {
+                return;
+            }
+        } 
+        
+        // 添加别名
+        Collection<MappedHost> list = new ArrayList<>(aliases.length);
+        for (String alias : aliases) {
+            // 判断此别名是否存在
+            MappedHost aliasMappedHost = new MappedHost(alias, mappedHost);
+            if (addHostAliasImpl(aliasMappedHost)) {
+                list.add(aliasMappedHost);
+            }
+        }
+        
+        mappedHost.addAliases(list);
     }
 
 
     /**
-     * 删除Host容器
+     * 给容器映射添加别名
      * 
-     * @param name 传入的Host名
-     * @param isAliases 是否是别名
+     * @param mappedHost 别名Host容器映射
+     * @return 如果返回<b>true</b>，则表示添加成功
      */
-    public synchronized void removeHost(String name, boolean isAliases) {
-        // TODO
+    public synchronized boolean addHostAliasImpl(MappedHost mappedHost) {
+        MappedHost[] newMappedHosts = new MappedHost[hosts.length + 1];
+        
+        if (insertMap(hosts, newMappedHosts, mappedHost)) {
+            if (mappedHost.name.equals(defaultHostName)) {
+                defaultHost = mappedHost;
+            }
+            return true;
+        }
+        
+        return false;
     }
 
 
+    /**
+     * 删除Host容器映射<br>
+     * 
+     * @param name 传入的Host名
+     * @param delRealHost 是否删除所有的别名容器。如果传入的name是真实容器，
+     *                    那么即使这个值为false也会删除所有别名容器
+     */
+    public synchronized boolean removeHost(String name, boolean delRealHost) {
+        MappedHost host = exactFind(hosts, name);
+        if (host == null) {
+            return false;
+        }
+        
+        MappedHost[] mappedHosts = null;
+        if (host.isAlias() && !delRealHost) {
+            mappedHosts = new MappedHost[hosts.length - 1];
+            if (removeMap(hosts, mappedHosts, host.name)) {
+                hosts = mappedHosts;
+                return true;
+            }
+            return false;
+        }
+
+        MappedHost realHost = host.isAlias() ? host.realHost : host;
+        mappedHosts = new MappedHost[hosts.length - realHost.getAliases().size() - 1];
+
+        for (int i = 0, j = 0; i < hosts.length; i++) {
+            if (hosts[i].realHost != realHost) {
+                mappedHosts[j++] = hosts[i];
+            }
+        }
+
+        hosts = mappedHosts;
+        return true;
+    }
+
+
+    /**
+     * 添加Context容器
+     * 
+     * @param hostName Context容器所属的Host主机名
+     * @param host Context所属的Host主机
+     * @param path Context的路径
+     * @param context Context容器
+     * @param resources Context的资源管理组件（内含了类加载器，JNDI容器等重要信息）
+     * @param mappedWrappers Context容器的Wrapper子容器集合
+     */
+    public void addContext(String hostName, Host host, String path, 
+                                        Context context, WebResourceRoot resources, 
+                                        Collection<MappedWrapper> mappedWrappers) {
+
+        MappedHost mappedHost = exactFind(hosts, hostName);
+        if (mappedHost == null) {
+            addHost(hostName, new String[0], host);
+            mappedHost = exactFind(hosts, hostName);
+            if (mappedHost == null) {
+                return;
+            }
+        }
+
+        int slashCount = slashCount(path);
+        MappedContext contextMapped = new MappedContext(path, context, slashCount, resources);
+        
+        synchronized (mappedHost.contextList) {
+            ContextList contextList = mappedHost.contextList.addContext(contextMapped, slashCount);
+            if (contextList == null) {
+                // 已经有一个相同path的容器映射了
+                return;
+            }
+        }
+
+        // 添加wrapper映射
+        synchronized (contextMapped) {
+            if (mappedWrappers != null) {
+                addWrappers(contextMapped, mappedWrappers);
+            }    
+        }
+    }
+    
+    
     /**
      * 取得Host容器
      * 
-     * @param name host容器名，如果正式名中没找到，就从别名中找
+     * @param name 可以是别名也可以是真实名
      * @return 返回Host容器
      */
     public synchronized MappedHost getHost(String name) {
-        return null;
+        MappedHost host = exactFind(hosts, name);
+        if (host == null) {
+            return null;
+        }
+        
+        return host.realHost;
+    }
+
+
+    /**
+     * 将批量的wrapper挂在所属的context下
+     * 
+     * @param context 所属的MappedContext
+     * @param mappedWrappers 批量wrapper映射集合
+     */
+    void addWrappers(MappedContext context, Collection<MappedWrapper> mappedWrappers) {
+        for (MappedWrapper wrapper : mappedWrappers) {
+            addWrapper(context, wrapper);
+        }
+    }
+    
+
+    /**
+     * 添加wrapper到所属的context下。底层是根据path挂在
+     * 字典树上。
+     * 
+     * @param context 所属的MappedContext
+     * @param path wrapper的path
+     * @param wrapper 需要挂上去的wrapper
+     */
+    void addWrapper(MappedContext context, String path, Wrapper wrapper) {
+        context.wrapperDictTree.addMappedWrapper(path, wrapper);
+    }
+
+
+    /**
+     * 添加wrapper到所属的context下。底层是根据path挂在
+     * 字典树上。
+     *
+     * @param context 所属的MappedContext
+     * @param wrapper 需要挂上去的MappedWrapper
+     */
+    void addWrapper(MappedContext context, MappedWrapper wrapper) {
+        context.wrapperDictTree.addMappedWrapper(wrapper);
     }
     
     
@@ -489,6 +699,60 @@ public final class Mapper {
 
     // ==================================== 数组操作 ====================================
 
+    /**
+     * 斜杠'/'计数
+     * 
+     * @param str 源字符串
+     * @return 返回统计的斜杠'/'数量
+     */
+    private static final int slashCount(String str) {
+        int pos = -1;
+        int count = 0;
+        while ((pos = str.indexOf('/', pos + 1)) != -1) {
+            count++;
+        }
+        return count;
+    }
+    
+
+    /**
+     * 精确查询
+     * 
+     * @param map 需要查询的有序集合
+     * @param name 匹配的target值
+     * @return 返回查询到的元素
+     */
+    private static final <T, E extends MapElement<T>> E exactFind(E[] map, String name) {
+        int pos = find(map, name);
+        if (pos >= 0) {
+            E result = map[pos];
+            if (name.equals(result.name)) {
+                return result;
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * 精确查询
+     *
+     * @param map 需要查询的有序集合
+     * @param name 匹配的target值
+     * @return 返回查询到的元素
+     */
+    private static final <T, E extends MapElement<T>> E exactFind(E[] map, CharChunk name) {
+        int pos = find(map, name);
+        if (pos >= 0) {
+            E result = map[pos];
+            if (name.equals(result.name)) {
+                return result;
+            }
+        }
+        return null;
+    }
+    
+    
     /**
      * @return 返回最后一个斜杠'/'的下标
      */

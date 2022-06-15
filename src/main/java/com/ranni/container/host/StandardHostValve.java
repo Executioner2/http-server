@@ -1,7 +1,7 @@
 package com.ranni.container.host;
 
-import com.ranni.connector.http.request.Request;
-import com.ranni.connector.http.response.Response;
+import com.ranni.connector.Request;
+import com.ranni.connector.Response;
 import com.ranni.container.Context;
 import com.ranni.container.Host;
 import com.ranni.container.pip.ValveBase;
@@ -52,19 +52,12 @@ public class StandardHostValve extends ValveBase {
      */
     @Override
     public void invoke(Request request, Response response, ValveContext valveContext) throws IOException, ServletException {
-        if (!(request instanceof HttpServletRequest) 
-            || !(response instanceof HttpServletResponse)) {
-            return;
-        }
-
         // 取得对应的Context容器
-        StandardHost host = (StandardHost) getContainer();
-        Context context = (Context) host.map(request, true);
+        Context context = request.getContext();
         
         // 没有匹配的Context容器，返回错误状态码以及错误信息
         if (context == null) {
-            ((HttpServletResponse) response.getResponse())
-                    .sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "没有找到对应的Context容器！");
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "没有找到对应的Context容器！");
             return;
         }
 

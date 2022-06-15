@@ -91,7 +91,7 @@ public class StandardWrapperValve extends ValveBase {
 
         try {
             if (!unavailable) {
-                servlet = wrapper.allocate(, );
+                servlet = wrapper.allocate();
             }
         } catch (Throwable e) {
             throwable = e;

@@ -3,8 +3,8 @@ package com.ranni.connector.processor;
 import com.ranni.connector.Connector;
 import com.ranni.connector.SocketInputStream;
 import com.ranni.connector.http.request.HttpHeader;
-import com.ranni.connector.http.request.HttpRequestLine;
 import com.ranni.connector.http.request.HttpRequestBase;
+import com.ranni.connector.http.request.HttpRequestLine;
 import com.ranni.connector.http.response.DefaultHeaders;
 import com.ranni.connector.http.response.HttpResponseBase;
 import com.ranni.container.Container;
@@ -27,6 +27,7 @@ import java.net.Socket;
  * @Email 1205878539@qq.com
  * @Date 2022-03-25 23:04
  */
+@Deprecated
 public class HttpProcessor implements Processor {
     private boolean nullRequest; // 是否是空包请求
     private boolean available = false; // 是否阻塞线程等待接收socket请求
@@ -304,7 +305,7 @@ public class HttpProcessor implements Processor {
             parseHeaders(input); // 对请求头进行解析
 
             // 进入容器
-            container.invoke(request, response);
+//            container.invoke(request, response);
 
             // 完成请求
             response.finishResponse();
