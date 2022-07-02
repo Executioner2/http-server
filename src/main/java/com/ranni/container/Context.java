@@ -1142,9 +1142,31 @@ public interface Context extends Container, ContextBind {
 
 
     /**
-     * @return 返回请求体的默认编码格式
+     * 设置容器的默认请求包编码格式
+     *
+     * @param encoding 默认的请求包编码格式
+     */
+    void setRequestCharacterEncoding(String encoding);
+
+    
+    /**
+     * @return 返回请求包的默认编码格式
      */
     String getRequestCharacterEncoding();
+
+
+    /**
+     * @return 返回响应包的默认编码格式
+     */
+    String getResponseCharacterEncoding();
+    
+    
+    /**
+     * 设置容器的默认响应包编码格式
+     * 
+     * @param encoding 默认的响应包编码格式
+     */
+    void setResponseCharacterEncoding(String encoding);
 
 
     /**
@@ -1165,6 +1187,35 @@ public interface Context extends Container, ContextBind {
      * @return 如果返回<b>true</b>，则表示容器处于暂停状态
      */
     boolean getPaused();
+
+
+    /**
+     * 设置是否支持相对重定向标志位
+     * 
+     * @param useRelativeRedirects 是否支持相对重定向
+     */
+    void setUseRelativeRedirects(boolean useRelativeRedirects);
+    
+    
+    /**
+     * @return 如果返回<b>true</b>，则表示容器支持相对向
+     */
+    boolean getUseRelativeRedirects();
+
+
+    /**
+     * 客户端进行重定向时是否包含响应体内容
+     * 
+     * @param enable 如果为<b>true</b>，则表示允许重定向携带响应体内容
+     */
+    void setSendRedirectBody(boolean enable);
+    
+
+    /**
+     * 
+     * @return 如果返回<b>true</b>，则表示响应体内容也会作为重定向的一部分
+     */
+    boolean getSendRedirectBody();
 
 
     /**

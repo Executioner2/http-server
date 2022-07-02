@@ -562,6 +562,11 @@ public class StandardSession implements Session, HttpSession, Serializable {
     public void endAccess() {
         
     }
+
+    @Override
+    public String getIdInternal() {
+        return this.id;
+    }
 }
 
 

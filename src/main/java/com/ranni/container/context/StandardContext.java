@@ -85,6 +85,26 @@ public class StandardContext extends ContainerBase implements Context {
     protected boolean filesystemBased; // 关联的目录容器是否是文件类型的目录容器
     protected boolean createUploadTargets; // 是否新建不存在的上传目标
 
+    /**
+     * 使用相对重定向
+     */
+    private boolean useRelativeRedirects = !Globals.STRICT_SERVLET_COMPLIANCE;;
+
+    /**
+     * 重定向内容是否包含响应体内容
+     */
+    private boolean sendRedirectBody;
+
+    /**
+     * 响应编码方式
+     */
+    private String responseEncoding;
+
+    /**
+     * 请求编码方式
+     */
+    private String requestEncoding;
+
 
     public StandardContext() {
         pipeline.setBasic(new StandardContextValve(this));
@@ -151,7 +171,7 @@ public class StandardContext extends ContainerBase implements Context {
         if (started)
             postWorkDirectory();
     }
-
+    
     public boolean isSwallowOutput() {
         return swallowOutput;
     }
@@ -159,6 +179,48 @@ public class StandardContext extends ContainerBase implements Context {
     public void setSwallowOutput(boolean swallowOutput) {
         this.swallowOutput = swallowOutput;
     }
+
+
+    /**
+     * 设置是否支持相对重定向标志位
+     *
+     * @param useRelativeRedirects 是否支持相对重定向
+     */
+    @Override
+    public void setUseRelativeRedirects(boolean useRelativeRedirects) {
+        this.useRelativeRedirects = useRelativeRedirects;
+    }
+    
+    
+    /**
+     * 
+     * @return 如果返回<b>true</b>，则表示容器支持相对重定向
+     */
+    @Override
+    public boolean getUseRelativeRedirects() {
+        return useRelativeRedirects;
+    }
+
+
+    /**
+     * 客户端进行重定向时是否包含响应体内容
+     * 
+     * @param enable 如果为<b>true</b>，则表示允许重定向携带响应体内容
+     */
+    @Override
+    public void setSendRedirectBody(boolean enable) {
+        this.sendRedirectBody = enable;
+    }
+    
+
+    /**
+     * @return 如果返回<b>true</b>，则表示响应体内容也会作为重定向的一部分
+     */
+    @Override
+    public boolean getSendRedirectBody() {
+        return sendRedirectBody;
+    }
+    
 
     /**
      * 是否开始接收请求
@@ -1441,13 +1503,52 @@ public class StandardContext extends ContainerBase implements Context {
     
 
     /**
-     * @return 返回请求体的默认编码格式
+     * @return 返回请求包的默认编码格式
      */
     @Override
     public String getRequestCharacterEncoding() {
-        return null;
+        return requestEncoding;
     }
 
+
+    /**
+     * 设置容器的默认请求包编码格式
+     *
+     * @param encoding 默认的请求包编码格式
+     */
+    @Override
+    public void setRequestCharacterEncoding(String encoding) {
+        this.requestEncoding = encoding;
+    }
+
+
+    /**
+     * @return 返回响应包的默认编码格式
+     */
+    @Override
+    public String getResponseCharacterEncoding() {
+        return responseEncoding;
+    }
+    
+
+    /**
+     * 设置容器的默认响应包编码格式
+     * 
+     * @param encoding 默认的响应包编码格式
+     */
+    @Override
+    public void setResponseCharacterEncoding(String encoding) {
+        if (responseEncoding == null) {
+            this.responseEncoding = null;
+        } else {
+            this.responseEncoding = encoding;
+        }
+    }
+
+    /**
+     * 
+     * @return
+     */
     @Override
     public boolean getUseHttpOnly() {
         return false;

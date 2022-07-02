@@ -956,6 +956,26 @@ public abstract class SocketWrapperBase<E> {
         }
     }
 
+    /**
+     * 写入到socket缓冲处理器的写入缓冲区中。如果socket缓冲处理器的写入缓
+     * 冲区满了，会自动写入到内核层socket的写入缓冲区中
+     *
+     * @param block 是否阻塞
+     * @param from 要写入的数据
+     * @throws IOException 可能抛出I/O异常
+     */
+    public final void write(boolean block, ByteBuffer from) throws IOException {
+        if (from == null || from.remaining() == 0) {
+            return;
+        }
+
+        if (block) {
+            writeBlocking(from);
+        } else {
+            writeNonBlocking(from);
+        }
+    }
+
 
     /**
      * 阻塞式写入到socket缓冲处理器的写入缓冲区（非socket缓冲区，socket缓冲处理器是在应用层上的缓冲区。
@@ -1100,7 +1120,9 @@ public abstract class SocketWrapperBase<E> {
      * 将缓冲区中的数据尽可能的写入到socket写入缓冲区中
      * 
      * @param block 如果为<b>true</b>，则表示阻塞式写入，否则反之
-     * @return 如果为<b>true</b>，缓冲区的数据全部写完了，否则反之。阻塞式flush永远为false
+     *              
+     * @return 如果为<b>true</b>，则表示缓冲区还有数据可写，否则反之。阻塞式flush永远为false
+     * 
      * @throws IOException 可能抛出I/O异常
      */
     public boolean flush(boolean block) throws IOException {

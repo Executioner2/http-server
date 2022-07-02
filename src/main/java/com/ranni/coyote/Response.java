@@ -4,6 +4,7 @@ import com.ranni.util.http.MimeHeaders;
 
 import javax.servlet.WriteListener;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
@@ -19,8 +20,10 @@ import java.nio.charset.Charset;
  * @Date 2022/5/23 20:07
  */
 public final class Response {
-    
-    
+
+
+    private String contentType;
+
     public void doWrite(ByteBuffer buf) throws IOException {
     }
 
@@ -102,9 +105,77 @@ public final class Response {
         
     }
 
-    public void setHeader(String allow, String toString) {
+    public void setHeader(String name, String value) {
     }
 
-    public void addHeader(String allow, String header) {
+    public void addHeader(String name, String value) {
+    }
+
+    public void addHeader(String name, String value, Charset charset) {
+    }
+
+    public void setHook(AbstractProcessor abstractProcessor) {
+    }
+
+    public void recycle() {
+    }
+
+    public void setCommitted(boolean b) {
+    }
+
+    public boolean isError() {
+        return false;
+    }
+
+
+    /**
+     * @return 
+     */
+    public boolean setError() {
+        return false;
+    }
+
+    public boolean isErrorReportRequired() {
+        return false;
+    }
+
+    public boolean setErrorReported() {
+        return false;
+    }
+
+    public int getContentLength() {
+        return 0;
+    }
+
+    public void setStatus(int sc) {
+        
+    }
+
+    public void setMessage(String msg) {
+        
+    }
+
+    public void setContentType(String type) {
+        if (type == null) {
+            this.contentType = null;
+            return;
+        }
+    }
+
+    public void setCharacterEncoding(String characterEncoding) throws UnsupportedEncodingException {
+        if (isCommitted()) {
+            return;
+        }
+        
+        if (characterEncoding == null) {
+            
+        }
+    }
+
+    public void setContentTypeNoCharset(String type) {
+    }
+
+    public String getMessage() {
+        return null;
     }
 }

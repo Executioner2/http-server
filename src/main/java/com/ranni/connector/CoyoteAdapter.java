@@ -126,6 +126,7 @@ public class CoyoteAdapter implements Adapter {
             // 解析部分请求参数设置处理请求的容器
             postParseSuccess = postParseRequest(req, request, res, response);
             if (postParseSuccess) {
+                // 交给容器
                 connector.getService().getContainer().invoke(request, response);
             }
             
@@ -255,7 +256,6 @@ public class CoyoteAdapter implements Adapter {
         }
 
 
-        Context versionContext = null;
         boolean mapRequired = true;
         
         if (response.isError()) {

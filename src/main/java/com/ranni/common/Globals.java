@@ -30,7 +30,8 @@ public final class Globals {
     public static final String STREAM_ID = "com.ranni.coyote.streamID";
 
     public static final String CONNECTION_ID = "com.ranni.coyote.connectionID";
-    
+
+    public static final boolean STRICT_SERVLET_COMPLIANCE = Boolean.parseBoolean(System.getProperty("com.ranni.STRICT_SERVLET_COMPLIANCE", "false"));;
     
     public static final String SENDFILE_SUPPORTED_ATTR = "com.ranni.sendfile.support";
     
@@ -57,4 +58,5 @@ public final class Globals {
     
     // webapp的controller类们
     public static final String APPLICATION_CONTROLLER_CLASSES = "application_controller_classes";
+    
 }

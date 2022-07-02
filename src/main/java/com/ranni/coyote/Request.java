@@ -564,7 +564,22 @@ public final class Request {
         return contentTypeMB.toString();
     }
 
-
+    public void setResponse(Response response) {
+        this.coyoteResponse = response;
+    }
+    
+    public Response getResponse() {
+        return coyoteResponse;
+    }
+    
+    public void setHook(ActionHook hook) {
+        this.hook = hook;
+    }
+    
+    public ActionHook getHook() {
+        return hook;
+    }
+    
     public void setContentType(MessageBytes mb) {
         contentTypeMB = mb;
     }

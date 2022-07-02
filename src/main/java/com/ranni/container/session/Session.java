@@ -251,4 +251,10 @@ public interface Session {
      * 结束session的访问
      */
     void endAccess();
+
+
+    /**
+     * @return 返回此session的内部id
+     */
+    String getIdInternal();
 }

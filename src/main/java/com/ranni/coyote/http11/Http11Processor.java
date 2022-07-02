@@ -1,7 +1,7 @@
 package com.ranni.coyote.http11;
 
-import com.ranni.coyote.AbstractProcessor;
-import com.ranni.coyote.Adapter;
+import com.ranni.coyote.*;
+import com.ranni.util.buf.ByteChunk;
 import com.ranni.util.net.AbstractEndpoint.Handler.SocketState;
 import com.ranni.util.net.SocketWrapperBase;
 
@@ -16,7 +16,72 @@ import java.io.IOException;
  * @Date 2022/6/12 20:06
  */
 public class Http11Processor extends AbstractProcessor {
-    public <S> Http11Processor(AbstractHttp11Protocol<S> sAbstractHttp11Protocol, Adapter adapter) {
+    private final AbstractProtocol<?> protocol;
+
+    private final Http11InputBuffer inputBuffer;
+    private final Http11OutputBuffer outputBuffer;
+    
+    public Http11Processor(AbstractProtocol<?> protocol, Adapter adapter) {
+        super(adapter);
+        this.protocol = protocol;
+    
+    }
+    
+
+
+    @Override
+    protected void prepareResponse() throws IOException {
+        
+    }
+
+    @Override
+    protected void finishResponse() throws IOException {
+
+    }
+
+    @Override
+    protected void ack(ContinueResponseTiming continueResponseTiming) {
+
+    }
+
+    @Override
+    protected void flush() throws IOException {
+
+    }
+
+    @Override
+    protected int available(boolean doRead) {
+        return 0;
+    }
+
+    @Override
+    protected void setRequestBody(ByteChunk body) {
+
+    }
+
+    @Override
+    protected void setSwallowResponse() {
+
+    }
+
+    @Override
+    protected void disableSwallowRequest() {
+
+    }
+
+    @Override
+    protected boolean isRequestBodyFullyRead() {
+        return false;
+    }
+
+    @Override
+    protected void registerReadInterest() {
+
+    }
+
+    @Override
+    protected boolean isReadyForWrite() {
+        return false;
     }
 
 

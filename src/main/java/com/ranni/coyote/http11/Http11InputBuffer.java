@@ -698,7 +698,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
      * @return 返回请求头解析状态 {@link HeaderParseStatus}
      * @throws IOException 可能抛出I/O异常
      */
-    private HeaderParseStatus parseHeader() throws IOException {
+    private HeaderParseStatus  parseHeader() throws IOException {
         
         // 开始解析标头，检查是否是空白行（请求头与请求体之间做分隔的空白块）
         while (headerParsePos == HeaderParsePosition.HEADER_START) {

@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  * Title: HttpServer
  * Description:
- * 输入缓冲区
+ * 输出缓冲区
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -512,7 +512,7 @@ public class OutputBuffer extends Writer {
     /**
      * 清空缓冲区
      * 
-     * @param resetWriterStreamFlags 是否对实例属性进行重置
+     * @param resetWriterStreamFlags 是否对C2B转换器进行重置
      */
     public void reset(boolean resetWriterStreamFlags) {
         clear(bb);

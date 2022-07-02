@@ -44,6 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Request implements HttpServletRequest {
 
     private static final String HTTP_UPGRADE_HEADER_NAME = "upgrade";
+    
 
     /**
      * 与此请求关联的连接器
@@ -861,6 +862,11 @@ public class Request implements HttpServletRequest {
         }
         
         return session.getSession();
+    }
+
+    
+    public Session getSessionInternal() {
+        return doGetSession(true);
     }
     
 
@@ -2164,5 +2170,23 @@ public class Request implements HttpServletRequest {
     public boolean isAsync() {
         return false;
     }
-    
+
+
+    /**
+     * @return 返回解码后的请求URI
+     */
+    public String getDecodedRequestURI() {
+        return coyoteRequest.decodedURI().toString();
+    }
+
+
+    /**
+     * 返回session
+     * 
+     * @param b 如果不存在，是否新建session
+     * @return 返回此请求关联的session
+     */
+    public Session getSessionInternal(boolean b) {
+        return doGetSession(b);
+    }
 }

@@ -29,347 +29,347 @@ public class RequestFacade implements HttpServletRequest {
 
     @Override
     public String getAuthType() {
-        return null;
+        return request.getAuthType();
     }
 
     @Override
     public Cookie[] getCookies() {
-        return new Cookie[0];
+        return request.getCookies();
     }
 
     @Override
     public long getDateHeader(String name) {
-        return 0;
+        return request.getDateHeader(name);
     }
 
     @Override
     public String getHeader(String name) {
-        return null;
+        return request.getHeader(name);
     }
 
     @Override
     public Enumeration<String> getHeaders(String name) {
-        return null;
+        return request.getHeaders(name);
     }
 
     @Override
     public Enumeration<String> getHeaderNames() {
-        return null;
+        return request.getHeaderNames();
     }
 
     @Override
     public int getIntHeader(String name) {
-        return 0;
+        return request.getIntHeader(name);
     }
 
     @Override
     public String getMethod() {
-        return null;
+        return request.getMethod();
     }
 
     @Override
     public String getPathInfo() {
-        return null;
+        return request.getPathInfo();
     }
 
     @Override
     public String getPathTranslated() {
-        return null;
+        return request.getPathTranslated();
     }
 
     @Override
     public String getContextPath() {
-        return null;
+        return request.getContextPath();
     }
 
     @Override
     public String getQueryString() {
-        return null;
+        return request.getQueryString();
     }
 
     @Override
     public String getRemoteUser() {
-        return null;
+        return request.getRemoteUser();
     }
 
     @Override
     public boolean isUserInRole(String role) {
-        return false;
+        return request.isUserInRole(role);
     }
 
     @Override
     public Principal getUserPrincipal() {
-        return null;
+        return request.getUserPrincipal();
     }
 
     @Override
     public String getRequestedSessionId() {
-        return null;
+        return request.getRequestedSessionId();
     }
 
     @Override
     public String getRequestURI() {
-        return null;
+        return request.getRequestURI();
     }
 
     @Override
     public StringBuffer getRequestURL() {
-        return null;
+        return request.getRequestURL();
     }
 
     @Override
     public String getServletPath() {
-        return null;
+        return request.getServletPath();
     }
 
     @Override
     public HttpSession getSession(boolean create) {
-        return null;
+        return request.getSession(create);
     }
 
     @Override
     public HttpSession getSession() {
-        return null;
+        return request.getSession();
     }
 
     @Override
     public String changeSessionId() {
-        return null;
+        return request.changeSessionId();
     }
 
     @Override
     public boolean isRequestedSessionIdValid() {
-        return false;
+        return request.isRequestedSessionIdValid();
     }
 
     @Override
     public boolean isRequestedSessionIdFromCookie() {
-        return false;
+        return request.isRequestedSessionIdFromCookie();
     }
 
     @Override
     public boolean isRequestedSessionIdFromURL() {
-        return false;
+        return request.isRequestedSessionIdFromURL();
     }
 
     @Override
     public boolean isRequestedSessionIdFromUrl() {
-        return false;
+        return request.isRequestedSessionIdFromUrl();
     }
 
     @Override
     public boolean authenticate(HttpServletResponse response) throws IOException, ServletException {
-        return false;
+        return request.authenticate(response);
     }
 
     @Override
     public void login(String username, String password) throws ServletException {
-
+        request.login(username, password);
     }
 
     @Override
     public void logout() throws ServletException {
-
+        request.logout();
     }
 
     @Override
     public Collection<Part> getParts() throws IOException, ServletException {
-        return null;
+        return request.getParts();
     }
 
     @Override
     public Part getPart(String name) throws IOException, ServletException {
-        return null;
+        return request.getPart(name);
     }
 
     @Override
     public <T extends HttpUpgradeHandler> T upgrade(Class<T> handlerClass) throws IOException, ServletException {
-        return null;
+        return request.upgrade(handlerClass);
     }
 
     @Override
     public Object getAttribute(String name) {
-        return null;
+        return request.getAttribute(name);
     }
 
     @Override
     public Enumeration<String> getAttributeNames() {
-        return null;
+        return request.getAttributeNames();
     }
 
     @Override
     public String getCharacterEncoding() {
-        return null;
+        return request.getCharacterEncoding();
     }
 
     @Override
     public void setCharacterEncoding(String env) throws UnsupportedEncodingException {
-
+        request.setCharacterEncoding(env);
     }
 
     @Override
     public int getContentLength() {
-        return 0;
+        return request.getContentLength();
     }
 
     @Override
     public long getContentLengthLong() {
-        return 0;
+        return request.getContentLengthLong();
     }
 
     @Override
     public String getContentType() {
-        return null;
+        return request.getContentType();
     }
 
     @Override
     public ServletInputStream getInputStream() throws IOException {
-        return null;
+        return request.getInputStream();
     }
 
     @Override
     public String getParameter(String name) {
-        return null;
+        return request.getParameter(name);
     }
 
     @Override
     public Enumeration<String> getParameterNames() {
-        return null;
+        return request.getParameterNames();
     }
 
     @Override
     public String[] getParameterValues(String name) {
-        return new String[0];
+        return request.getParameterValues(name);
     }
 
     @Override
     public Map<String, String[]> getParameterMap() {
-        return null;
+        return request.getParameterMap();
     }
 
     @Override
     public String getProtocol() {
-        return null;
+        return request.getProtocol();
     }
 
     @Override
     public String getScheme() {
-        return null;
+        return request.getScheme();
     }
 
     @Override
     public String getServerName() {
-        return null;
+        return request.getServerName();
     }
 
     @Override
     public int getServerPort() {
-        return 0;
+        return request.getServerPort();
     }
 
     @Override
     public BufferedReader getReader() throws IOException {
-        return null;
+        return request.getReader();
     }
 
     @Override
     public String getRemoteAddr() {
-        return null;
+        return request.getRemoteAddr();
     }
 
     @Override
     public String getRemoteHost() {
-        return null;
+        return request.getRemoteHost();
     }
 
     @Override
     public void setAttribute(String name, Object o) {
-
+        request.setAttribute(name, o);
     }
 
     @Override
     public void removeAttribute(String name) {
-
+        request.removeAttribute(name);
     }
 
     @Override
     public Locale getLocale() {
-        return null;
+        return request.getLocale();
     }
 
     @Override
     public Enumeration<Locale> getLocales() {
-        return null;
+        return request.getLocales();
     }
 
     @Override
     public boolean isSecure() {
-        return false;
+        return request.isSecure();
     }
 
     @Override
     public RequestDispatcher getRequestDispatcher(String path) {
-        return null;
+        return request.getRequestDispatcher(path);
     }
 
     @Override
     public String getRealPath(String path) {
-        return null;
+        return request.getRealPath(path);
     }
 
     @Override
     public int getRemotePort() {
-        return 0;
+        return request.getRemotePort();
     }
 
     @Override
     public String getLocalName() {
-        return null;
+        return request.getLocalName();
     }
 
     @Override
     public String getLocalAddr() {
-        return null;
+        return request.getLocalAddr();
     }
 
     @Override
     public int getLocalPort() {
-        return 0;
+        return request.getLocalPort();
     }
 
     @Override
     public ServletContext getServletContext() {
-        return null;
+        return request.getServletContext();
     }
 
     @Override
     public AsyncContext startAsync() throws IllegalStateException {
-        return null;
+        return request.startAsync();
     }
 
     @Override
     public AsyncContext startAsync(ServletRequest servletRequest, ServletResponse servletResponse) throws IllegalStateException {
-        return null;
+        return request.startAsync(servletRequest, servletResponse);
     }
 
     @Override
     public boolean isAsyncStarted() {
-        return false;
+        return request.isAsyncStarted();
     }
 
     @Override
     public boolean isAsyncSupported() {
-        return false;
+        return request.isAsyncSupported();
     }
 
     @Override
     public AsyncContext getAsyncContext() {
-        return null;
+        return request.getAsyncContext();
     }
 
     @Override
     public DispatcherType getDispatcherType() {
-        return null;
+        return request.getDispatcherType();
     }
 
     public void clear() {

@@ -360,7 +360,7 @@ public class Connector implements Runnable, Lifecycle {
      * @return
      */
     public Response createResponse() {
-        Response response = new Response(this);
+        Response response = new Response();
         return response;
     }
     

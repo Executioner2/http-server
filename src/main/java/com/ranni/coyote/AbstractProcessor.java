@@ -1,5 +1,6 @@
 package com.ranni.coyote;
 
+import com.ranni.util.buf.ByteChunk;
 import com.ranni.util.net.AbstractEndpoint.Handler.SocketState;
 import com.ranni.util.net.DispatchType;
 import com.ranni.util.net.SocketEvent;
@@ -18,8 +19,53 @@ import java.util.Iterator;
  * @Date 2022/6/12 20:07
  * @Ref org.apache.coyote.AbstractProcessor
  */
-public abstract class AbstractProcessor implements Processor  {
+public abstract class AbstractProcessor implements Processor, ActionHook {
 
+    // ==================================== 属性字段 ====================================
+    
+    protected final Adapter adapter;
+    protected final Request request;
+    protected final Response response;
+    protected volatile SocketWrapperBase<?> socketWrapper = null;
+
+
+    // ==================================== 构造方法 ====================================
+
+    public AbstractProcessor(Adapter adapter) {
+        this(adapter, new Request(), new Response());
+    }
+    
+    public AbstractProcessor(Adapter adapter, Request request, Response response) {
+        this.adapter = adapter;
+        this.request = request;
+        this.response = response;
+        this.request.setHook(this);
+        this.response.setHook(this);
+        this.request.setResponse(response);
+    }
+
+
+    // ==================================== 响应的抽象方法 ====================================
+    
+    protected abstract void prepareResponse() throws IOException;
+    protected abstract void finishResponse() throws IOException;
+    protected abstract void ack(ContinueResponseTiming continueResponseTiming);
+    protected abstract void flush() throws IOException;
+    protected abstract int available(boolean doRead);
+    protected abstract void setRequestBody(ByteChunk body);
+    protected abstract void setSwallowResponse();
+    protected abstract void disableSwallowRequest();
+
+    
+    // ==================================== 抽象方法 ====================================
+    
+    protected abstract boolean isRequestBodyFullyRead();
+    protected abstract void registerReadInterest();
+    protected abstract boolean isReadyForWrite();
+    
+
+    // ==================================== 核心方法 ====================================
+    
     /**
      * 处理socket事件
      * 
@@ -88,9 +134,17 @@ public abstract class AbstractProcessor implements Processor  {
 
     }
 
+    public final SocketWrapperBase<?> getSocketWrapper() {
+        return socketWrapper;
+    }
+
+    public Adapter getAdapter() {
+        return adapter;
+    }
+
     @Override
     public Request getRequest() {
-        return null;
+        return request;
     }
 
     @Override
@@ -146,5 +200,17 @@ public abstract class AbstractProcessor implements Processor  {
     @Override
     public SocketState asyncPostProcess() {
         return null;
+    }
+
+
+    /**
+     * 钩子方法
+     * 
+     * @param actionCode 动作代码
+     * @param param 携带参数
+     */
+    @Override
+    public void action(ActionCode actionCode, Object param) {
+        
     }
 }
