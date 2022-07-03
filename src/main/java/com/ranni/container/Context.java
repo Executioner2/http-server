@@ -7,6 +7,7 @@ import com.ranni.util.http.CookieProcessor;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Locale;
 
 /**
  * Title: HttpServer
@@ -1216,6 +1217,15 @@ public interface Context extends Container, ContextBind {
      * @return 如果返回<b>true</b>，则表示响应体内容也会作为重定向的一部分
      */
     boolean getSendRedirectBody();
+
+
+    /**
+     * 根据传入的语言环境返回容器处理请求/响应的编码
+     * 
+     * @param loc 传入的语言环境
+     * @return 返回处理这种语言环境的编码            
+     */
+    String getCharset(Locale loc);
 
 
     /**

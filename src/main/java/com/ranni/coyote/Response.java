@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Locale;
 
 /**
  * Title: HttpServer
@@ -42,7 +43,7 @@ public final class Response {
         return null;
     }
 
-    public void setContentLength(int length) {
+    public void setContentLength(long length) {
         
     }
 
@@ -176,6 +177,16 @@ public final class Response {
     }
 
     public String getMessage() {
+        return null;
+    }
+
+    public void reset() {
+    }
+
+    public void setLocale(Locale loc) {
+    }
+
+    public Locale getLocale() {
         return null;
     }
 }

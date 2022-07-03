@@ -39,6 +39,17 @@ public class Response implements HttpServletResponse {
     // ==================================== 基本属性字段 ====================================
 
     /**
+     * 响应体编码
+     */
+    private static final boolean ENFORCE_ENCODING_IN_GET_WRITER;
+
+    static {
+        ENFORCE_ENCODING_IN_GET_WRITER = Boolean.parseBoolean(
+                System.getProperty("com.ranni.connector.Response.ENFORCE_ENCODING_IN_GET_WRITER",
+                        "true"));
+    }
+
+    /**
      * 媒体类型缓存
      */
     private static final MediaTypeCache MEDIA_TYPE_CACHE = new MediaTypeCache(100);
@@ -1127,34 +1138,114 @@ public class Response implements HttpServletResponse {
         return res;
     }
 
+
+    /**
+     * @return 返回响应体类型
+     */
     @Override
     public String getContentType() {
-        return null;
+        return getCoyoteResponse().getContentType();
     }
 
+
+    /**
+     * 以ServletOutputStream的方式使用输出缓冲区{@link #outputBuffer}。
+     * 
+     * @return 返回一个servlet输出流
+     * @throws IOException 可能抛出I/O异常
+     * @throws IllegalStateException 如果输出缓冲区以PrintWriter方式使用了，则抛出此异常
+     */
     @Override
     public ServletOutputStream getOutputStream() throws IOException {
-        return null;
+        if (usingWriter) {
+            throw new IllegalStateException("coyoteResponse.getOutputStream.ise");
+        }
+        
+        usingOutputStream = true;
+        if (outputStream == null) {
+            outputStream = new CoyoteOutputStream(outputBuffer);
+        }
+        return outputStream;
     }
 
+
+    /**
+     * 以PrintWriter的方式使用输出缓冲区{@link #outputBuffer}。
+     * 
+     * @return 返回一个PrintWriter实例
+     * @throws IOException 可能抛出I/O异常
+     * @throws IllegalStateException 如果输出缓冲区以ServletOutputStream方式使用了，则抛出此异常
+     */
     @Override
     public PrintWriter getWriter() throws IOException {
-        return null;
+        if (usingOutputStream) {
+            throw new IllegalStateException("coyoteResponse.getOutputStream.ise");
+        }
+        
+        // 设置编码
+        if (ENFORCE_ENCODING_IN_GET_WRITER) {
+            setCharacterEncoding(getCharacterEncoding());
+        }
+
+        usingWriter = true;
+        outputBuffer.checkConverter();
+        if (writer == null) {
+            writer = new CoyoteWriter(outputBuffer);
+        }
+        return writer;
     }
 
+
+    /**
+     * 设置响应体的编码方式
+     * 
+     * @param charset 编码方式
+     */
     @Override
     public void setCharacterEncoding(String charset) {
+        if (isCommitted()) {
+            return;
+        }
+        
+        if (usingWriter) {
+            // 已经设置过了
+            return;            
+        }
+        
+        try {
+            getCoyoteResponse().setCharacterEncoding(charset);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return;
+        }
 
+        isCharacterEncodingSet = (charset != null);
     }
 
+
+    /**
+     * 设置响应体长度
+     * 
+     * @param len 响应体长度
+     */
     @Override
     public void setContentLength(int len) {
-
+        setContentLengthLong(len);
     }
 
+
+    /**
+     * 设置响应体长度
+     * 
+     * @param len 响应体长度
+     */
     @Override
     public void setContentLengthLong(long len) {
-
+        if (isCommitted()) {
+            return;
+        }
+        
+        getCoyoteResponse().setContentLength(len);
     }
 
 
@@ -1197,14 +1288,29 @@ public class Response implements HttpServletResponse {
         }
     }
 
+
+    /**
+     * 设置缓冲区大小
+     * 
+     * @param size 缓冲区大小
+     * @exception IllegalStateException 缓冲区已被使用了或者响应已经提交了，便会抛出此异常
+     */
     @Override
     public void setBufferSize(int size) {
-
+        if (!outputBuffer.isNew() || isCommitted()) {
+            throw new IllegalStateException("coyoteResponse.setBufferSize.ise");
+        }
+        
+        outputBuffer.setBufferSize(size);
     }
 
+
+    /**
+     * @return 返回缓冲区大小
+     */
     @Override
     public int getBufferSize() {
-        return 0;
+        return outputBuffer.getBufferSize();
     }
 
 
@@ -1250,25 +1356,74 @@ public class Response implements HttpServletResponse {
             isCharacterEncodingSet = false;
         }
     }
-    
 
+
+    /**
+     * @return 响应是否已经提交
+     */
     @Override
     public boolean isCommitted() {
-        return false;
+        return getCoyoteResponse().isCommitted();
     }
 
+
+    /**
+     * 重置缓冲区使用。恢复到未使用状态
+     */
     @Override
     public void reset() {
-
+        getCoyoteResponse().reset();
+        outputBuffer.reset();
+        usingWriter = false;
+        usingOutputStream = false;
+        isCharacterEncodingSet = false;
     }
 
+
+    /**
+     * 设置语言环境
+     * 
+     * @param loc 语言环境
+     */
     @Override
     public void setLocale(Locale loc) {
-
+        if (isCommitted()) {
+            return;
+        }
+        
+        getCoyoteResponse().setLocale(loc);
+        
+        if (usingWriter || isCharacterEncodingSet) {
+            return;
+        }
+        
+        if (loc == null) {
+            try {
+                getCoyoteResponse().setCharacterEncoding(null);
+            } catch (UnsupportedEncodingException e) {
+                ;
+            }
+        } else {
+            Context context = getContext();
+            if (context != null) {
+                String charset = context.getCharset(loc);
+                if (charset != null) {
+                    try {
+                        getCoyoteResponse().setCharacterEncoding(charset);
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 
+
+    /**
+     * @return 返回语言环境
+     */
     @Override
     public Locale getLocale() {
-        return null;
+        return getCoyoteResponse().getLocale();
     }
 }

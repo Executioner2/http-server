@@ -220,6 +220,18 @@ public class StandardContext extends ContainerBase implements Context {
     public boolean getSendRedirectBody() {
         return sendRedirectBody;
     }
+
+
+    /**
+     * 根据传入的语言环境返回容器处理请求/响应的编码
+     * 
+     * @param loc 传入的语言环境
+     * @return 返回处理这种语言环境的编码
+     */
+    @Override
+    public String getCharset(Locale loc) {
+        return getCharsetMapper().getCharset(loc);
+    }
     
 
     /**
