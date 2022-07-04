@@ -85,6 +85,11 @@ public final class Request {
      */
     private boolean expectation;
 
+    /**
+     * 请求包处理状态
+     */
+    private final RequestInfo reqProcessorMX = new RequestInfo(this);
+
     /* ==================================== 消息字节 start ==================================== */
 
     /**
@@ -307,6 +312,22 @@ public final class Request {
      */
     public long getBytesRead() {
         return bytesRead;
+    }
+
+    public RequestInfo getRequestProcessor() {
+        return reqProcessorMX;
+    }
+    
+    public void updateCounters() {
+        reqProcessorMX.updateCounters();
+    }
+
+
+    /**
+     * @return 如果返回<b>true</b>，则表示已经将请求交给了容器处理
+     */
+    public boolean isProcessing() {
+        return reqProcessorMX.getStage() == Constants.STAGE_SERVICE;
     }
 
     
@@ -700,6 +721,11 @@ public final class Request {
     }
     
 
+    public MessageBytes peerAddr() {
+        return peerAddrMB;
+    }
+    
+    
     public MessageBytes method() {
         return methodMB;
     }
@@ -789,7 +815,17 @@ public final class Request {
 
 
     /**
-     * @return 返回可用数据大小
+     * 设置可读数据量
+     * 
+     * @param available 可读数据量
+     */
+    public void setAvailable(int available) {
+        this.available = available;
+    }
+    
+
+    /**
+     * @return 返回可读数据量
      */
     public int getAvailable() {
         return available;
@@ -841,5 +877,5 @@ public final class Request {
             }
         }
     }
-
+    
 }

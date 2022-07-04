@@ -13,6 +13,9 @@ import java.util.Iterator;
 /**
  * Title: HttpServer
  * Description:
+ * 
+ * TODO:
+ * XXX - 钩子方法的判断不易于升级。可以考虑利用Map+反射机制
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
@@ -28,6 +31,14 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
     protected final Response response;
     protected volatile SocketWrapperBase<?> socketWrapper = null;
 
+    private char[] hostNameC = new char[0];
+
+    /**
+     * 异步超时时间
+     */
+    private volatile long asyncTimeout = -1;
+
+    private volatile long asyncTimeoutGeneration = 0;
 
     // ==================================== 构造方法 ====================================
 
@@ -204,13 +215,301 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
 
 
     /**
+     * TODO - 设置错误状态
+     * 
+     * @param errorState 错误状态码
+     * @param t 异常
+     */
+    protected void setErrorState(ErrorState errorState, Throwable t) { 
+        
+    }
+    
+
+    /**
+     * IO异常处理
+     */
+    private void handleIOException (IOException ioe) {
+        if (ioe instanceof CloseNowException) {
+            // 关闭信道，但是保持连接
+            setErrorState(ErrorState.CLOSE_NOW, ioe);
+        } else {
+            // 关闭连接以及连接内的所有信道
+            setErrorState(ErrorState.CLOSE_CONNECTION_NOW, ioe);
+        }
+    }
+    
+
+    /**
      * 钩子方法
      * 
      * @param actionCode 动作代码
      * @param param 携带参数
      */
     @Override
-    public void action(ActionCode actionCode, Object param) {
-        
-    }
+    public final void action(ActionCode actionCode, Object param) {
+        switch (actionCode) {
+            // 发送响应头
+            case COMMIT: {
+                if (!response.isCommitted()) {
+                    try {
+                        prepareResponse();
+                    } catch (IOException e) {
+                        handleIOException(e);
+                    }
+                }
+                break;
+            }
+
+            // 完成发送，关闭此条通信信道
+            case CLOSE: {
+                action(ActionCode.COMMIT, null);
+                try {
+                    finishResponse();
+                } catch (IOException e) {
+                    handleIOException(e);
+                }
+                break;
+            }
+                
+            // 对于100-continue的处理态度
+            case ACK: {
+                ack((ContinueResponseTiming) param);
+                break;
+            }
+                
+            // 刷新输出缓冲区
+            case CLIENT_FLUSH: {
+                action(ActionCode.COMMIT, null);
+                try {
+                    flush();
+                } catch (IOException e) {
+                    handleIOException(e);
+                }
+                break;
+            }
+            
+            // 设置请求实例的输入缓冲区中可读数据量。
+            // param表示是否允许在没有数据可读时非
+            // 阻塞式从socket缓冲区中读数据到请求
+            // 实例的输入缓冲区中。
+            case AVAILABLE: {
+                request.setAvailable(available(Boolean.TRUE.equals(param)));
+                break;
+            }
+            
+            // 设置请求体数据
+            case REQ_SET_BODY_REPLAY: {
+                setRequestBody((ByteChunk) param);
+                break;
+            }
+                
+            case IS_ERROR: {
+
+                break;
+            }
+                
+            case IS_IO_ALLOWED: {
+
+                break;
+            }
+                
+            case CLOSE_NOW: {
+
+                break;
+            }
+                
+            case DISABLE_SWALLOW_INPUT: {
+
+                break;
+            }
+                
+            case REQ_HOST_ADDR_ATTRIBUTE: {
+
+                break;
+            }
+                
+            case REQ_PEER_ADDR_ATTRIBUTE: {
+
+                break;
+            }
+                
+            case REQ_HOST_ATTRIBUTE: {
+
+                break;
+            }
+                
+            case REQ_LOCALPORT_ATTRIBUTE: {
+
+                break;
+            }
+                
+            case REQ_LOCAL_ADDR_ATTRIBUTE: {
+                
+                break;
+            }
+            
+            case REQ_LOCAL_NAME_ATTRIBUTE: {
+                
+                break;
+            }
+            
+            case REQ_REMOTEPORT_ATTRIBUTE: {
+                
+                break;
+            }
+            
+            case REQ_SSL_ATTRIBUTE: {
+                
+                break;
+            }
+            
+            case REQ_SSL_CERTIFICATE: {
+                
+                break;
+            }
+            
+            case ASYNC_START: {
+                
+                break;
+            }
+            
+            case ASYNC_COMPLETE: {
+                
+                break;
+            }
+            
+            case ASYNC_DISPATCH: {
+                
+                break;
+            }
+            
+            case ASYNC_DISPATCHED: {
+                
+                break;
+            }
+            
+            case ASYNC_ERROR: {
+                
+                break;
+            }
+            
+            case ASYNC_IS_ASYNC: {
+                
+                break;
+            }
+            
+            case ASYNC_IS_COMPLETING: {
+                
+                break;
+            }
+            
+            case ASYNC_IS_DISPATCHING: {
+                
+                break;
+            }
+            
+            case ASYNC_IS_ERROR: {
+                
+                break;
+            }
+            
+            case ASYNC_IS_STARTED: {
+                
+                break;
+            }
+            
+            case ASYNC_IS_TIMINGOUT: {
+                
+                break;
+            }
+            
+            case ASYNC_RUN: {
+                
+                break;
+            }
+            
+            case ASYNC_SETTIMEOUT: {
+                
+                break;
+            }
+            
+            case ASYNC_TIMEOUT: {
+                
+                break;
+            }
+            
+            case ASYNC_POST_PROCESS: {
+                
+                break;
+            }
+            
+            case REQUEST_BODY_FULLY_READ: {
+                
+                break;
+            }
+            
+            case NB_READ_INTEREST: {
+                
+                break;
+            }
+            
+            case NB_WRITE_INTEREST: {
+                
+                break;
+            }
+            
+            case DISPATCH_READ: {
+                
+                break;
+            }
+            
+            case DISPATCH_WRITE: {
+                
+                break;
+            }
+
+            case DISPATCH_EXECUTE: {
+
+                break;
+            }
+
+            case UPGRADE: {
+
+                break;
+            }
+
+            case IS_PUSH_SUPPORTED: {
+
+                break;
+            }
+
+
+            case PUSH_REQUEST: {
+
+                break;
+            }
+
+            case IS_TRAILER_FIELDS_READY: {
+
+                break;
+            }
+            
+            case IS_TRAILER_FIELDS_SUPPORTED: {
+
+                break;
+            }
+            
+            case CONNECTION_ID: {
+
+                break;
+            }
+            
+            case STREAM_ID: {
+
+                break;
+            }
+         }
+    } 
+    
+    
 }

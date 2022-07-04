@@ -430,7 +430,7 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
     // ==================================== 响应处理 ====================================
     
     /**
-     * 发送响应头
+     * 发送同意100-continue的响应头
      *
      * @throws IOException 可能抛出I/O异常
      */

@@ -20,4 +20,19 @@ public final class Constants {
     public static final boolean DEFAULT_TCP_NO_DELAY = true;
     
     public static final int MAX_NOTES = 32;
+
+    // Request states
+    public static final int STAGE_NEW = 0;
+    public static final int STAGE_PARSE = 1;
+    public static final int STAGE_PREPARE = 2;
+    public static final int STAGE_SERVICE = 3;
+    public static final int STAGE_ENDINPUT = 4;
+    public static final int STAGE_ENDOUTPUT = 5;
+    public static final int STAGE_KEEPALIVE = 6;
+    public static final int STAGE_ENDED = 7;
+
+    public static final String SENDFILE_FILE_END_ATTR = "com.ranni.sendfile.end";
+    
+    public static final String REMOTE_ADDR_ATTRIBUTE = "com.ranni.remoteAddr";
+
 }

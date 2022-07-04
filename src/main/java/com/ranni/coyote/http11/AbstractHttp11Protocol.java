@@ -9,10 +9,13 @@ import com.ranni.util.net.AbstractEndpoint;
 /**
  * Title: HttpServer
  * Description:
+ * Http1.1协议。在这个类中定义了http1.1的一些约束，例如：请求头/响应头大小限制，
+ * 请求体/响应体大小限制等。
  *
  * @Author 2Executioner
  * @Email 1205878539@qq.com
  * @Date 2022/6/11 16:02
+ * @Ref org.apache.coyote.http11.AbstractHttp11Protocol
  */
 public abstract class AbstractHttp11Protocol<S> extends AbstractProtocol<S> {
 

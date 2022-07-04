@@ -46,6 +46,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler {
     protected int processorCache = 200;
     protected Adapter adapter; // 适配器，用于ProtocolHandler和连接器之间的连接
     
+    
     // ==================================== 构造方法 ====================================
     
     public AbstractProtocol(AbstractEndpoint<S,?> endpoint) {
@@ -293,6 +294,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler {
     public void addWaitingProcessor(Processor processor) {
         waitingProcessor.add(processor);
     }
+    
 
     // ==================================== 内部类 ====================================
 
@@ -356,6 +358,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler {
                 
                 SocketState state;
                 do {
+                    // 交给处理器处理请求
                     state = processor.process(wrapper, status);
                     
                     if (state == SocketState.UPGRADING) {

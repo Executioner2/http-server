@@ -1031,8 +1031,14 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
     public int available() {
         return available(false);
     }
-    
-    
+
+
+    /**
+     * 返回输入缓冲区可读数据量
+     * 
+     * @param read 如果为<b>true</b>，则表示允许在没有数据的情况下非阻塞读取数据到输入缓冲区
+     * @return 返回输入缓冲区可读数据量 
+     */
     int available(boolean read) {
         int available;
         

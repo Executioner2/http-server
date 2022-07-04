@@ -345,7 +345,7 @@ public class Response implements HttpServletResponse {
 
 
     /**
-     * @return 如果返回<b>true</b>，则表示需要错误报告
+     * @return 如果返回<b>true</b>，则表示有错误需要报告
      */
     public boolean isErrorReportRequired() {
         return getCoyoteResponse().isErrorReportRequired();
