@@ -121,7 +121,7 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
 
 
         /**
-         * 将数据写入到
+         * 将数据写入到底层socket信道的输出缓冲区中
          * 
          * @param chunk 要写入的数据
          * @return 返回实际写入的数据量
@@ -200,7 +200,7 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
                 }
             }
             
-            // 设置此过滤器是的缓冲区处理器为数组中上一个过滤器，以形成
+            // 设置此过滤器的缓冲区处理器为数组中上一个过滤器，以形成
             // 一个以数组尾为头的过滤链
             filter.setBuffer(activeFilters[lastActiveFilter]);
         }
@@ -354,7 +354,9 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
 
 
     /**
-     * 写入数据到缓冲区
+     * 写入数据到缓冲区。这里写入的数据实际
+     * 是往响应体内写的，所以如果响应头未提
+     * 交，则需要先触发提交响应头的钩子。
      *
      * @param chunk 要写入的数据
      * @return 返回实际写入的数据量
@@ -428,6 +430,36 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
 
 
     // ==================================== 响应处理 ====================================
+
+
+    /**
+     * 发送响应状态行
+     */
+    public void sendStatus() {
+        write(Constants.HTTP_11_BYTES);
+        headerBuffer.put(Constants.SP);
+
+        int status = response.getStatus();
+        if (status == 200) {
+            write(Constants._200_BYTES);
+        } else if (status == 400) {
+            write(Constants._400_BYTES);
+        } else if (status == 404) {
+            write(Constants._404_BYTES);
+        } else {
+            write(status);
+        }
+        
+        headerBuffer.put(Constants.SP);
+        
+        // 忽略状态行中的状态信息（message部分）。Tomcat中的
+        // 引用了(RFC 7230)。说这个就是浪费字节的。并且还提到
+        // message部分可省略，但是status和message之间的空格
+        // 不应该被省略。所以上面有把SP写入到缓冲区
+        
+        headerBuffer.put(Constants.CR).put(Constants.LF);
+    }
+    
     
     /**
      * 发送同意100-continue的响应头
@@ -448,8 +480,8 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
     /**
      * 写入响应头的标头
      * 
-     * @param name 
-     * @param value
+     * @param name 标头名
+     * @param value 标头值
      */
     public void sendHeader(MessageBytes name, MessageBytes value) {
         write(name);
@@ -468,11 +500,11 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
 
 
     /**
-     * 提交响应
+     * 提交响应头
      * 
      * @throws Exception 可能抛出I/O异常
      */
-    protected void commit() throws Exception {
+    protected void commit() throws IOException {
         response.setCommitted(true);
         
         if (headerBuffer.position() > 0) {

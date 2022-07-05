@@ -12,7 +12,10 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 /**
  * Title: HttpServer
@@ -80,6 +83,8 @@ public final class Response {
     long contentLength = -1;
     private Locale locale = DEFAULT_LOCALE;
 
+    private Supplier<Map<String,String>> trailerFieldsSupplier = null;
+    
     /**
      * 写入数据量
      */
@@ -167,6 +172,7 @@ public final class Response {
         errorState.set(0);
         headers.clear();
         contentWritten = 0;
+        trailerFieldsSupplier = null;
         
         // Servlet 3.1 异步写监听
 //        listener = null;
@@ -204,7 +210,22 @@ public final class Response {
         }
     }
 
+    
+    public Supplier<Map<String, String>> getTrailerFields() {
+        return trailerFieldsSupplier;
+    }
 
+    
+    public void setTrailerFields(Supplier<Map<String, String>> supplier) {
+        AtomicBoolean trailerFieldsSupported = new AtomicBoolean(false);
+        action(ActionCode.IS_TRAILER_FIELDS_SUPPORTED, trailerFieldsSupported);
+        if (!trailerFieldsSupported.get()) {
+            throw new IllegalStateException("response.noTrailers.notSupported");
+        }
+
+        this.trailerFieldsSupplier = supplier;
+    }
+    
     // ==================================== notes ====================================
     
     public final void setNote(int pos, Object value) {
@@ -474,6 +495,14 @@ public final class Response {
 
 
     /**
+     * @return 返回语言
+     */
+    public String getContentLanguage() {
+        return contentLanguage;
+    }
+    
+
+    /**
      * @return 返回响应体正文长度
      */
     public int getContentLength() {
@@ -646,4 +675,5 @@ public final class Response {
     public long getContentWritten() {
         return contentWritten;
     }
+
 }

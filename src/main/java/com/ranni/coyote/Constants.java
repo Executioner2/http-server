@@ -33,6 +33,8 @@ public final class Constants {
 
     public static final String SENDFILE_FILE_END_ATTR = "com.ranni.sendfile.end";
     
+    public static final String SENDFILE_FILE_START_ATTR = "com.ranni.sendfile.start";
+
     public static final String REMOTE_ADDR_ATTRIBUTE = "com.ranni.remoteAddr";
 
 }

@@ -67,6 +67,21 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
     // ==================================== 内部类 ====================================
 
     /**
+     * 文件数据类
+     */
+    public static class SendfileData extends SendfileDataBase {
+        private FileChannel fchannel;
+        // 内部使用
+        private boolean doneInline = false;
+        private boolean error = false;
+
+        public SendfileData(String filename, long pos, long length) {
+            super(filename, pos, length);
+        }
+    }
+    
+    
+    /**
      * Nio2接收器。实现了CompletionHandler，用于处理连接
      */
     protected class Nio2Acceptor extends Acceptor<AsynchronousSocketChannel>
@@ -949,7 +964,19 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
             }
         }
 
+
+        @Override
+        public SendfileDataBase createSendfileData(String filename, long pos, long length) {
+            return new SendfileData(filename, pos, length);
+        }
+
         
+        @Override
+        public SendfileState processSendfile(SendfileDataBase sendfileData) {
+            return null;
+        }
+
+
         @Override
         protected void flushBlocking() throws IOException {
             checkError();

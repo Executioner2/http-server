@@ -195,10 +195,10 @@ public abstract class SocketWrapperBase<E> {
     protected abstract void populateLocalPort();
     protected abstract void doClose();
     protected abstract void doWrite(boolean block, ByteBuffer from) throws IOException;
-    
+
     /* 发送文件 */
-//    public abstract SendfileDataBase createSendfileData(String filename, long pos, long length);
-//    public abstract SendfileState processSendfile(SendfileDataBase sendfileData);
+    public abstract SendfileDataBase createSendfileData(String filename, long pos, long length);
+    public abstract SendfileState processSendfile(SendfileDataBase sendfileData);
     
     
     // ==================================== 内部类 ====================================

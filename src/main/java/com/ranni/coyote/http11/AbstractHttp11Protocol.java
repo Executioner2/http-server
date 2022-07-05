@@ -1,10 +1,11 @@
 package com.ranni.coyote.http11;
 
-import com.ranni.coyote.AbstractProtocol;
-import com.ranni.coyote.CompressionConfig;
-import com.ranni.coyote.ContinueResponseTiming;
-import com.ranni.coyote.Processor;
+import com.ranni.coyote.*;
+import com.ranni.util.buf.StringUtils;
 import com.ranni.util.net.AbstractEndpoint;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Title: HttpServer
@@ -71,7 +72,7 @@ public abstract class AbstractHttp11Protocol<S> extends AbstractProtocol<S> {
      * 是否使用keep-alive响应头
      */
     private boolean useKeepAliveResponseHeader = true;
-    public boolean isUseKeepAliveResponseHeader() {
+    public boolean getUseKeepAliveResponseHeader() {
         return useKeepAliveResponseHeader;
     }
     public void setUseKeepAliveResponseHeader(boolean useKeepAliveResponseHeader) {
@@ -109,6 +110,17 @@ public abstract class AbstractHttp11Protocol<S> extends AbstractProtocol<S> {
     }
 
 
+    /**
+     * 当类的实例中 {@link #getServer()} 为null时，
+     * 是否应该删除掉响应头中的server标头。
+     */
+    private boolean serverRemoveAppProvidedValues = false;
+    public boolean getServerRemoveAppProvidedValues() { return serverRemoveAppProvidedValues; }
+    public void setServerRemoveAppProvidedValues(boolean serverRemoveAppProvidedValues) {
+        this.serverRemoveAppProvidedValues = serverRemoveAppProvidedValues;
+    }
+    
+    
     /**
      * 是否拒绝非法请求头。
      */
@@ -204,7 +216,84 @@ public abstract class AbstractHttp11Protocol<S> extends AbstractProtocol<S> {
         this.server = server;
     }
 
-    
+
+    /**
+     * 请求体最大吞吐量
+     */
+    private int maxSwallowSize = 2 * 1024 * 1024;
+    public int getMaxSwallowSize() { return maxSwallowSize; }
+    public void setMaxSwallowSize(int maxSwallowSize) {
+        this.maxSwallowSize = maxSwallowSize;
+    }
+
+
+    /**
+     * 分块编码中的扩展信息最大大小
+     */
+    private int maxExtensionSize = 8192;
+    public int getMaxExtensionSize() { return maxExtensionSize; }
+    public void setMaxExtensionSize(int maxExtensionSize) {
+        this.maxExtensionSize = maxExtensionSize;
+    }
+
+
+    /**
+     * 尾随？标头最大大小
+     */
+    private int maxTrailerSize = 8192;
+    public int getMaxTrailerSize() { return maxTrailerSize; }
+    public void setMaxTrailerSize(int maxTrailerSize) {
+        this.maxTrailerSize = maxTrailerSize;
+    }
+
+
+    /**
+     * The names of headers that are allowed to be sent via a trailer when using
+     * chunked encoding. They are stored in lower case.
+     */
+    private Set<String> allowedTrailerHeaders =
+            Collections.newSetFromMap(new ConcurrentHashMap<>());
+    public void setAllowedTrailerHeaders(String commaSeparatedHeaders) {
+        // Jump through some hoops so we don't end up with an empty set while
+        // doing updates.
+        Set<String> toRemove = new HashSet<>(allowedTrailerHeaders);
+        if (commaSeparatedHeaders != null) {
+            String[] headers = commaSeparatedHeaders.split(",");
+            for (String header : headers) {
+                String trimmedHeader = header.trim().toLowerCase(Locale.ENGLISH);
+                if (toRemove.contains(trimmedHeader)) {
+                    toRemove.remove(trimmedHeader);
+                } else {
+                    allowedTrailerHeaders.add(trimmedHeader);
+                }
+            }
+            allowedTrailerHeaders.removeAll(toRemove);
+        }
+    }
+    protected Set<String> getAllowedTrailerHeadersInternal() {
+        return allowedTrailerHeaders;
+    }
+    public String getAllowedTrailerHeaders() {
+        // Chances of a change during execution of this line are small enough
+        // that a sync is unnecessary.
+        List<String> copy = new ArrayList<>(allowedTrailerHeaders);
+        return StringUtils.join(copy);
+    }
+    public void addAllowedTrailerHeader(String header) {
+        if (header != null) {
+            allowedTrailerHeaders.add(header.trim().toLowerCase(Locale.ENGLISH));
+        }
+    }
+    public void removeAllowedTrailerHeader(String header) {
+        if (header != null) {
+            allowedTrailerHeaders.remove(header.trim().toLowerCase(Locale.ENGLISH));
+        }
+    }
+
+    public boolean useCompression(Request request, Response response) {
+        return compressionConfig.useCompression(request, response);
+    }
+
     // ==================================== endpoint的方法 ====================================
     
     public boolean getUseSendfile() { return getEndpoint().getUseSendfile(); }
@@ -216,6 +305,5 @@ public abstract class AbstractHttp11Protocol<S> extends AbstractProtocol<S> {
     public void setMaxKeepAliveRequests(int mkar) {
         getEndpoint().setMaxKeepAliveRequests(mkar);
     }
-
 
 }

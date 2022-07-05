@@ -687,6 +687,10 @@ public final class Request {
         return true;
     }
 
+
+    public Map<String, String> getTrailerFields() {
+        return trailerFields;
+    }
     
     // ------------------------------ 消息字节 ------------------------------
     

@@ -3,7 +3,7 @@ package com.ranni.connector;
 import com.ranni.container.Context;
 import com.ranni.container.session.Session;
 import com.ranni.coyote.Constants;
-import com.ranni.util.FastHttpDateFormat;
+import com.ranni.util.http.FastHttpDateFormat;
 import com.ranni.util.SessionConfig;
 import com.ranni.util.buf.CharChunk;
 import com.ranni.util.buf.UEncoder;

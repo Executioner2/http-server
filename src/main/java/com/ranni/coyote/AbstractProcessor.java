@@ -40,6 +40,12 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
 
     private volatile long asyncTimeoutGeneration = 0;
 
+    /**
+     * 处理请求/响应的错误状态
+     */
+    private ErrorState errorState = ErrorState.NONE;
+    
+
     // ==================================== 构造方法 ====================================
 
     public AbstractProcessor(Adapter adapter) {
@@ -144,6 +150,10 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
     public void timeoutAsync(long now) {
 
     }
+    
+    protected void setSocketWrapper(SocketWrapperBase<?> socketWrapper) {
+        this.socketWrapper = socketWrapper;
+    }
 
     public final SocketWrapperBase<?> getSocketWrapper() {
         return socketWrapper;
@@ -222,6 +232,14 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
      */
     protected void setErrorState(ErrorState errorState, Throwable t) { 
         
+    }
+
+
+    /**
+     * @return 返回处理当前请求/响应的错误状态
+     */
+    protected ErrorState getErrorState() {
+        return errorState;
     }
     
 
