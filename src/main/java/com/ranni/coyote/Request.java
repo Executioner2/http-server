@@ -81,7 +81,7 @@ public final class Request {
     private final AtomicBoolean allDataReadEventSent = new AtomicBoolean(false);
 
     /**
-     * 是否有异常
+     * 是否有expect标头
      */
     private boolean expectation;
 

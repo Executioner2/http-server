@@ -98,11 +98,10 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
     private volatile boolean parsingHeader;
 
     /**
-     * why - 吞吐输入
+     * 是否允许请求体
      */
     private boolean swallowInput;
-
-
+    
     /**
      * socket包装实例
      */
@@ -1019,11 +1018,22 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
         byteBuffer = tmp;
         byteBuffer.mark();
     }
-    
 
+
+    /**
+     * 读取数据到缓冲区处理器中
+     * 
+     * @param handler 缓冲区处理器
+     * @return 返回读取的数据量
+     * @throws IOException 可能抛出I/O异常
+     */
     @Override
     public int doRead(ApplicationBufferHandler handler) throws IOException {
-        return 0;
+        if (lastActiveFilter == -1) {
+            return inputStreamInputBuffer.doRead(handler);
+        } else {
+            return activeFilters[lastActiveFilter].doRead(handler);       
+        }
     }
     
 
@@ -1140,8 +1150,11 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
             byteBuffer.position(byteBuffer.position() - extraBytes);
         }
     }
-    
 
+
+    /**
+     * @return 返回请求行解析的各个阶段
+     */
     int getParsingRequestLinePhase() {
         return parsingRequestLinePhase;
     }

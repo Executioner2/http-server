@@ -6,6 +6,7 @@ import com.ranni.util.net.AbstractEndpoint;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 /**
  * Title: HttpServer
@@ -98,6 +99,40 @@ public abstract class AbstractHttp11Protocol<S> extends AbstractProtocol<S> {
     }
 
 
+    private Pattern restrictedUserAgents = null;
+    /**
+     * Get the string form of the regular expression that defines the User
+     * agents which should be restricted to HTTP/1.0 support.
+     *
+     * @return The regular expression as a String
+     */
+    public String getRestrictedUserAgents() {
+        if (restrictedUserAgents == null) {
+            return null;
+        } else {
+            return restrictedUserAgents.toString();
+        }
+    }
+    protected Pattern getRestrictedUserAgentsPattern() {
+        return restrictedUserAgents;
+    }
+    /**
+     * Set restricted user agent list (which will downgrade the connector
+     * to HTTP/1.0 mode). Regular expression as supported by {@link Pattern}.
+     *
+     * @param restrictedUserAgents The regular expression as supported by
+     *                             {@link Pattern} for the user agents e.g.
+     *                             "gorilla|desesplorer|tigrus"
+     */
+    public void setRestrictedUserAgents(String restrictedUserAgents) {
+        if (restrictedUserAgents == null || restrictedUserAgents.length() == 0) {
+            this.restrictedUserAgents = null;
+        } else {
+            this.restrictedUserAgents = Pattern.compile(restrictedUserAgents);
+        }
+    }
+    
+    
     /**
      * 是否允许主机标头和请求行中指定主机不一致
      */

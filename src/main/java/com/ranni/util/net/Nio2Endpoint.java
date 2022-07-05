@@ -213,6 +213,7 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
 
     /**
      * NIO2 socket包装类
+     * 
      * TODO:
      * XXX - 文件操作待实现
      */
@@ -1087,8 +1088,8 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
                 }
             } else {
                 // 内联的调用socket数据读取
-                // 此处设定了内联调用，因此转到readCompletionHandler的completed方法
-                // 时将会清除读信号量
+                // 此处设定了内联调用，因此转到readCompletionHandler
+                // 的completed方法时将会清除读信号量
                 Nio2Endpoint.startInline(); 
                 getSocket().read(buffer, toTimeout(getReadTimeout()), TimeUnit.MILLISECONDS,
                         buffer, readCompletionHandler);

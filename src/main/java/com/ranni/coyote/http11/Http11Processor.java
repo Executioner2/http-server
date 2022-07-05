@@ -10,12 +10,14 @@ import com.ranni.util.http.parse.HttpParser;
 import com.ranni.util.http.parse.TokenList;
 import com.ranni.util.net.AbstractEndpoint.Handler.SocketState;
 import com.ranni.util.net.SendfileDataBase;
+import com.ranni.util.net.SendfileState;
 import com.ranni.util.net.SocketWrapperBase;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Title: HttpServer
@@ -88,6 +90,11 @@ public class Http11Processor extends AbstractProcessor {
      * 发送的文件数据
      */
     private SendfileDataBase sendfileData = null;
+
+    /**
+     * 请求标头是否全部读完
+     */
+    private boolean readComplete;
 
 
     // ==================================== 构造方法 ====================================
@@ -164,20 +171,292 @@ public class Http11Processor extends AbstractProcessor {
         
         setSocketWrapper(socketWrapper);
         
+        // 标志位
+        keepAlive = true; // HTTP/1.1默认keep-alive为true
+        openSocket = false;
+        readComplete = false;
+        boolean keptAlive = false;
+        SendfileState sendfileState = SendfileState.DONE;
+        
+        while (!getErrorState().isError() && keepAlive && !isAsync() 
+                && sendfileState == SendfileState.DONE && !protocol.isPaused()) {
+            
+            
+            try {
+                // 解析请求行
+                if (!inputBuffer.parseRequestLine(keptAlive, protocol.getConnectionTimeout(), protocol.getKeepAliveTimeout())) {
+                    if (inputBuffer.getParsingRequestLinePhase() == -1) {
+                        // 协议需要升级
+                        return SocketState.UPGRADING;
+                    } else if (handleIncompleteRequestLineRead()) {
+                        // 到这儿说明请求行的数据还不完整，跳出service
+                        break;
+                    }
+                }
+
+                // 准备请求协议
+                prepareRequestProtocol();
+                
+                if (protocol.isPaused()) {
+                    response.setStatus(503);
+                    setErrorState(ErrorState.CLOSE_CLEAN, null);
+                } else {
+                    keptAlive = true;
+                    request.getMimeHeaders().setLimit(protocol.getMaxHeaderCount());
+                    
+                    // 解析请求头
+                    if (!http09 && !inputBuffer.parseHeaders()) {
+                        // 还差数据，保持socket开启，退出service 
+                        openSocket = true;
+                        readComplete = false;
+                        break;
+                    }
+                    
+                    if (!protocol.getDisableUploadTimeout()) {
+                        socketWrapper.setReadTimeout(protocol.getConnectionUploadTimeout());
+                    }
+                }
+            } catch (IOException e) {
+                setErrorState(ErrorState.CLOSE_CONNECTION_NOW, e);
+                break;
+            } catch (Throwable t) {                
+                response.setStatus(400);
+                setErrorState(ErrorState.CLOSE_CLEAN, t);
+            }
+            
+            // 是否是需要升级的服务
+            if (isConnectionToken(request.getMimeHeaders(), "upgrade")) {
+               // TODO - 待实现 
+                return SocketState.UPGRADING;
+            }
+            
+            if (getErrorState().isIoAllowed()) {
+                ri.setStage(com.ranni.coyote.Constants.STAGE_PREPARE);
+                try {
+                    prepareRequest();
+                } catch (Throwable t) {
+                    response.setStatus(500);
+                    setErrorState(ErrorState.CLOSE_CLEAN, t);
+                }
+            }
+            
+            
+            
+        }
+        
         return null;
     }
 
 
     /**
-     * 设置socket映射实例
+     * 请求准备
      * 
-     * @param socketWrapper socket映射实例
+     * @throws IOException 可能抛出I/O异常
      */
-    @Override
-    protected void setSocketWrapper(SocketWrapperBase<?> socketWrapper) {
-        super.setSocketWrapper(socketWrapper);
-        inputBuffer.init(socketWrapper);
-        outputBuffer.init(socketWrapper);
+    private void prepareRequest() throws IOException { 
+        // XXX - HTTPS待实现
+//        if (protocol.isSSLEnabled()) {
+//            request.scheme().setString("https");
+//        }
+
+        MimeHeaders headers = request.getMimeHeaders();
+
+        MessageBytes connectionValueMB = headers.getValue(Constants.CONNECTION);
+        if (connectionValueMB != null && !connectionValueMB.isNull()) {
+            HashSet<String> tokens = new HashSet<>();
+            TokenList.parseTokenList(headers.values(Constants.CONNECTION), tokens);
+            if (tokens.contains(Constants.CLOSE)) {
+                keepAlive = false;
+            } else if (tokens.contains(Constants.KEEP_ALIVE_HEADER_VALUE_TOKEN)) {
+                keepAlive = true;
+            }
+        }
+        
+        if (http11) {
+            prepareExpectation(headers);
+        }
+
+        // 检查user-agent标头
+        Pattern ruap = protocol.getRestrictedUserAgentsPattern();
+        if (ruap != null && (http11 || keepAlive)) {
+            MessageBytes userAgentMB = headers.getValue("user-agent");
+            if (userAgentMB != null && !userAgentMB.isNull()) {
+                String userAgent = userAgentMB.toString();
+                if (ruap.matcher(userAgent).matches()) {
+                    http11 = false;
+                    keepAlive = false;
+                }
+            }
+        }
+        
+        // 检查host标头
+        MessageBytes hostMB = null;
+        
+        try {
+            hostMB = headers.getUniqueValue("host");
+        } catch (IllegalArgumentException iae) {
+            // 有多个host标头
+            badRequest("http11processor.request.multipleHosts");
+        }
+        if (http11 && hostMB == null) {
+            badRequest("http11processor.request.noHostHeader");
+        }
+
+        ByteChunk uriBC = request.requestURI().getByteChunk();
+        byte[] uriB = uriBC.getBytes();
+        if (uriBC.startsWithIgnoreCase("http", 0)) {
+            int pos = 4;
+            if (uriBC.startsWithIgnoreCase("s", pos)) {
+                pos++;
+            }
+            
+            if (uriBC.startsWith("://", pos)) {
+                pos += 3;
+                int uriBCStart = uriBC.getStart();
+                
+                // @的作用：http://user:pass@www.webapp.com:80/
+                // @前的表示用户认证信息
+                int atPos = uriBC.indexOf('@', pos);
+                int slashPos = uriBC.indexOf('/', pos);
+                
+                if (slashPos > -1 && atPos > slashPos) {
+                    // '@'出现在'/'之后则不是登录信息的分隔
+                    atPos = -1;
+                }
+                
+                if (slashPos == -1) {
+                    slashPos = uriBC.getLength();
+                    // 设置URI为'/'，+6是因为不管是 "http://" 还是 "https://"
+                    // 下标第6个上的字符都一定是'/'
+                    request.requestURI().setBytes(uriB, uriBCStart + 6, 1);
+                } else {
+                    request.requestURI().setBytes(uriB, uriBCStart + slashPos, uriBC.getLength() - slashPos);
+                }
+                
+                // 如果正确位置上有'@'，那么就用户认证信息
+                if (atPos != -1) {
+                    // 检查用户认证信息是否有非法字符
+                    for (; pos < atPos; pos++) {
+                        byte c = uriB[uriBCStart + pos];
+                        if (!HttpParser.isUserInfo(c)) {
+                            // 不是表示用户认证信息的合法字符
+                            badRequest("http11processor.request.invalidUserInfo");
+                            break;
+                        }
+                    }
+                    
+                    pos = atPos + 1;
+                }
+                
+                if (http11) {
+                    if (hostMB != null) {
+                        if (!hostMB.getByteChunk().equals(uriB, uriBCStart + pos, slashPos - pos)) {
+                            if (protocol.getAllowHostHeaderMismatch()) {
+                                // uri中的主机覆盖掉host标头
+                                hostMB = headers.setValue("host");
+                                hostMB.setBytes(uriB, uriBCStart + pos, slashPos - pos);
+                            } else {
+                                badRequest("http11processor.request.inconsistentHosts");
+                            }
+                        }
+                    }
+                } else {
+                    try {
+                        hostMB = headers.setValue("host");
+                        hostMB.setBytes(uriB, uriBCStart + pos, slashPos - pos);
+                    } catch (IllegalStateException e) {
+                        
+                    }
+                }                
+            } else {
+                badRequest("http11processor.request.invalidScheme");
+            }
+        }
+
+        // 检查uri中字符的合法性
+        for (int i = uriBC.getStart(); i < uriBC.getEnd(); i++) {
+            if (!httpParser.isAbsolutePathRelaxed(uriB[i])) {
+                badRequest("http11processor.request.invalidUri");
+                break;
+            }
+        }
+
+        prepareInputFilters(headers);
+        
+        parseHost(hostMB);
+        
+        if (!getErrorState().isIoAllowed()) {
+            getAdapter().log(request, response, 0);
+        }
+    }
+
+
+    private void badRequest(String errorKey) {
+        response.setStatus(400);
+        setErrorState(ErrorState.CLOSE_CLEAN, null);
+    }
+
+
+    /**
+     * 准备expect标头
+     */
+    private void prepareExpectation(MimeHeaders headers) {
+        MessageBytes expectMB = headers.getValue("expect");
+        if (expectMB != null && !expectMB.isNull()) {
+            if (expectMB.toString().trim().equalsIgnoreCase("100-continue")) {
+                inputBuffer.setSwallowInput(false);
+                request.setExpectation(true);
+            } else {
+                response.setStatus(HttpServletResponse.SC_EXPECTATION_FAILED);
+                setErrorState(ErrorState.CLOSE_CLEAN, null);
+            }
+        }
+    }
+
+
+    /**
+     * 准备请求协议
+     */
+    private void prepareRequestProtocol() {
+        MessageBytes protocolMB = request.protocol();
+        if (protocolMB.equals(Constants.HTTP_11)) {
+            http09 = false;
+            http11 = true;
+            protocolMB.setString(Constants.HTTP_11);
+        } else if (protocolMB.equals(Constants.HTTP_10)) {
+            http09 = false;
+            http11 = false;
+            keepAlive = false;
+            protocolMB.setString(Constants.HTTP_10);
+        } else if (protocolMB.equals("")) {
+            http09 = true;
+            http11 = false;
+            keepAlive = false;
+        } else {
+            http09 = false;
+            http11 = false;
+            response.setStatus(505);
+            setErrorState(ErrorState.CLOSE_CLEAN, null);
+        }
+    }
+    
+    
+    /**
+     * @return why - 如果返回<b>true</b>，则表示请求行的数据还不完整。
+     */
+    private boolean handleIncompleteRequestLineRead() {
+        openSocket = true;
+        if (inputBuffer.getParsingRequestLinePhase() > 1) {
+            // 开始读取请求行
+            if (protocol.isPaused()) {
+                response.setStatus(503);
+                setErrorState(ErrorState.CLOSE_CLEAN, null);
+                return false;
+            } else {
+                readComplete = false;
+            }
+        }
+        return true;
     }
 
 
@@ -411,6 +690,19 @@ public class Http11Processor extends AbstractProcessor {
 
 
     /**
+     * 设置socket映射实例
+     *
+     * @param socketWrapper socket映射实例
+     */
+    @Override
+    protected void setSocketWrapper(SocketWrapperBase<?> socketWrapper) {
+        super.setSocketWrapper(socketWrapper);
+        inputBuffer.init(socketWrapper);
+        outputBuffer.init(socketWrapper);
+    }
+
+
+    /**
      * 完成响应
      * 
      * @throws IOException 可能抛出I/O异常
@@ -466,13 +758,14 @@ public class Http11Processor extends AbstractProcessor {
 
 
     /**
-     * TODO - 设置请求体数据到请求实例的输入缓冲区中
+     * 设置请求体数据到请求实例的输入缓冲区中
      * 
      * @param body 请求体数据
      */
     @Override
     protected void setRequestBody(ByteChunk body) {
-
+        SavedRequestInputFilter filter = new SavedRequestInputFilter(body);
+        inputBuffer.addActiveFilter(filter);
     }
 
     @Override
