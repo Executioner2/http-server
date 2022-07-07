@@ -119,7 +119,7 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
                 // 直接服务这个请求
                 service(socketWrapper);
             } else if (event == SocketEvent.CONNECT_FAIL) {
-                // XXX - 连接失败，响应400
+                // XXX - SSL连接建立失败，响应400
             } else {
                 // 不符合上面的条件，默认关闭此请求
                 state = SocketState.CLOSED;

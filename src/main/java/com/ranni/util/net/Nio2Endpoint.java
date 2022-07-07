@@ -140,7 +140,7 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
         
 
         /**
-         * 三次握手连接成功，得到此与此请求通信的AsynchronousSocketChannel
+         * 三次握手连接成功，得到与此请求通信的AsynchronousSocketChannel
          * 
          * @param socket 与此请求通信的套接字
          * @param attachment 附加参数
@@ -152,6 +152,7 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
             if (isRunning() && !isPaused()) {
                 if (getMaxConnections() == -1) {
                     // 继续同意连接，扔进AsynchronousChannelGroup中异步处理
+                    // 如果有连接传来就继续回调此处理器
                     serverSocket.accept(null, this);
                 } else if (getConnectionCount() < getMaxConnections()) {
                     try {
@@ -161,6 +162,7 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
                         ;
                     }
                     // 继续同意连接，扔进AsynchronousChannelGroup中异步处理
+                    // 如果有连接传来就继续回调此处理器
                     serverSocket.accept(null, this);
                 } else {
                     // 在一个新线程上重新接受请求
@@ -1167,7 +1169,13 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
             super(socketWrapper, event);
         }
 
-        
+
+        /**
+         * 究极核心的方法。虽然只在此方法中做
+         * 一些不太重要的简单处理，但是必须通
+         * 过此方法将请求进一步交付给Handler
+         * 实现类
+         */
         @Override
         protected void doRun() {
             boolean launch = false;
@@ -1501,8 +1509,8 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
 
 
     /**
-     * 为请求分配处理的信道，为信道创建一个socket缓冲区处理
-     * 器。占用接收器线程执行一个读取事件
+     * 究极核心方法。为请求分配处理的信道，为信道创建一个
+     * socket缓冲区处理器。占用接收器线程执行一个读取事件
      * 
      * @param socket 要处理的socket通道
      * @return 如果返回<b>true</b>，则表示处理成功

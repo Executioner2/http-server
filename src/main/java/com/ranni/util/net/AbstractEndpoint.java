@@ -878,7 +878,7 @@ public abstract class AbstractEndpoint<S, U> {
     
 
     /**
-     * 执行SocketWrapper的特定事件
+     * 究极核心的方法。执行SocketWrapper的特定事件
      *
      * @param socketWrapper 要处理的socket包装类
      * @param event socket 要处理的socket事件
