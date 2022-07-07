@@ -15,14 +15,18 @@ import com.ranni.util.net.SocketWrapperBase;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
  * Title: HttpServer
  * Description:
- * 适用于Http/1.1的处理器，此实例在对请求做过部分处理后会把请求交付给容器
+ * 适用于Http/1.1的处理器，此实例在对请求做过部分处理后会把请求交付给适配器
+ * 再由适配器交给容器
  * 
  * TODO:
  * XXX - 暂不支持文件发送
@@ -57,7 +61,8 @@ public class Http11Processor extends AbstractProcessor {
     private final HttpParser httpParser;
 
     /**
-     * why - 如果为false，连接将在请求结束后关闭连接
+     * 如果为<b>true</b>，则表示能确定正文数据的大小（数
+     * 据分块也视为能够确定正文数据大小）。
      */
     private boolean contentDelimitation = true;
 
@@ -82,7 +87,7 @@ public class Http11Processor extends AbstractProcessor {
     private volatile boolean keepAlive = true;
 
     /**
-     * 缓冲区过滤器数量
+     * 缓冲区过滤库中过滤器数量
      */
     private int pluggableFilterIndex = Integer.MAX_VALUE;
     
@@ -139,7 +144,7 @@ public class Http11Processor extends AbstractProcessor {
     // ==================================== 核心方法 ====================================
     
     /**
-     * 是否是需要断开连接的状态码
+     * 是否是需要断开连接的错误状态码
      * 
      * @param status 状态码
      * @return 如果返回<b>true</b>，则表示此状态码应该断开与客户端的会话连接
@@ -190,6 +195,9 @@ public class Http11Processor extends AbstractProcessor {
                         return SocketState.UPGRADING;
                     } else if (handleIncompleteRequestLineRead()) {
                         // 到这儿说明请求行的数据还不完整，跳出service
+                        // 对于同步且数据不完整的请求，服务器的处理态度是
+                        // 将此请求设为长轮询状态。见
+                        // handleIncompleteRequestLineRead()中的注释
                         break;
                     }
                 }
@@ -239,12 +247,168 @@ public class Http11Processor extends AbstractProcessor {
                     setErrorState(ErrorState.CLOSE_CLEAN, t);
                 }
             }
+
+            int maxKeepAliveRequests = protocol.getMaxKeepAliveRequests();
+            if (maxKeepAliveRequests == 1) {
+                keepAlive = false;
+            }  else if (maxKeepAliveRequests > 0 && socketWrapper.decrementKeepAlive() <= 0) {
+                keepAlive = false;
+            }
+
+            // 交给适配器，再由适配器交给容器处理
+            if (getErrorState().isIoAllowed()) {
+                try {
+                    ri.setStage(com.ranni.coyote.Constants.STAGE_SERVICE);
+                    getAdapter().service(request, response);
+                    
+                    // 因为错误状态码而需要断开连接
+                    if (keepAlive && !getErrorState().isError() && !isAsync()
+                        && statusDropsConnection(response.getStatus())) {
+                        setErrorState(ErrorState.CLOSE_CLEAN, null);
+                    }
+                } catch (InterruptedIOException e) {
+                    setErrorState(ErrorState.CLOSE_CONNECTION_NOW, e);
+                } catch (HeadersTooLargeException e) {
+                    if (response.isCommitted()) {
+                        setErrorState(ErrorState.CLOSE_NOW, e);
+                    } else {
+                        response.reset();
+                        response.setStatus(500);
+                        setErrorState(ErrorState.CLOSE_CLEAN, e);
+                        response.setHeader("Connection", "close");
+                    }
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    response.setStatus(500);
+                    setErrorState(ErrorState.CLOSE_CLEAN, t);
+                    getAdapter().log(request, response, 0);
+                }
+            }
             
+            // 换成请求处理
+            ri.setStage(com.ranni.coyote.Constants.STAGE_ENDINPUT);
+            if (!isAsync()) {
+                // 同时，也会完成输出缓冲区的flush
+                endRequest();
+            }
+            // 完成响应
+            ri.setStage(com.ranni.coyote.Constants.STAGE_ENDOUTPUT);
             
+            if (getErrorState().isError()) {
+                response.setStatus(500);
+            }
             
+            // 同步处理或者此次请求已有错误状态，更新请求次数计数。
+            // 此错误状态如果允许进行I/O，重置输入/输出缓冲区以处
+            // 理下一个请求
+            if (!isAsync() || getErrorState().isError()) {
+                request.updateCounters();
+                if (getErrorState().isIoAllowed()) {
+                    inputBuffer.nextRequest();
+                    outputBuffer.nextRequest();;
+                }
+            }
+            
+            if (!protocol.getDisableUploadTimeout()) {
+                int connectionTimeout = protocol.getConnectionTimeout();
+                if (connectionTimeout > 0) {
+                    socketWrapper.setReadTimeout(connectionTimeout);
+                } else {
+                    socketWrapper.setReadTimeout(0);
+                }
+            }
+            
+            ri.setStage(com.ranni.coyote.Constants.STAGE_KEEPALIVE);
+//            sendfileState = processSendfile(socketWrapper);
+            
+        } // while end
+        
+        ri.setStage(com.ranni.coyote.Constants.STAGE_ENDED);
+        
+        // 返回socket状态
+        if (getErrorState().isError() || (protocol.isPaused() && !isAsync())) {
+            return SocketState.CLOSED;
+        } else if (isAsync()) {
+            return SocketState.LONG;
+        } else if (isUpgrade()) {
+            return SocketState.UPGRADING;
+        } else {
+            if (sendfileState == SendfileState.PENDING) {
+                return SocketState.SENDFILE;
+            } else {
+                if (openSocket) {
+                    if (readComplete) {
+                        return SocketState.OPEN;
+                    } else {
+                        return SocketState.LONG;
+                    }
+                } else {
+                    return SocketState.CLOSED;
+                }
+            }
         }
         
-        return null;
+    }
+
+
+    /**
+     * 完成请求
+     */
+    private void endRequest() {
+        if (getErrorState().isError()) {
+            // 有错误，设置禁用继续上传响应体，
+            // 以避免不必要的资源占用
+            inputBuffer.setSwallowInput(false);
+        } else {
+            // 已经完成了请求，需要禁用继续上传的请求正文
+            // 内容（如果是100-continue且还在上传的话）
+            checkExpectationAndResponseStatus();
+        }
+        
+        // 告诉输入缓冲区请求已处理完成
+        if (getErrorState().isIoAllowed()) {
+            try {
+                inputBuffer.endRequest();
+            } catch (IOException e) {
+                setErrorState(ErrorState.CLOSE_CONNECTION_NOW, e);
+                e.printStackTrace();
+            } catch (Throwable t) {
+                response.setStatus(500);
+                setErrorState(ErrorState.CLOSE_NOW, t);
+            }
+        }
+        
+        // 完成响应
+        if (getErrorState().isIoAllowed()) {
+            try {
+                action(ActionCode.COMMIT, null);
+                outputBuffer.end();
+            } catch (IOException e) {
+                setErrorState(ErrorState.CLOSE_CONNECTION_NOW, e);
+            } catch (Throwable t) {
+                setErrorState(ErrorState.CLOSE_NOW, t);
+                t.printStackTrace();
+            }
+        }
+    }
+
+
+    /**
+     * 检查期望值和响应状态。<br>
+     * 如果客户端请求expect: 100-continue。但是响应状态码非200，
+     * 而且请求正文中的数据还没有读完（客户端还没发完），那么为了避
+     * 免客户端继续发送请求正文占用资源。这里设置
+     * <code>Http11InputBuffer.swallowInput</code> 为
+     * <b>false</b>，并设置<code>keepAlive</code> 为 
+     * <b>false</b>，以禁用客户端继续上传请求正文的数据。
+     */
+    private void checkExpectationAndResponseStatus() {
+        if (request.hasExpectation() && !isRequestBodyFullyRead()
+            && (response.getStatus() < 200 || response.getStatus() > 299)) {
+            
+            inputBuffer.setSwallowInput(false);
+            keepAlive = false;
+        }
     }
 
 
@@ -391,6 +555,94 @@ public class Http11Processor extends AbstractProcessor {
     }
 
 
+    /**
+     * 准备输入缓冲区过滤器
+     * 
+     * @param headers 请求头
+     * @throws IOException 可能抛出I/O异常
+     */
+    private void prepareInputFilters(MimeHeaders headers) throws IOException {
+        contentDelimitation = false;
+
+        InputFilter[] inputFilters = inputBuffer.getFilters();
+        
+        // 解析压缩（编码）方式
+        if (!http09) {
+            MessageBytes transferEncodingValueMB = headers.getValue("transfer-encoding");
+            if (transferEncodingValueMB != null) {
+                List<String> encodingNames = new ArrayList<>();
+                TokenList.parseTokenList(headers.values("transfer-encoding"), encodingNames);
+                for (String encodingName : encodingNames) {
+                    // 如果在此方法中使得contentDelimitation为true
+                    // 了，则说明使用了chunked分块编码。
+                    addInputFilter(inputFilters, encodingName); 
+                }
+            } else {
+                badRequest("http11processor.request.invalidTransferEncoding");
+            }
+            
+            long contentLength = -1;
+            
+            try {
+                contentLength = request.getContentLengthLong();
+            } catch (NumberFormatException nfe) {
+                badRequest("http11processor.request.nonNumericContentLength");
+            } catch (IllegalArgumentException e) {
+                badRequest("http11processor.request.multipleContentLength");
+            }
+            if (contentLength >= 0) {
+                if (contentDelimitation) {
+                    // 正在使用分块，移除content-length
+                    headers.removeHeader("content-length");
+                    request.setContentLength(-1);
+                    keepAlive = false;
+                } else {
+                    inputBuffer.addActiveFilter(inputFilters[Constants.IDENTITY_FILTER]);
+                    contentDelimitation = true;
+                }
+            }
+            
+            if (!contentDelimitation) {
+                // 过滤掉正文内容，过滤掉后也算能够确认正文边界
+                inputBuffer.addActiveFilter(inputFilters[Constants.VOID_FILTER]);
+                contentDelimitation = true;
+            }
+        }
+    }
+
+
+    /**
+     * 添加输入缓冲区过滤器
+     * 
+     * @param inputFilters 输入过滤器集合
+     * @param encodingName 编码名
+     */
+    private void addInputFilter(InputFilter[] inputFilters, String encodingName) {
+        if (contentDelimitation) {
+            response.setStatus(400);
+            setErrorState(ErrorState.CLOSE_CLEAN, null);
+            return;
+        }
+        
+        if ("chunked".equals(encodingName)) {
+            inputBuffer.addActiveFilter(inputFilters[Constants.CHUNKED_FILTER]);
+            contentDelimitation = true;
+        } else {
+            // 从后面新加入到过滤库的过滤器
+            for (int i = pluggableFilterIndex; i < inputFilters.length; i++) {
+                if (inputFilters[i].getEncodingName().toString().equals(encodingName)) {
+                    inputBuffer.addActiveFilter(inputFilters[i]);
+                    return;
+                }
+            }
+            
+            // 没有找到这种编码的过滤器
+            response.setStatus(501);
+            setErrorState(ErrorState.CLOSE_CLEAN, null);
+        }
+    }
+
+
     private void badRequest(String errorKey) {
         response.setStatus(400);
         setErrorState(ErrorState.CLOSE_CLEAN, null);
@@ -442,10 +694,14 @@ public class Http11Processor extends AbstractProcessor {
     
     
     /**
-     * @return why - 如果返回<b>true</b>，则表示请求行的数据还不完整。
+     * @return 如果返回<b>true</b>，则表示请求行的数据还不完整
+     *         且可以正常进入到长轮询状态（SocketState.LONG）。
      */
     private boolean handleIncompleteRequestLineRead() {
-        openSocket = true;
+        // 设置openSocket为true，以便于返回SocketState.LONG
+        // 长轮询状态，告知连接处理器ConnectionHandler数据不完整
+        // 需要做回调处理
+        openSocket = true; 
         if (inputBuffer.getParsingRequestLinePhase() > 1) {
             // 开始读取请求行
             if (protocol.isPaused()) {
@@ -459,6 +715,16 @@ public class Http11Processor extends AbstractProcessor {
         return true;
     }
 
+
+    /**
+     * 填充服务器端口
+     */
+    @Override
+    protected void populatePort() {
+        request.action(ActionCode.REQ_LOCALPORT_ATTRIBUTE, request);
+        request.setServerPort(request.getLocalPort());
+    }
+    
 
     /**
      * 响应前准备
@@ -778,19 +1044,31 @@ public class Http11Processor extends AbstractProcessor {
 
     }
 
+
+    /**
+     * @return 如果返回<b>true</b>，则表示完成了请求体的读取
+     */
     @Override
     protected boolean isRequestBodyFullyRead() {
-        return false;
+        return inputBuffer.isFinished();
     }
 
+
+    /**
+     * 注册读感兴趣
+     */
     @Override
     protected void registerReadInterest() {
-
+        socketWrapper.registerReadInterest();
     }
 
+
+    /**
+     * @return 如果返回<b>true</b>，则表示输出缓冲区没有数据
+     */
     @Override
     protected boolean isReadyForWrite() {
-        return false;
+        return outputBuffer.isReady();
     }
 
     

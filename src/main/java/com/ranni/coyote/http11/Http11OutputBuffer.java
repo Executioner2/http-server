@@ -248,12 +248,19 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
         this.socketWrapper = socketWrapper;
     }
 
-    
+
+    /**
+     * @return 如果返回<b>true</b>，则表示缓冲区有数据待
+     *         写入到socket输出信道缓冲区中
+     */
     public boolean hasDataToWrite() {
         return socketWrapper.hasDataToWrite();
     }
-    
-    
+
+
+    /**
+     * @return 如果返回<b>true</b>，则表示输出缓冲区没有数据
+     */
     protected final boolean isReady() {
         boolean res = !hasDataToWrite();
         if (!res) {

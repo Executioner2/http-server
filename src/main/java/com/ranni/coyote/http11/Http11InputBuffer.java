@@ -1142,7 +1142,13 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
         filter.setRequest(coyoteRequest);
     }
 
-    
+
+    /**
+     * 完成请求，将请求缓冲区中未读取完的数据清
+     * 空（如果有未读取完的数据的话）。
+     * 
+     * @throws IOException 可能抛出I/O异常
+     */
     void endRequest() throws IOException {
 
         if (swallowInput && (lastActiveFilter != -1)) {

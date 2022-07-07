@@ -96,7 +96,7 @@ public final class MessageBytes implements Serializable, Cloneable {
         hasHashCode = false;
         hasLongValue = false;
     }
-        
+
     
     /**
      * 设置数据

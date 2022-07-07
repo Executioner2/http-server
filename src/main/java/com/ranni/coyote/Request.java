@@ -359,8 +359,11 @@ public final class Request {
     public boolean isExceptionPresent() {
         return errorException != null;
     }
-    
-    
+
+
+    /**
+     * @return 如果返回<b>true</b>，则表示客户端发送了expect标头，期望100-continue
+     */
     public boolean hasExpectation() {
         return expectation;
     }

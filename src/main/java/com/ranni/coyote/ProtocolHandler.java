@@ -201,7 +201,7 @@ public interface ProtocolHandler {
      * @throws NoSuchMethodException Exception occurred
      * @throws SecurityException Exception occurred
      */
-    public static ProtocolHandler create(String protocol, boolean apr)
+    static ProtocolHandler create(String protocol, boolean apr)
             throws ClassNotFoundException, InstantiationException, IllegalAccessException,
             IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
         

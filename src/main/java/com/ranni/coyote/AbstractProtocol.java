@@ -369,7 +369,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler {
                 } while (state == SocketState.UPGRADING);
                 
                 if (state == SocketState.LONG) {
-                    // 长连接
+                    // 长连接。数据不完整就会进入到此状态
                     longPoll(wrapper, processor);
                     if (processor.isAsync()) {
                         // 处理器异步的，那么加入待处理集合中
@@ -379,7 +379,8 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler {
                     // keep-alive但是还处于请求状态。可以回收
                     release(processor);
                     processor = null;
-                    wrapper.registerReadInterest(); // why - 为什么需要注册读取兴趣
+                    // 注册读取兴趣，以便在有数据时可以直接存入到输入缓冲区中
+                    wrapper.registerReadInterest();
                 } else if (state == SocketState.SENDFILE) {
                     // XXX - 文件发送
                 } else if (state == SocketState.UPGRADED) {
@@ -414,7 +415,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler {
 
         /**
          * 请求需要进行长轮询。<br>
-         * 因为请求是个升级的连接或者请求行请求头不完整
+         * 因为请求是个升级的连接或者请求行请求头数据不完整
          * 
          * @param socket socket
          * @param processor 协议处理器

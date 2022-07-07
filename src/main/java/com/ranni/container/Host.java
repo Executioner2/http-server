@@ -1,5 +1,12 @@
 package com.ranni.container;
 
+import com.ranni.util.buf.ByteChunk;
+import com.ranni.util.buf.MessageBytes;
+import com.ranni.util.http.parse.HttpParser;
+
+import java.io.IOException;
+import java.io.Reader;
+
 /**
  * Title: HttpServer
  * Description:
@@ -20,6 +27,99 @@ public interface Host extends Container {
      */
     String REMOVE_ALIAS_EVENT = "removeAlias";
 
+
+    class MessageBytesReader extends Reader {
+
+        private final byte[] bytes;
+        private final int end;
+        private int pos;
+        private int mark;
+
+        public MessageBytesReader(MessageBytes mb) {
+            ByteChunk bc = mb.getByteChunk();
+            bytes = bc.getBytes();
+            pos = bc.getOffset();
+            end = bc.getEnd();
+        }
+
+        @Override
+        public int read(char[] cbuf, int off, int len) throws IOException {
+            for (int i = off; i < off + len; i++) {
+                // Want output in range 0 to 255, not -128 to 127
+                cbuf[i] = (char) (bytes[pos++] & 0xFF);
+            }
+            return len;
+        }
+
+        @Override
+        public void close() throws IOException {
+            // NO-OP
+        }
+
+        // Over-ridden methods to improve performance
+
+        @Override
+        public int read() throws IOException {
+            if (pos < end) {
+                // Want output in range 0 to 255, not -128 to 127
+                return bytes[pos++] & 0xFF;
+            } else {
+                return -1;
+            }
+        }
+
+        // Methods to support mark/reset
+
+        @Override
+        public boolean markSupported() {
+            return true;
+        }
+
+        @Override
+        public void mark(int readAheadLimit) throws IOException {
+            mark = pos;
+        }
+
+        @Override
+        public void reset() throws IOException {
+            pos = mark;
+        }
+    }
+    
+
+    /**
+     * 解析Host标头
+     * 
+     * @param hostMB Host标头字节块
+     * @return 返回主机名与端口号的分隔符':'的位置，如果不存在则返回-1
+     * Host: webapp:8080
+     */
+    static int parse(MessageBytes hostMB) {
+        return parse(new MessageBytesReader(hostMB));
+    }
+
+
+    static int parse(Reader reader) {
+        try {
+            reader.mark(1);
+            int first = reader.read();
+            reader.reset();
+            if (HttpParser.isAlpha(first)) {
+                return HttpParser.readHostDomainName(reader);
+            } else if (HttpParser.isNumeric(first)) {
+                return HttpParser.readHostIPv4(reader, false);
+            } else if ('[' == first) {
+                return HttpParser.readHostIPv6(reader);
+            } else {
+                // Invalid
+                throw new IllegalArgumentException();
+            }
+        } catch (IOException ioe) {
+            // Should never happen
+            throw new IllegalArgumentException(ioe);
+        }
+    }
+    
 
     /**
      * 返回此主机的应用程序根目录，可以是绝对路径也可以是相对路径还可以是URL

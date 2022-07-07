@@ -706,7 +706,7 @@ public class HttpParser {
      *         from the port or -1 if it is not present. If inIPv6 is true, the
      *         number of characters read
      */
-    static int readHostIPv4(Reader reader, boolean inIPv6) throws IOException {
+    public static int readHostIPv4(Reader reader, boolean inIPv6) throws IOException {
         int octet = -1;
         int octetCount = 1;
         int c;
@@ -787,7 +787,7 @@ public class HttpParser {
      * @return The position of ':' that separates the host from the port or -1
      *         if it is not present
      */
-    static int readHostIPv6(Reader reader) throws IOException {
+    public static int readHostIPv6(Reader reader) throws IOException {
         // Must start with '['
         int c = reader.read();
         if (c != '[') {
@@ -880,7 +880,7 @@ public class HttpParser {
      * @return The position of ':' that separates the host from the port or -1
      *         if it is not present
      */
-    static int readHostDomainName(Reader reader) throws IOException {
+    public static int readHostDomainName(Reader reader) throws IOException {
         DomainParseState state = DomainParseState.NEW;
         int pos = 0;
 

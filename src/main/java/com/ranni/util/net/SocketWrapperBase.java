@@ -68,7 +68,7 @@ public abstract class SocketWrapperBase<E> {
     private volatile int keepAliveLeft = 100;
 
     /**
-     * why - 升级？
+     * 协议升级标志位
      */
     private volatile boolean upgraded;
 

@@ -1,6 +1,8 @@
 package com.ranni.coyote;
 
+import com.ranni.container.Host;
 import com.ranni.util.buf.ByteChunk;
+import com.ranni.util.buf.MessageBytes;
 import com.ranni.util.net.AbstractEndpoint.Handler.SocketState;
 import com.ranni.util.net.DispatchType;
 import com.ranni.util.net.SocketEvent;
@@ -79,6 +81,7 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
     protected abstract boolean isRequestBodyFullyRead();
     protected abstract void registerReadInterest();
     protected abstract boolean isReadyForWrite();
+    protected abstract void populatePort();
     
 
     // ==================================== 核心方法 ====================================
@@ -134,6 +137,62 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
                 dispatches != null && state != SocketState.CLOSED);
         
         return state;
+    }
+
+    
+    /**
+     * Host标头解析
+     *
+     * @param hostMB host字节消息块
+     */
+    protected void parseHost(MessageBytes hostMB) {
+        if (hostMB == null || hostMB.isNull()) {
+            // XXX - 没有这部分的数据
+            return;
+        } else if (hostMB.getLength() == 0) {
+            request.serverName().setString("");
+            populatePort();
+            return;
+        }
+        
+        ByteChunk hostBC = hostMB.getByteChunk();
+        byte[] hostB = hostBC.getBytes();
+        int len = hostBC.getLength();
+        int start = hostBC.getStart();
+        if (hostNameC.length < len) {
+            hostNameC = new char[len];
+        }
+        
+        try {
+            int colonPos = Host.parse(hostMB);
+            
+            if (colonPos != -1) {
+                // 指明了端口号的，解析端口号
+                int port = 0;
+                for (int i = colonPos + 1; i < len; i++) {
+                    byte b = hostB[i + start];
+                    if (b < 48 || b > 57) {
+                        response.setStatus(400);
+                        setErrorState(ErrorState.CLOSE_CLEAN, null);
+                        return;
+                    }
+                    
+                    port = port * 10 + b - 48;
+                }
+                request.setServerPort(port);
+                len = colonPos;
+            }
+            
+            // 解析主机名
+            for (int i = 0; i < len; i++) {
+                hostNameC[i] = (char) (hostB[start + i]);
+            }
+            request.serverName().setChars(hostNameC, 0, len);
+            
+        } catch (IllegalArgumentException e) {
+            response.setStatus(400);
+            setErrorState(ErrorState.CLOSE_CLEAN, e);
+        }
     }
 
     @Override
@@ -255,6 +314,17 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
             setErrorState(ErrorState.CLOSE_CONNECTION_NOW, ioe);
         }
     }
+
+
+    /**
+     * 是否允许从套接字获取属性的方法。默认是允许的，子类如果需要其
+     * 它的判断方式，需要重写此方法
+     * 
+     * @return 如果返回<b>true</b>，则表示允许从套接字获取属性
+     */
+    protected boolean getPopulateRequestAttributesFromSocket() {
+        return true;
+    }
     
 
     /**
@@ -355,9 +425,12 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
 
                 break;
             }
-                
+               
+            // 填充服务器本地端口
             case REQ_LOCALPORT_ATTRIBUTE: {
-
+                if (getPopulateRequestAttributesFromSocket() && socketWrapper != null) {
+                    request.setLocalPort(socketWrapper.getLocalPort());
+                }
                 break;
             }
                 
