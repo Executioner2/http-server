@@ -106,4 +106,12 @@ public interface Service {
      * @return 返回映射器
      */
     Mapper getMapper();
+
+
+    /**
+     * 设置映射实例
+     * 
+     * @param mapper 映射实例
+     */
+    void setMapper(Mapper mapper);
 }

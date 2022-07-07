@@ -26,6 +26,7 @@ public final class StandardService implements Lifecycle, Service {
     private LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
     private boolean started; // 服务启动标志位
     private boolean initialize; // 服务初始化标志位
+    private Mapper mapper; // 映射实例
 
 
     /**
@@ -138,10 +139,25 @@ public final class StandardService implements Lifecycle, Service {
     }
 
 
+    /**
+     * @return 返回映射实例
+     */
     @Override
     public Mapper getMapper() {
-        return null;
+        return mapper;
     }
+
+
+    /**
+     * 设置映射实例
+     * 
+     * @param mapper 映射实例
+     */
+    @Override
+    public void setMapper(Mapper mapper) {
+        this.mapper = mapper;
+    }
+    
 
     /**
      * 添加连接器

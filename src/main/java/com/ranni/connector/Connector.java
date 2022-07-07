@@ -7,6 +7,9 @@ import com.ranni.connector.socket.DefaultServerSocketFactory;
 import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
 import com.ranni.core.Service;
+import com.ranni.coyote.AbstractProtocol;
+import com.ranni.coyote.Adapter;
+import com.ranni.coyote.ProtocolHandler;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.lifecycle.LifecycleListener;
@@ -60,11 +63,32 @@ public class Connector implements Runnable, Lifecycle {
     protected boolean useBodyEncodingForURI; // 是否将请求体的解码格式应用于URI
     protected HashSet<String> parseBodyMethodsSet; // 可以被解析请求体的请求方法集合
     protected String parseBodyMethods = "POST"; // 可以被解析请求体的请求方法    
-
+    protected final ProtocolHandler protocolHandler; // 协议处理器
 
     public Connector() {
-        threadName = "HttpConnector@" + this.hashCode();
-        thread = new Thread(this);
+        this("HTTP/1.1");
+//        threadName = "HttpConnector@" + this.hashCode();
+//        thread = new Thread(this);
+    }
+    
+    public Connector(String protocol) {
+        ProtocolHandler p = null;
+        try {
+            p = ProtocolHandler.create(protocol, false);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        if (p != null) {
+            protocolHandler = p;
+        } else {
+            protocolHandler = null;
+        }
+    }
+    
+    
+    public Connector(ProtocolHandler protocolHandler) {
+        this.protocolHandler = protocolHandler;
     }
     
 
@@ -363,6 +387,28 @@ public class Connector implements Runnable, Lifecycle {
         Response response = new Response();
         return response;
     }
+
+
+    /**
+     * 设置连接器IP地址
+     *
+     * @param ia
+     */
+    public void setAddress(InetAddress ia) {
+        if (protocolHandler instanceof AbstractProtocol) {
+            ((AbstractProtocol) protocolHandler).setAddress(ia);
+        }
+    }
+
+
+    /**
+     * 设置调度器
+     * 
+     * @param adapter 调度器
+     */
+    public void setAdapter(Adapter adapter) {
+        protocolHandler.setAdapter(adapter);
+    }
     
 
     /**
@@ -409,6 +455,7 @@ public class Connector implements Runnable, Lifecycle {
      *
      * @throws Exception
      */
+    @Deprecated
     public void initialize() throws LifecycleException {
         if (initialize)
             throw new LifecycleException("连接器已初始化！");
@@ -547,25 +594,47 @@ public class Connector implements Runnable, Lifecycle {
      */
     @Override
     public synchronized void start() throws LifecycleException {
+//        if (started) throw new LifecycleException("此connector连接器实例已经启动！");
+//        log("启动连接器！");
+//
+//        // 连接器启动
+//        lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
+//        started = true;
+//
+//        // 启动处理器池
+//        if (processorPool instanceof Lifecycle)
+//            ((Lifecycle) processorPool).start();
+//        
+//        // 连接器启动
+//        thread.setName(threadName);
+//        thread.start();
+//
+//        // 连接器启动后
+//        lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
+//
+//        log("连接器启动完成！");
+        
         if (started) throw new LifecycleException("此connector连接器实例已经启动！");
+        if (protocolHandler == null) {
+            throw new LifecycleException("协议处理器不能为null！");
+        }
+        
         log("启动连接器！");
 
         // 连接器启动
         lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
         started = true;
 
-        // 启动处理器池
-        if (processorPool instanceof Lifecycle)
-            ((Lifecycle) processorPool).start();
+        try {
+            protocolHandler.start();
+
+            // 连接器启动后
+            lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
+            log("连接器启动完成！");            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         
-        // 连接器启动
-        thread.setName(threadName);
-        thread.start();
-
-        // 连接器启动后
-        lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
-
-        log("连接器启动完成！");
     }
     
 
@@ -580,23 +649,39 @@ public class Connector implements Runnable, Lifecycle {
      */
     @Override
     public synchronized void stop() throws LifecycleException {
-        if (!started) throw new LifecycleException("此connector连接器实例已经停止！");
+//        if (!started) throw new LifecycleException("此connector连接器实例已经停止！");
+//
+//        // 连接器停止
+//        lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
+//
+//        stopped = true;
+//
+//        if (processorPool instanceof Lifecycle)
+//            ((Lifecycle) processorPool).stop();
+//        
+//        // 向本机的serverSocket发送一条空请求，由于已经关闭了处理器池
+//        // 此请求不会被处理，但会使得serverSocket的accept()暂时接触阻塞
+//        // 到while的循环中会得知stooped为true，便可以跳出循环，无异常结束关闭serverSocket
+//        Socket socket = new Socket();
+//        try {
+//            socket.connect(new InetSocketAddress(serverSocket.getInetAddress(), serverSocket.getLocalPort()));
+//        } catch (IOException e) {
+//            log("HttpConnector.stoppingSocket", e);
+//        }
+//
+//        // 连接器停止后
+//        lifecycle.fireLifecycleEvent(Lifecycle.AFTER_STOP_EVENT, null);
 
+        if (!started) throw new LifecycleException("此connector连接器实例已经停止！");
+        
         // 连接器停止
         lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
 
         stopped = true;
-
-        if (processorPool instanceof Lifecycle)
-            ((Lifecycle) processorPool).stop();
         
-        // 向本机的serverSocket发送一条空请求，由于已经关闭了处理器池
-        // 此请求不会被处理，但会使得serverSocket的accept()暂时接触阻塞
-        // 到while的循环中会得知stooped为true，便可以跳出循环，无异常结束关闭serverSocket
-        Socket socket = new Socket();
         try {
-            socket.connect(new InetSocketAddress(serverSocket.getInetAddress(), serverSocket.getLocalPort()));
-        } catch (IOException e) {
+            protocolHandler.stop();
+        } catch (Exception e) {
             log("HttpConnector.stoppingSocket", e);
         }
 
@@ -659,6 +744,9 @@ public class Connector implements Runnable, Lifecycle {
      */
     public void setPort(int port) {
         this.port = port;
+        if (protocolHandler instanceof AbstractProtocol) {
+            ((AbstractProtocol) protocolHandler).setPort(port);
+        }
     }
 
 
@@ -679,6 +767,13 @@ public class Connector implements Runnable, Lifecycle {
      */
     public void setAddress(String address) {
         this.address = address;
+        if (protocolHandler instanceof AbstractProtocol) {
+            try {
+                ((AbstractProtocol<?>) protocolHandler).setAddress(InetAddress.getByName(address));
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 

@@ -3,7 +3,6 @@ package com.ranni.connector;
 import com.ranni.coyote.ActionCode;
 import com.ranni.coyote.CloseNowException;
 import com.ranni.coyote.Constants;
-import com.ranni.coyote.CoyoteAdapter;
 import com.ranni.coyote.Response;
 import com.ranni.util.buf.B2CConverter;
 import com.ranni.util.buf.C2BConverter;

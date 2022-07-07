@@ -8,9 +8,11 @@ import com.ranni.util.net.DispatchType;
 import com.ranni.util.net.SocketEvent;
 import com.ranni.util.net.SocketWrapperBase;
 
+import javax.servlet.RequestDispatcher;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Title: HttpServer
@@ -117,7 +119,7 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
                 state = checkForPipelinedData(state, socketWrapper);
             } else if (event == SocketEvent.OPEN_READ) {
                 // 直接服务这个请求
-                service(socketWrapper);
+                state = service(socketWrapper);
             } else if (event == SocketEvent.CONNECT_FAIL) {
                 // XXX - SSL连接建立失败，响应400
             } else {
@@ -229,17 +231,13 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
 
     @Override
     public void recycle() {
-
+        errorState = ErrorState.NONE;
+//        asyncStateMachine.recycle();
     }
 
     @Override
     public ByteBuffer getLeftoverInput() {
         return null;
-    }
-
-    @Override
-    public void pause() {
-
     }
 
     @Override
@@ -272,7 +270,8 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
      * @throws IOException 可能抛出I/O异常
      */
     @Override
-    public SocketState dispatch(SocketEvent event) throws IOException {
+    public final SocketState dispatch(SocketEvent event) throws IOException {
+        // TODO - 待实现
         return null;
     }
 
@@ -284,13 +283,25 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
 
 
     /**
-     * TODO - 设置错误状态
+     * 如果新的错误比当前的错误更严重，则更新当前错误为新的错误。
      * 
      * @param errorState 错误状态码
      * @param t 异常
      */
-    protected void setErrorState(ErrorState errorState, Throwable t) { 
+    protected void setErrorState(ErrorState errorState, Throwable t) {
+        boolean error = response.setError();
+        boolean blockIo = this.errorState.isIoAllowed() && !errorState.isIoAllowed();
+        this.errorState = this.errorState.getMostSevere(errorState);
         
+        if (response.getStatus() < 400 && !(t instanceof IOException)) {
+            response.setStatus(500);
+        }
+        if (t != null) {
+            request.setAttribute(RequestDispatcher.ERROR_EXCEPTION, t);
+        }
+        if (blockIo && isAsync() && error) {
+            // TODO 异步处理此事件
+        }
     }
 
 
@@ -390,39 +401,65 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
                 setRequestBody((ByteChunk) param);
                 break;
             }
-                
+            
+            // 设置当前是否存在错误
             case IS_ERROR: {
-
+                ((AtomicBoolean) param).set(getErrorState().isError());
                 break;
             }
                 
+            // 设置当前错误是否可以进行缓冲区I/O
             case IS_IO_ALLOWED: {
-
+                ((AtomicBoolean) param).set(getErrorState().isIoAllowed());
                 break;
             }
                 
+            // 立马关闭连接
             case CLOSE_NOW: {
-
+                // 告知缓冲区完成响应
+                setSwallowResponse();
+                if (param instanceof Throwable) {
+                    setErrorState(ErrorState.CLOSE_NOW, (Throwable) param);
+                } else {
+                    setErrorState(ErrorState.CLOSE_NOW, null);
+                }
                 break;
             }
                 
+            // 禁用请求正文
             case DISABLE_SWALLOW_INPUT: {
+                disableSwallowRequest();
+                setErrorState(ErrorState.CLOSE_CLEAN, null);
+                break;
+            }
 
+            // 填充远程主机端口号
+            case REQ_REMOTEPORT_ATTRIBUTE: {
+                if (getPopulateRequestAttributesFromSocket() && socketWrapper != null) {
+                    request.setRemotePort(socketWrapper.getRemotePort());
+                }
                 break;
             }
                 
+            // 填充远程主机地址
             case REQ_HOST_ADDR_ATTRIBUTE: {
-
+                if (getPopulateRequestAttributesFromSocket() && socketWrapper != null) {
+                    request.remoteAddr().setString(socketWrapper.getRemoteAddr());
+                }
                 break;
             }
                 
+            // 填充远程主机地址
             case REQ_PEER_ADDR_ATTRIBUTE: {
-
+                if (getPopulateRequestAttributesFromSocket() && socketWrapper != null) {
+                    request.peerAddr().setString(socketWrapper.getRemoteAddr());
+                }
                 break;
             }
                 
+            // 填充远程主机
             case REQ_HOST_ATTRIBUTE: {
-
+                populateRequestAttributeRemoteHost();
                 break;
             }
                
@@ -434,31 +471,39 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
                 break;
             }
                 
+            // 填充服务器地址
             case REQ_LOCAL_ADDR_ATTRIBUTE: {
-                
+                if (getPopulateRequestAttributesFromSocket() && socketWrapper != null) {
+                    request.localAddr().setString(socketWrapper.getLocalAddr());
+                }
                 break;
             }
             
+            // 填充服务器名
             case REQ_LOCAL_NAME_ATTRIBUTE: {
-                
+                if (getPopulateRequestAttributesFromSocket() && socketWrapper != null) {
+                    request.localName().setString(socketWrapper.getLocalName());
+                }
                 break;
             }
             
-            case REQ_REMOTEPORT_ATTRIBUTE: {
-                
-                break;
-            }
-            
+            // SSL支持
             case REQ_SSL_ATTRIBUTE: {
-                
+                populateSslRequestAttributes();
                 break;
             }
             
+            // 取得SSL证书
             case REQ_SSL_CERTIFICATE: {
-                
+                try {
+                    sslReHandShake();
+                } catch (IOException ioe) {
+                    setErrorState(ErrorState.CLOSE_CONNECTION_NOW, ioe);
+                }
                 break;
             }
             
+            // Servlet 3.0 的异步支持
             case ASYNC_START: {
                 
                 break;
@@ -600,7 +645,33 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
                 break;
             }
          }
-    } 
-    
-    
+    }
+
+
+    /**
+     * 取得SSL证书
+     */
+    protected void sslReHandShake() throws IOException {
+        
+    }
+
+
+    /**
+     * SSL支持
+     */
+    protected void populateSslRequestAttributes() {
+        
+    }
+
+
+    /**
+     * 填充远程主机地址
+     */
+    protected void populateRequestAttributeRemoteHost() {
+        if (getPopulateRequestAttributesFromSocket() && socketWrapper != null) {
+            request.remoteHost().setString(socketWrapper.getRemoteHost());
+        }
+    }
+
+
 }

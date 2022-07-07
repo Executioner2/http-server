@@ -57,7 +57,7 @@ public class Request implements HttpServletRequest {
     private static final DateTimeFormatter formats[] = {
             DateTimeFormatter.ofPattern(FastHttpDateFormat.RFC1123_DATE, Locale.US),
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.CHINA),
-            DateTimeFormatter.ofPattern("EEEEEE, dd-MMM-yy HH:mm:ss zzz", Locale.US),
+            DateTimeFormatter.ofPattern("EEE, dd-MMM-yy HH:mm:ss zzz", Locale.US),
             DateTimeFormatter.ofPattern("EEE MMMM d HH:mm:ss yyyy", Locale.US)
     };
 
@@ -1868,7 +1868,7 @@ public class Request implements HttpServletRequest {
      * IP地址作为服务器名<br>
      * 
      * 具体的实现方法：<br>
-     * @see com.ranni.util.net.Nio2Endpoint#populateLocalAddr()
+     * @see com.ranni.util.net.Nio2Endpoint.Nio2SocketWrapper#populateLocalName()
      * 
      * @return 返回接收此请求的服务器名。
      */
@@ -1888,7 +1888,7 @@ public class Request implements HttpServletRequest {
      * 那个信道（channel）中的服务器IP地址<br>
      * 
      * 具体的实现方法：<br>
-     * @see com.ranni.util.net.Nio2Endpoint#populateLocalAddr()
+     * @see com.ranni.util.net.Nio2Endpoint.Nio2SocketWrapper#populateLocalAddr()
      * 
      * @return 返回处理此请求的服务器IP地址
      */
@@ -1908,7 +1908,7 @@ public class Request implements HttpServletRequest {
      * 那个信道（channel）中的服务器端口号<br>
      * 
      * 具体的实现方法：<br>
-     * @see com.ranni.util.net.Nio2Endpoint#populateLocalPort()
+     * @see com.ranni.util.net.Nio2Endpoint.Nio2SocketWrapper#populateLocalPort()
      * 
      * @return 返回处理此请求的服务器端口号
      */

@@ -999,6 +999,7 @@ public class Http11Processor extends AbstractProcessor {
             }
         }
     }
+    
 
     /**
      * 刷新输出缓冲区
@@ -1034,14 +1035,22 @@ public class Http11Processor extends AbstractProcessor {
         inputBuffer.addActiveFilter(filter);
     }
 
-    @Override
-    protected void setSwallowResponse() {
 
+    /**
+     * 告知输入缓冲区完成了响应
+     */
+    @Override
+    protected final void setSwallowResponse() {
+        outputBuffer.responseFinished = true;
     }
 
-    @Override
-    protected void disableSwallowRequest() {
 
+    /**
+     * 禁用请求正文
+     */
+    @Override
+    protected final void disableSwallowRequest() {
+        inputBuffer.setSwallowInput(false);
     }
 
 
@@ -1071,5 +1080,20 @@ public class Http11Processor extends AbstractProcessor {
         return outputBuffer.isReady();
     }
 
+
+    @Override
+    public void recycle() {
+        getAdapter().checkRecycled(request, response);
+        super.recycle();
+        inputBuffer.recycle();
+        outputBuffer.recycle();
+        socketWrapper = null;
+        sendfileData = null;
+    }
+
     
+    @Override
+    public void pause() {
+        
+    }
 }

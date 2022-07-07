@@ -92,7 +92,7 @@ public final class Mapper {
             aliases = null; // 不允许别名还有别名
         }
         
-
+        
         /**
          * @return 如果返回<b>true</b>，则表示此ContextList实例是个别名
          */
@@ -244,7 +244,7 @@ public final class Mapper {
                 if (uri.charAt(i) == '/') {
                     continue;
                 }
-                int index = uri.charAt(i) - 'a';
+                int index = getIndex(uri.charAt(i));
                 if (node.map[index] == null) {
                     node.map[index] = new Node();
                 }
@@ -261,7 +261,7 @@ public final class Mapper {
                 if (ch == '/') {
                     continue;
                 }
-                int index = ch - 'a';
+                int index = getIndex(ch);
                 if (node.map[index] == null) {
                     node.map[index] = new Node();
                 }
@@ -289,7 +289,7 @@ public final class Mapper {
                     res = prev.mappedWrapper;
                 }
                 
-                int index = uri.charAt(i) - 'a';
+                int index = getIndex(uri.charAt(i));
                 if (node.map[index] == null) {
                     // 不用break是为了避免出现下面这种情况：
                     //   url1: /test/a/dc/a
@@ -339,7 +339,7 @@ public final class Mapper {
                     res = prev.mappedWrapper;
                 }
 
-                int index = uri.charAt(i) - 'a';
+                int index = getIndex(uri.charAt(i));
                 if (node.map[index] == null) {
                     return res;
                 }
@@ -356,6 +356,14 @@ public final class Mapper {
         
         public void recycle() {
             root = new Node();
+        }
+        
+        public int getIndex(char ch) {
+            if (ch >= 'A' && ch <= 'Z') {
+                return ch - 'A';
+            } else {
+                return ch - 'a';
+            }
         }
     }
     
@@ -488,6 +496,19 @@ public final class Mapper {
 
     /**
      * 添加Context容器
+     *
+     * @param hostName Context容器所属的Host主机名
+     * @param host Context所属的Host主机
+     * @param path Context的路径
+     * @param context Context容器
+     */
+    public void addContext(String hostName, Host host, String path, Context context) {
+        addContext(hostName, host, path, context, null, null);
+    }
+    
+
+    /**
+     * 添加Context容器
      * 
      * @param hostName Context容器所属的Host主机名
      * @param host Context所属的Host主机
@@ -518,6 +539,7 @@ public final class Mapper {
                 // 已经有一个相同path的容器映射了
                 return;
             }
+            mappedHost.contextList = contextList;
         }
 
         // 添加wrapper映射
@@ -544,14 +566,59 @@ public final class Mapper {
 
     /**
      * 将批量的wrapper挂在所属的context下
+     *
+     * @param hostname 主机名
+     * @param path context容器路径
+     * @param mappedWrappers 批量wrapper映射集合
+     */
+    public void addWrappers(String hostname, String path, Collection<MappedWrapper> mappedWrappers) {
+        MappedHost mappedHost = exactFind(hosts, hostname);
+        if (mappedHost == null) {
+            return;
+        }
+
+        MappedContext mappedContext = exactFind(mappedHost.contextList.contexts, path);
+        if (mappedContext == null) {
+            return;
+        }
+
+        addWrappers(mappedContext, mappedWrappers);
+    }
+    
+
+    /**
+     * 将批量的wrapper挂在所属的context下
      * 
      * @param context 所属的MappedContext
      * @param mappedWrappers 批量wrapper映射集合
      */
-    void addWrappers(MappedContext context, Collection<MappedWrapper> mappedWrappers) {
+    public void addWrappers(MappedContext context, Collection<MappedWrapper> mappedWrappers) {
         for (MappedWrapper wrapper : mappedWrappers) {
             addWrapper(context, wrapper);
         }
+    }
+
+
+    /**
+     * 添加wrapper到所属的context下。底层是根据path挂在
+     * 字典树上。
+     * 
+     * @param hostname 主机名
+     * @param path context容器路径
+     * @param wrapper wrapper容器
+     */
+    public void addWrapper(String hostname, String path, Wrapper wrapper) {
+        MappedHost mappedHost = exactFind(hosts, hostname);
+        if (mappedHost == null) {
+            return;
+        }
+
+        MappedContext mappedContext = exactFind(mappedHost.contextList.contexts, path);
+        if (mappedContext == null) {
+            return;
+        }
+        
+        mappedContext.wrapperDictTree.addMappedWrapper(wrapper.getName(), wrapper);
     }
     
 
@@ -563,7 +630,7 @@ public final class Mapper {
      * @param path wrapper的path
      * @param wrapper 需要挂上去的wrapper
      */
-    void addWrapper(MappedContext context, String path, Wrapper wrapper) {
+    public void addWrapper(MappedContext context, String path, Wrapper wrapper) {
         context.wrapperDictTree.addMappedWrapper(path, wrapper);
     }
 
@@ -575,7 +642,7 @@ public final class Mapper {
      * @param context 所属的MappedContext
      * @param wrapper 需要挂上去的MappedWrapper
      */
-    void addWrapper(MappedContext context, MappedWrapper wrapper) {
+    public void addWrapper(MappedContext context, MappedWrapper wrapper) {
         context.wrapperDictTree.addMappedWrapper(wrapper);
     }
     

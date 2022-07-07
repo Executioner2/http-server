@@ -949,10 +949,12 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
     private boolean fill(boolean block) throws IOException {
         if (parsingHeader) {
             if (byteBuffer.limit() >= headerBufferSize) {
-                // 避免未知协议错误
-                coyoteRequest.protocol().setString(Constants.HTTP_11);
+                if (parsingRequestLine) {
+                    // 避免未知协议错误
+                    coyoteRequest.protocol().setString(Constants.HTTP_11);
+                }
+                throw new IllegalArgumentException("请求头太大！");
             }
-            throw new IllegalArgumentException("请求头太大！");
         } else {
             byteBuffer.limit(end).position(end);
         }
