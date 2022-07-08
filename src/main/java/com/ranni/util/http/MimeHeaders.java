@@ -98,7 +98,7 @@ public class MimeHeaders {
      * @return 返回新建的MimeHeaderField
      */
     private MimeHeaderField createHeader() {
-        if (limit > -1 && count >= count) {
+        if (limit > -1 && count >= limit) {
             throw new IllegalStateException("超出头部最大数量，limit = " + limit);
         }
         

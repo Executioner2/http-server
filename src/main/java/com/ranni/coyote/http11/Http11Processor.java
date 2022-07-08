@@ -571,14 +571,15 @@ public class Http11Processor extends AbstractProcessor {
             MessageBytes transferEncodingValueMB = headers.getValue("transfer-encoding");
             if (transferEncodingValueMB != null) {
                 List<String> encodingNames = new ArrayList<>();
-                TokenList.parseTokenList(headers.values("transfer-encoding"), encodingNames);
-                for (String encodingName : encodingNames) {
-                    // 如果在此方法中使得contentDelimitation为true
-                    // 了，则说明使用了chunked分块编码。
-                    addInputFilter(inputFilters, encodingName); 
+                if (TokenList.parseTokenList(headers.values("transfer-encoding"), encodingNames)) {
+                    for (String encodingName : encodingNames) {
+                        // 如果在此方法中使得contentDelimitation为true
+                        // 了，则说明使用了chunked分块编码。
+                        addInputFilter(inputFilters, encodingName);
+                    }
+                } else {
+                    badRequest("http11processor.request.invalidTransferEncoding");
                 }
-            } else {
-                badRequest("http11processor.request.invalidTransferEncoding");
             }
             
             long contentLength = -1;

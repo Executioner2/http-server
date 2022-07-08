@@ -3,8 +3,7 @@ package com.ranni.util.net;
 import com.ranni.connector.ApplicationBufferHandler;
 import com.ranni.util.collections.SynchronizedStack;
 
-import java.io.EOFException;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
@@ -279,6 +278,19 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
                         if (nBytes.intValue() < 0) {
                             failed(new EOFException(), attachment);
                         } else {
+//                            System.out.println("有数据可读取");
+//                            
+//                            try (InputStreamReader isr = new InputStreamReader(new ByteArrayInputStream(attachment.array()))) {
+//                                char[] buf = new char[1024 * 10];
+//                                int pos = -1;
+//                                while ((pos = isr.read(buf)) != -1) {
+//                                    System.out.println(String.valueOf(buf, 0, pos));
+//                                }
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                            }
+
+
                             if (readInterest && !Nio2Endpoint.isInline()) {
                                 readNotify = true;
                             } else {

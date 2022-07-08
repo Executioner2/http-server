@@ -51,7 +51,7 @@ public final class MessageBytes implements Serializable, Cloneable {
     
     
     public boolean isNull() {
-        return strValue != null && byteC.isNull() && charC.isNull();
+        return strValue == null && byteC.isNull() && charC.isNull();
     }
     
     

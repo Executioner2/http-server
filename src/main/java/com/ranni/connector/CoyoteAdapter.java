@@ -94,7 +94,7 @@ public class CoyoteAdapter implements Adapter {
     public void service(com.ranni.coyote.Request req, com.ranni.coyote.Response res) throws Exception {
         Request request = (Request) req.getNote(ADAPTER_NOTES);
         Response response = (Response) res.getNote(ADAPTER_NOTES);
-
+        
         if (request == null) {
             // 如果coyoteRequest中没有保存，就创建
             request = connector.createRequest();

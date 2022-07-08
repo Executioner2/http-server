@@ -527,7 +527,7 @@ public final class ByteChunk extends AbstractChunk {
         }
 
         CharBuffer cb = charset.decode(ByteBuffer.wrap(buff, start, end - start));
-        return new String(cb.array(), start, end - start);
+        return new String(cb.array(), cb.arrayOffset(), cb.length());
     }
 
     public long getLong() {

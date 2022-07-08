@@ -46,9 +46,9 @@ public class BootstrapTest {
 
         Host host = new StandardHost();
         host.setAppBase("");
-        mapper.addHost("webapps", new String[0], host);
+        mapper.addHost("localhost", new String[]{"localhost"}, host);
         StandardContext context = new StandardContext();
-        context.setDocBase("test");
+        context.setDocBase("/webapps/test");
         context.setPath("/test");
 //        context.setLogger();
         WebappLoader webappLoader = new WebappLoader();
