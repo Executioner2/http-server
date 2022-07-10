@@ -9,5 +9,6 @@ package com.ranni.connector.http.request;
  * @Email 1205878539@qq.com
  * @Date 2022-03-21 23:06
  */
+@Deprecated
 public final class HttpRequestImpl extends HttpRequestBase {
 }

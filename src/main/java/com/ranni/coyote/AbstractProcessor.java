@@ -63,6 +63,7 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
         this.request.setHook(this);
         this.response.setHook(this);
         this.request.setResponse(response);
+        this.response.setRequest(request);
     }
 
 

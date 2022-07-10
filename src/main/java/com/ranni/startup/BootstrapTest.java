@@ -63,6 +63,7 @@ public class BootstrapTest {
         
 //        context.setLogger();
         WebappLoader webappLoader = new WebappLoader();
+//        webappLoader.setLoaderClass("com.ranni.loader.WebappClassLoader");
         context.setLoader(webappLoader);
         
         StandardWrapper wrapper = new StandardWrapper();
@@ -74,8 +75,9 @@ public class BootstrapTest {
         mapper.addWrapper("localhost", "/test", wrapper);
 
         Engine engine = new StandardEngine();
-        context.setParent(engine);
-        wrapper.setParent(context);
+        engine.addChild(host);
+        host.addChild(context);
+        context.addChild(wrapper);
         
         service.setContainer(engine);
         service.addConnector(connector);

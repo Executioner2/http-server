@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashSet;
 
 /**
@@ -154,6 +155,35 @@ public class Connector implements Runnable, Lifecycle {
     public boolean isParseBodyMethod(String method) {
         return parseBodyMethodsSet.contains(method);
     }
+
+    /**
+     * 设置可以被解析请求体的请求方法
+     * 
+     * @param methods 可以被解析请求体的方法。如果有多个用','分隔（不包括''）
+     */
+    public void setParseBodyMethods(String methods) {
+        HashSet<String> methodSet = new HashSet<>();
+
+        if (methodSet != null) {
+            methodSet.addAll(Arrays.asList(methods.split("\\s*,\\s*")));
+        }
+        
+        if (methodSet.contains("TRACE")) {
+            throw new IllegalArgumentException("coyoteConnector.parseBodyMethodNoTrace");
+        }
+
+        this.parseBodyMethods = methods;
+        this.parseBodyMethodsSet = methodSet;
+    }
+
+
+    /**
+     * @return 返回可以被解析请求体的请求方法
+     */
+    public String getParseBodyMethods() {
+        return this.parseBodyMethods;
+    }
+    
 
     public int getMaxCookieCount() {
         return 0;
@@ -624,6 +654,10 @@ public class Connector implements Runnable, Lifecycle {
         // 连接器启动
         lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
         started = true;
+
+        if (null == parseBodyMethodsSet) {
+            setParseBodyMethods(getParseBodyMethods());
+        }
 
         try {
             protocolHandler.start();

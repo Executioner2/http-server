@@ -15,6 +15,7 @@ import java.util.Enumeration;
  * @Email 1205878539@qq.com
  * @Date 2022-03-21 23:09
  */
+@Deprecated
 public final class HttpRequestFacade extends RequestFacade implements HttpServletRequest {
     public HttpRequestFacade(ServletRequest request) {
         super(request);

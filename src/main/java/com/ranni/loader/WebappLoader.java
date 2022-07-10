@@ -49,7 +49,7 @@ public class WebappLoader implements Loader, Lifecycle {
     private boolean threadDone; // 重载线程是否执行完成
     private String threadName; // 重载线程名字
     private int checkInterval = 15; // 重载线程休眠时间因子
-    private String classPath = Constants.WEBAPP_LIB;
+    private String classPath = Constants.WEBAPP_CLASSES;
     private String libPath = Constants.WEBAPP_LIB;
     
 
@@ -428,7 +428,7 @@ public class WebappLoader implements Loader, Lifecycle {
             String realPath = servletContext.getRealPath(classesPath);
             if (realPath != null) {
                 // 如果能在servlet的全局作用域中找到这个路径则表示这个路径的class已经导入了
-                classRepository = new File(realPath);
+                classRepository = workDir;
             } else {
                 // 在当前工作目录下创建类仓库文件夹
                 classRepository = new File(workDir, classesPath);
@@ -438,7 +438,7 @@ public class WebappLoader implements Loader, Lifecycle {
 
             log("WebappLoader 类部署  getClassesPath: " + classesPath + "   classRepositoryAbPath: " + classRepository.getAbsolutePath());
 
-            classLoader.addRepository(classesPath + "/", classRepository);
+            classLoader.addRepository(classesPath + "\\", classRepository);
         }
 
 

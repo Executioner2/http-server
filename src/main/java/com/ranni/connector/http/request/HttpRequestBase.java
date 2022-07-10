@@ -25,6 +25,7 @@ import java.util.*;
  * @Email 1205878539@qq.com
  * @Date 2022-03-21 23:06
  */
+@Deprecated
 public class HttpRequestBase extends RequestBase implements HttpRequest, HttpServletRequest {
     protected static List<String> empty = new ArrayList(); // 统一返回的空数组
     protected Map<String, ArrayList<String>> headers = new HashMap<>(); // 请求头中的信息

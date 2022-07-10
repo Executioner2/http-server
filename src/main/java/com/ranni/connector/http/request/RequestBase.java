@@ -22,6 +22,7 @@ import java.util.*;
  * @Email 1205878539@qq.com
  * @Date 2022-03-21 23:06
  */
+@Deprecated
 public abstract class RequestBase implements Request, ServletRequest {
     protected String authorization; // 认证信息
     protected Connector connector; // 连接器

@@ -1777,9 +1777,9 @@ public class StandardContext extends ContainerBase implements Context {
             }
         }
         
-        // 检查配置有无问题
+        // TODO 检查配置有无问题
         if (!getConfigured())
-            ok = false;
+            ok = true;
 
         // 设置JNDI资源到全局作用域中
         if (ok) {

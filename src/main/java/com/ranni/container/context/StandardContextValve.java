@@ -1,6 +1,5 @@
 package com.ranni.container.context;
 
-import com.ranni.connector.http.request.HttpRequest;
 import com.ranni.connector.Request;
 import com.ranni.connector.Response;
 import com.ranni.container.Context;
@@ -49,7 +48,7 @@ public class StandardContextValve extends ValveBase {
     public void invoke(Request request, Response response, ValveContext valveContext) throws IOException, ServletException {
         if (!(request instanceof HttpServletRequest) || !(response instanceof HttpServletResponse)) return;
 
-        String requestURI = ((HttpRequest)request).getDecodedRequestURI();
+        String requestURI = request.getDecodedRequestURI();
 
         Wrapper wrapper = null;
 

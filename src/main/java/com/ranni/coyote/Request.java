@@ -205,7 +205,10 @@ public final class Request {
      * 属性 
      */
     private final HashMap<String, Object> attributes = new HashMap<>();
-    
+
+    /**
+     * coyote response
+     */
     private Response coyoteResponse;
 
     /**
@@ -223,6 +226,9 @@ public final class Request {
      */
     private boolean sendfile = true;
 
+    /**
+     * 错误异常
+     */
     private Exception errorException;
 
     /* ==================================== 异步处理请求相关属性 start ==================================== */
@@ -248,9 +254,17 @@ public final class Request {
     private final Object nonBlockingStateLock = new Object();
 
     /* ==================================== 异步处理请求相关属性 end ==================================== */
+
     
+    // ==================================== 构造方法 ====================================
     
-    // ------------------------------ 通用方法 ------------------------------
+    public Request() {
+        parameters.setQuery(queryMB);
+        parameters.setURLDecoder(urlDecoder);
+    }
+
+
+    // ==================================== 通用方法 ====================================
     
     public final Object getNote(int pos) {
         return notes[pos];
@@ -467,7 +481,7 @@ public final class Request {
     }
     
     
-    // ------------------------------ 请求数据处理 ------------------------------
+    // ==================================== 请求数据处理 ====================================
     
     /**
      * 从缓冲区读取数据并放到ApplicationBufferHandler中
@@ -695,7 +709,8 @@ public final class Request {
         return trailerFields;
     }
     
-    // ------------------------------ 消息字节 ------------------------------
+    
+    // ==================================== 消息字节 ====================================
     
     public MessageBytes contentType() {
         if (contentTypeMB == null) {
@@ -763,7 +778,7 @@ public final class Request {
     }
 
 
-    // TODO ------------------------------ ReadListener相关（没有用到） ------------------------------
+    // TODO ==================================== ReadListener相关（没有用到） ====================================
 
     /**
      * @return 如果返回<b>true</b>，则表示缓冲区已有数据准备好读取了

@@ -114,6 +114,7 @@ public class StandardHost extends ContainerBase implements Host {
     @Override
     public void setAppBase(String appBase) {
         this.appBase = appBase;
+        setWorkDir(appBase);
     }
 
 

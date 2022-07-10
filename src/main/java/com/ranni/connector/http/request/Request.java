@@ -19,6 +19,7 @@ import java.net.Socket;
  * @Email 1205878539@qq.com
  * @Date 2022-03-21 23:04
  */
+@Deprecated
 public interface Request {
 
     // 获取此请求中的授权认证
