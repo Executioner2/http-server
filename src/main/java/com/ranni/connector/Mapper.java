@@ -279,17 +279,17 @@ public final class Mapper {
          * 
          * @param uri 处理此请求的servlet路径
          */
-        public MappedWrapper getMappedWrapper(CharChunk uri) {
+        public MappedWrapper getMappedWrapper(CharChunk uri, int offset) {
             Node node = root;
             Node prev = node;
             MappedWrapper res = null;
 
-            for (int i = uri.charAt(0) == '/' ? 1 : 0; i < uri.length(); i++) {
-                if (uri.charAt(i) == '/' && prev.mappedWrapper != null) {
+            for (int i = uri.charAt(offset) == '/' ? 1 : 0; i < uri.length() - offset; i++) {
+                if (uri.charAt(i + offset) == '/' && prev.mappedWrapper != null) {
                     res = prev.mappedWrapper;
                 }
                 
-                int index = getIndex(uri.charAt(i));
+                int index = getIndex(uri.charAt(i + offset));
                 if (node.map[index] == null) {
                     // 不用break是为了避免出现下面这种情况：
                     //   url1: /test/a/dc/a
@@ -322,24 +322,27 @@ public final class Mapper {
                 node = node.map[index];
             }
             
-            if (uri.charAt(uri.length() - 1) != '/' && prev.mappedWrapper != null) {
+            // XXX - 未经严格测试，可能存在BUG
+            if (node.mappedWrapper != null) {
+                res = node.mappedWrapper;
+            } else if (uri.charAt(uri.length() - 1) != '/' && prev.mappedWrapper != null) {
                 res = prev.mappedWrapper;
             }
             
             return res;            
         }
 
-        public MappedWrapper getMappedWrapper(String uri) {
+        public MappedWrapper getMappedWrapper(String uri, int offset) {
             Node node = root;
             Node prev = node;
             MappedWrapper res = null;
             
-            for (int i = uri.charAt(0) == '/' ? 1 : 0; i < uri.length(); i++) {
-                if (uri.charAt(i) == '/' && prev.mappedWrapper != null) {
+            for (int i = uri.charAt(offset) == '/' ? 1 : 0; i < uri.length() - offset; i++) {
+                if (uri.charAt(i + offset) == '/' && prev.mappedWrapper != null) {
                     res = prev.mappedWrapper;
                 }
 
-                int index = getIndex(uri.charAt(i));
+                int index = getIndex(uri.charAt(i + offset));
                 if (node.map[index] == null) {
                     return res;
                 }
@@ -347,7 +350,10 @@ public final class Mapper {
                 node = node.map[index];
             }
 
-            if (uri.charAt(uri.length() - 1) != '/' && prev.mappedWrapper != null) {
+            // XXX - 未经严格测试，可能存在BUG
+            if (node.mappedWrapper != null) {
+                res = node.mappedWrapper;
+            } else if (uri.charAt(uri.length() - 1) != '/' && prev.mappedWrapper != null) {
                 res = prev.mappedWrapper;
             }
 
@@ -774,7 +780,7 @@ public final class Mapper {
     private final void internalMapWrapper(MappedContext context, CharChunk uri, MappingData mappingData) {
         // XXX - 当前只做严格匹配
         // 做个字典树匹配，以便精准匹配
-        MappedWrapper mappedWrapper = context.wrapperDictTree.getMappedWrapper(uri);
+        MappedWrapper mappedWrapper = context.wrapperDictTree.getMappedWrapper(uri, context.name.length());
         if (mappedWrapper == null) {
             return;
         }

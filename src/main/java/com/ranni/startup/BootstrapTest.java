@@ -1,5 +1,6 @@
 package com.ranni.startup;
 
+import com.ranni.common.SystemProperty;
 import com.ranni.connector.Connector;
 import com.ranni.connector.CoyoteAdapter;
 import com.ranni.connector.Mapper;
@@ -30,7 +31,12 @@ import java.net.UnknownHostException;
  */
 public class BootstrapTest {
     public static void main(String[] args) throws UnknownHostException {
-
+        String base = System.getProperty("user.dir"); // 服务器根目录
+        if (base.endsWith("\\bin")) {
+            base = base.substring(0, base.length() - 4);
+        }
+        System.setProperty(SystemProperty.SERVER_BASE, base);
+        
         Mapper mapper = new Mapper();
 
         Server server = new StandardServer();
@@ -38,18 +44,23 @@ public class BootstrapTest {
 
         Connector connector = new Connector();
         connector.setAddress(InetAddress.getByName("127.0.0.1"));
-        connector.setPort(8080);
+        connector.setPort(8081);
         connector.setAdapter(new CoyoteAdapter(connector));
         
         service.setMapper(mapper);
 
 
         Host host = new StandardHost();
-        host.setAppBase("");
-        mapper.addHost("localhost", new String[]{"localhost"}, host);
+        host.setAppBase("/webapps");
+        host.setName("localhost");
+        
+        mapper.addHost("localhost", new String[]{}, host);
+        
+        
         StandardContext context = new StandardContext();
-        context.setDocBase("/webapps/test");
+        context.setDocBase("/test");
         context.setPath("/test");
+        
 //        context.setLogger();
         WebappLoader webappLoader = new WebappLoader();
         context.setLoader(webappLoader);
@@ -58,11 +69,14 @@ public class BootstrapTest {
         wrapper.setServletClass("test.TestServlet");
         wrapper.setName("/TestServlet");
         
-        mapper.addContext("webapps", host, "/test", context);
+        mapper.addContext("localhost", host, "/test", context);
 
-        mapper.addWrapper("webapps", "/test", wrapper);
+        mapper.addWrapper("localhost", "/test", wrapper);
 
         Engine engine = new StandardEngine();
+        context.setParent(engine);
+        wrapper.setParent(context);
+        
         service.setContainer(engine);
         service.addConnector(connector);
         server.addService(service);
