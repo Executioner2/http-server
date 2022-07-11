@@ -38,8 +38,6 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
     protected Loader loader; // 加载器
     protected Logger logger; // 日志记录器
     protected Pipeline pipeline = new StandardPipeline(this); // 管道
-    protected Mapper mapper; // 默认关联mapper，即mappers中只有一个mapper，那么就会将此mapper设置为默认关联mapper
-    protected Map<String, Mapper> mappers = new HashMap<>(); // 协议与mapper的映射集
     protected Container parent; // 父容器
     protected String name; // 容器名字，同时也是URL中的路径
     protected Map<String, Container> children = new HashMap<>(); // 子容器
@@ -354,37 +352,7 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
         }
     }
 
-    /**
-     * 添加mapper到mappers中
-     *
-     * @param mapper
-     *
-     * @exception IllegalArgumentException mappers中有这种协议的mapper了就抛出异常
-     */
-    @Override
-    public void addMapper(Mapper mapper) {
-        synchronized (mappers) {
-            if (mappers.get(mapper.getProtocol()) != null) {
-                throw new IllegalArgumentException("addMapper：Protocol：" + mapper.getProtocol() + " 不是唯一的");
-            }
-            mapper.setContainer(this);
-
-            // TODO 设置生命周期
-
-            mappers.put(mapper.getProtocol(), mapper);
-
-            if (mappers.size() == 1) {
-                // 只有一个mapper的时候就直接设为默认关联
-                this.mapper = mapper;
-            } else {
-                // 不止一个就将默认关联置为空
-                this.mapper = null;
-            }
-
-            // TODO 添加mapper事件
-        }
-    }
-
+  
 
     @Override
     public void addPropertyChangeListener(PropertyChangeListener listener) {
@@ -423,39 +391,7 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
     public ContainerListener[] findContainerListeners() {
         return new ContainerListener[0];
     }
-
-
-    /**
-     * 根据协议返回对应的mapper
-     * 如果当前context有关联的mapper就返回
-     * 否则就返回mappers中对应协议的mapper（如果有的话）
-     *
-     * @param protocol
-     *
-     * @return
-     */
-    @Override
-    public Mapper findMapper(String protocol) {
-        if (mapper != null) return mapper;
-
-        synchronized (mappers) {
-            return mappers.get(protocol);
-        }
-    }
-
-
-    /**
-     * 返回mappers中所有的mapper
-     *
-     * @return
-     */
-    @Override
-    public Mapper[] findMappers() {
-        synchronized (mappers) {
-            return mappers.values().toArray(new Mapper[mappers.size()]);
-        }
-    }
-
+    
 
     /**
      * 进入管道依次执行阀
@@ -479,25 +415,6 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
     @Override
     public void removeValve(Valve valve) {
         pipeline.removeValve(valve);
-    }
-
-
-    /**
-     * 取得这个请求的处理容器
-     *
-     * @param request
-     * @param update
-     * @return
-     */
-    @Override
-    @Deprecated
-    public Container map(com.ranni.connector.http.request.Request request, boolean update) {
-        // 根据请求协议查询mapper
-        Mapper mapper = findMapper(request.getRequest().getProtocol());
-
-        if (mapper == null) return null;
-
-        return mapper.map(request, update);
     }
 
 
@@ -528,31 +445,7 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
     public void removeContainerListener(ContainerListener listener) {
 
     }
-
-
-    /**
-     * 从mappers中移除mapper
-     *
-     * @param mapper
-     */
-    @Override
-    public void removeMapper(Mapper mapper) {
-        synchronized (mappers) {
-            if (mappers.get(mapper.getProtocol()) != null) {
-                mappers.remove(mapper.getProtocol());
-
-                // TODO 设置生命周期
-
-                if (mappers.size() != 1) {
-                    this.mapper = null;
-                } else {
-                    this.mapper = mappers.values().iterator().next();
-                }
-
-                // TODO 从mappers中移除mapper
-            }
-        }
-    }
+    
 
 
     @Override
@@ -648,33 +541,6 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
         return (className + "[" + getName() + "]");
     }
     
-
-    /**
-     * 添加默认的映射器
-     * mappers中第一位就是默认mapper
-     *
-     * @param mapperClass
-     */
-    protected void addDefaultMapper(String mapperClass) {
-        if (mapperClass == null || mapperClass.isBlank())
-            return;
-        if (mappers.size() >= 1)
-            return;
-
-        try {
-            Mapper defaultMapper = null;
-            Class clazz = Class.forName(mapperClass);
-            Object o = clazz.getConstructor().newInstance();
-            if (!(o instanceof Mapper))
-                throw new ClassCastException("该类不是Mapper的实现类！");
-
-            defaultMapper = (Mapper) o;
-            defaultMapper.setProtocol("http");
-            addMapper(defaultMapper);
-        } catch (Exception e) {
-            log("containerBase.addDefaultMapper  " + e.getMessage());
-        }
-    }
     
 
     /**
@@ -801,7 +667,6 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
 
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, null);
         
-        addDefaultMapper(this.mapperClass);
         started = true;
         
         // 启动组件
@@ -814,11 +679,6 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
         if (resources != null && resources instanceof Lifecycle)
             ((Lifecycle) resources).start();
         
-        // 启动所有的映射器
-        for (Mapper mapper : findMappers()) {
-            if (mapper instanceof Lifecycle)
-                ((Lifecycle) mapper).start();
-        }
         
         // 启动子容器
         for (Container container : findChildren()) {
@@ -860,12 +720,6 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
         for (Container container : findChildren()) {
             if (container instanceof Lifecycle) 
                 ((Lifecycle) container).stop();
-        }
-        
-        // 关闭所有映射器
-        for (Mapper mapper : findMappers()) {
-            if (mapper instanceof Lifecycle) 
-                ((Lifecycle) mapper).stop();
         }
         
         // 关闭组件
@@ -932,9 +786,6 @@ public abstract class ContainerBase implements Container, Pipeline, Lifecycle {
                     item.backgroundProcessor();
             }
         }
-        
-        
     } 
-    
     
 }

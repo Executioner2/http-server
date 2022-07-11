@@ -1,4 +1,4 @@
-package com.ranni.connector.http;
+package com.ranni.connector;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -232,14 +232,6 @@ public interface Container {
 
 
     /**
-     * 添加与此Container关联的映射器
-     *
-     * @param mapper
-     */
-    void addMapper(Mapper mapper);
-
-
-    /**
      * 添加属性改变监听器
      *
      * @param listener
@@ -273,24 +265,6 @@ public interface Container {
 
 
     /**
-     * 根据协议类型找出与此容器关联的映射器
-     *
-     * @param protocol
-     *
-     * @return
-     */
-    Mapper findMapper(String protocol);
-
-
-    /**
-     * 返回此容器所有映射器
-     *
-     * @return
-     */
-    Mapper[] findMappers();
-
-
-    /**
      * 执行servlet的service方法
      *
      * @param request
@@ -300,18 +274,7 @@ public interface Container {
      */
     void invoke(Request request, Response response) throws IOException, ServletException;
 
-
-    /**
-     * 取得处理这种请求的容器，这个方法在Tomcat5中被弃用
-     *
-     * @param request
-     * @param update
-     * @return
-     */
-    @Deprecated
-    Container map(com.ranni.connector.http.request.Request request, boolean update);
-
-
+    
     /**
      * 删除子容器
      *
@@ -326,15 +289,7 @@ public interface Container {
      * @param listener
      */
     void removeContainerListener(ContainerListener listener);
-
-
-    /**
-     * 删除映射器
-     *
-     * @param mapper
-     */
-    void removeMapper(Mapper mapper);
-
+    
 
     /**
      * 删除属性改变事件监听器

@@ -90,6 +90,7 @@ public class BootstrapTest {
         
         if (server instanceof Lifecycle) {
             try {
+                server.initialize();
                 ((Lifecycle) server).start();
             } catch (LifecycleException e) {
                 e.printStackTrace();

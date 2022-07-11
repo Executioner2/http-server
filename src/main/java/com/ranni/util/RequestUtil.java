@@ -1,6 +1,6 @@
 package com.ranni.util;
 
-import com.ranni.connector.http.ParameterMap;
+import com.ranni.connector.ParameterMap;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -54,6 +54,7 @@ public class RequestUtil {
      * @param queryString 在uri中的查询字符串。格式为 username=zs&userid=1&sex=m  这种
      * @param encoding 编码方式
      */
+    @Deprecated
     public static void parseParameters(ParameterMap map, String queryString, String encoding) throws UnsupportedEncodingException {
         if (queryString == null || queryString.isBlank()) return;
         byte[] data = queryString.getBytes(); // 转byte
@@ -67,6 +68,7 @@ public class RequestUtil {
      * @param data
      * @param encoding
      */
+    @Deprecated
     public static void parseParameters(ParameterMap map, byte[] data, String encoding) throws UnsupportedEncodingException {
         if (data == null || data.length == 0) return;
 

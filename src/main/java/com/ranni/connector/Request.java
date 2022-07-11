@@ -1,7 +1,6 @@
 package com.ranni.connector;
 
 import com.ranni.common.Globals;
-import com.ranni.connector.http.ParameterMap;
 import com.ranni.container.Context;
 import com.ranni.container.Host;
 import com.ranni.container.MappingData;

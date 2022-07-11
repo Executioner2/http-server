@@ -1,10 +1,5 @@
 package com.ranni.connector;
 
-import com.ranni.connector.processor.DefaultProcessorPool;
-import com.ranni.connector.processor.Processor;
-import com.ranni.connector.processor.ProcessorPool;
-import com.ranni.connector.socket.DefaultServerSocketFactory;
-import com.ranni.connector.socket.ServerSocketFactory;
 import com.ranni.container.Container;
 import com.ranni.core.Service;
 import com.ranni.coyote.AbstractProtocol;
@@ -16,9 +11,9 @@ import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
 import com.ranni.util.LifecycleSupport;
 
-import javax.servlet.ServletException;
-import java.io.IOException;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -33,8 +28,7 @@ import java.util.HashSet;
  * @Email 1205878539@qq.com
  * @Date 2022-03-25 21:52
  */
-public class Connector implements Runnable, Lifecycle {
-    private ServerSocketFactory factory; // 获取服务器socket的工厂
+public class Connector implements Lifecycle {
     private ServerSocket serverSocket; // 服务器socket
     private boolean stopped = false; // 连接器线程停止标志位
     private Thread thread; // 线程
@@ -58,7 +52,6 @@ public class Connector implements Runnable, Lifecycle {
     protected String scheme; // 协议类型
     protected int redirectPort = 80; // 转发端口
     protected Container container; // 容器
-    protected ProcessorPool processorPool; // 处理器池
     protected int maxPostSize = 2 * 1024 * 1024; // Post的最大请求体积
     protected int maxParameterCount = 10000; // 容器自动解析参数数量
     protected boolean useBodyEncodingForURI; // 是否将请求体的解码格式应用于URI
@@ -290,29 +283,6 @@ public class Connector implements Runnable, Lifecycle {
 
     
     /**
-     * 取得ServerSocketFactory对象
-     * 
-     * @return
-     */
-    public ServerSocketFactory getFactory() {
-        if (factory == null) {
-            setFactory(DefaultServerSocketFactory.getServerSocketFactory());
-        }
-        return factory;
-    }
-
-    
-    /**
-     * 设置ServerSocketFactory对象
-     * 
-     * @param factory
-     */
-    public void setFactory(ServerSocketFactory factory) {
-        this.factory = factory;
-    }
-
-    
-    /**
      * TODO 返回此实现类的信息和版本号
      * 
      * @return
@@ -440,44 +410,6 @@ public class Connector implements Runnable, Lifecycle {
         protocolHandler.setAdapter(adapter);
     }
     
-
-    /**
-     * 取得server socket
-     * 
-     * @return
-     */
-    private ServerSocket open() throws IOException, IllegalStateException {
-        
-        ServerSocketFactory factory = getFactory();
-        
-        if (address == null) {
-            log("创建0.0.0.0/0.0.0.0地址的ServerSocket");
-            try {
-                return factory.createSocket(port, acceptCount);
-            } catch (BindException be) {
-                throw new BindException(be.getMessage() + ":" + port);
-            }
-        }
-            
-        try {
-            InetAddress ia = InetAddress.getByName(address);
-            log("创建指定地址的ServerSocket");
-            try {
-                return factory.createSocket(port, acceptCount, ia);
-            } catch (BindException be) {
-                throw new BindException(be.getMessage() + ":" + address + ":" + port);
-            }
-            
-        } catch (Exception e) {
-            log("创建0.0.0.0/0.0.0.0地址的ServerSocket");
-            try {
-                return factory.createSocket(port, acceptCount);
-            } catch (BindException be) {
-                throw new BindException(be.getMessage() + ":" + port);
-            }
-        }
-        
-    }
     
 
     /**
@@ -485,7 +417,6 @@ public class Connector implements Runnable, Lifecycle {
      *
      * @throws Exception
      */
-    @Deprecated
     public void initialize() throws LifecycleException {
         if (initialize)
             throw new LifecycleException("连接器已初始化！");
@@ -494,83 +425,9 @@ public class Connector implements Runnable, Lifecycle {
         if (debug >= Logger.WARNING)
             log("连接器初始化");
 
-        try {
-            serverSocket = open();
-        } catch (IOException e) {
-            throw new LifecycleException(threadName + e);
+        if (null == parseBodyMethodsSet) {
+            setParseBodyMethods(getParseBodyMethods());
         }
-        
-        // 创建处理器线程池，此时还不是启动状态
-        try {
-            processorPool = DefaultProcessorPool.getProcessorPool();
-        } catch (Exception e) {
-            throw new LifecycleException(threadName + e);   
-        }        
-
-        processorPool.setConnector(this);
-    }
-    
-
-    /**
-     * XXX 连接器线程入口
-     */
-    @Override
-    public void run() {
-        log("连接器线程启动！");
-        while (!stopped) {
-            Socket socket = null;
-
-            try {
-                socket = serverSocket.accept();
-                if (debug >= 4)
-                    log("接收到请求！   " + socket);
-
-                // 从处理池中拿到一个请求，如果处理池满了并且处理池的处理器数量达到了最大值就丢弃该请求
-                Processor processor = processorPool.getProcessor();
-
-                if (processor == null) {
-                    socket.close();
-                    break;
-                }
-
-                Container container = getContainer();
-                if (container == null) throw new ServletException("没有容器！！！！");
-
-                processor.setHttpConnector(this);
-                processor.setContainer(container);
-                processor.assign(socket);
-
-            } catch (IOException e) {
-                log(e.getMessage());
-                e.printStackTrace();
-            } catch (ServletException e) {
-                log(e.getMessage());
-                e.printStackTrace();
-            }
-        }
-
-        try {
-            ;
-        } finally {
-            try {
-                serverSocket.close();
-                log("服务器socket关闭");
-            } catch (IOException e) {
-                log(e.getMessage());
-                e.printStackTrace();
-            }
-        }
-
-        log("连接器线程"+ Thread.currentThread().getName() +"关闭！");
-    }
-
-    
-    /**
-     * 将用完的处理器压回栈
-     * @param processor
-     */
-    public void recycle(Processor processor) {
-        processorPool.giveBackProcessor(processor);
     }
     
 
@@ -623,27 +480,7 @@ public class Connector implements Runnable, Lifecycle {
      * @throws Exception
      */
     @Override
-    public synchronized void start() throws LifecycleException {
-//        if (started) throw new LifecycleException("此connector连接器实例已经启动！");
-//        log("启动连接器！");
-//
-//        // 连接器启动
-//        lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
-//        started = true;
-//
-//        // 启动处理器池
-//        if (processorPool instanceof Lifecycle)
-//            ((Lifecycle) processorPool).start();
-//        
-//        // 连接器启动
-//        thread.setName(threadName);
-//        thread.start();
-//
-//        // 连接器启动后
-//        lifecycle.fireLifecycleEvent(Lifecycle.AFTER_START_EVENT, null);
-//
-//        log("连接器启动完成！");
-        
+    public synchronized void start() throws LifecycleException {        
         if (started) throw new LifecycleException("此connector连接器实例已经启动！");
         if (protocolHandler == null) {
             throw new LifecycleException("协议处理器不能为null！");
@@ -654,10 +491,6 @@ public class Connector implements Runnable, Lifecycle {
         // 连接器启动
         lifecycle.fireLifecycleEvent(Lifecycle.START_EVENT, null);
         started = true;
-
-        if (null == parseBodyMethodsSet) {
-            setParseBodyMethods(getParseBodyMethods());
-        }
 
         try {
             protocolHandler.start();
@@ -683,29 +516,6 @@ public class Connector implements Runnable, Lifecycle {
      */
     @Override
     public synchronized void stop() throws LifecycleException {
-//        if (!started) throw new LifecycleException("此connector连接器实例已经停止！");
-//
-//        // 连接器停止
-//        lifecycle.fireLifecycleEvent(Lifecycle.STOP_EVENT, null);
-//
-//        stopped = true;
-//
-//        if (processorPool instanceof Lifecycle)
-//            ((Lifecycle) processorPool).stop();
-//        
-//        // 向本机的serverSocket发送一条空请求，由于已经关闭了处理器池
-//        // 此请求不会被处理，但会使得serverSocket的accept()暂时接触阻塞
-//        // 到while的循环中会得知stooped为true，便可以跳出循环，无异常结束关闭serverSocket
-//        Socket socket = new Socket();
-//        try {
-//            socket.connect(new InetSocketAddress(serverSocket.getInetAddress(), serverSocket.getLocalPort()));
-//        } catch (IOException e) {
-//            log("HttpConnector.stoppingSocket", e);
-//        }
-//
-//        // 连接器停止后
-//        lifecycle.fireLifecycleEvent(Lifecycle.AFTER_STOP_EVENT, null);
-
         if (!started) throw new LifecycleException("此connector连接器实例已经停止！");
         
         // 连接器停止
