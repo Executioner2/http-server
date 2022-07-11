@@ -9,9 +9,9 @@ import com.ranni.container.session.Manager;
 import com.ranni.container.session.Session;
 import com.ranni.core.ApplicationMapping;
 import com.ranni.core.ApplicationSessionCookieConfig;
-import com.ranni.coyote.ActionCode;
-import com.ranni.coyote.Constants;
-import com.ranni.coyote.CoyoteInputStream;
+import com.ranni.connector.coyote.ActionCode;
+import com.ranni.connector.coyote.Constants;
+import com.ranni.connector.coyote.CoyoteInputStream;
 import com.ranni.util.RequestUtil;
 import com.ranni.util.buf.B2CConverter;
 import com.ranni.util.buf.ByteChunk;
@@ -256,7 +256,7 @@ public class Request implements HttpServletRequest {
     /**
      * coyoteRequest
      */
-    protected com.ranni.coyote.Request coyoteRequest;
+    protected com.ranni.connector.coyote.Request coyoteRequest;
 
     /**
      * 响应对象
@@ -420,7 +420,7 @@ public class Request implements HttpServletRequest {
 
 
     
-    public com.ranni.coyote.Request getCoyoteRequest() {
+    public com.ranni.connector.coyote.Request getCoyoteRequest() {
         return coyoteRequest;
     }
     
@@ -2155,7 +2155,7 @@ public class Request implements HttpServletRequest {
         this.requestedSessionSSL = b;
     }
 
-    public void setCoyoteRequest(com.ranni.coyote.Request coyoteRequest) {
+    public void setCoyoteRequest(com.ranni.connector.coyote.Request coyoteRequest) {
         this.coyoteRequest = coyoteRequest;
         inputBuffer.setRequest(coyoteRequest);
     }

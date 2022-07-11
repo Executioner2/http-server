@@ -2,9 +2,9 @@ package com.ranni.connector;
 
 import com.ranni.container.Container;
 import com.ranni.core.Service;
-import com.ranni.coyote.AbstractProtocol;
-import com.ranni.coyote.Adapter;
-import com.ranni.coyote.ProtocolHandler;
+import com.ranni.connector.coyote.AbstractProtocol;
+import com.ranni.connector.coyote.Adapter;
+import com.ranni.connector.coyote.ProtocolHandler;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.lifecycle.LifecycleListener;

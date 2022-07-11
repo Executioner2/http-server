@@ -27,9 +27,9 @@ public final class Globals {
 
     public static final String DISPATCHER_REQUEST_PATH_ATTR = "com.ranni.core.DISPATCHER_REQUEST_PATH";
     
-    public static final String STREAM_ID = "com.ranni.coyote.streamID";
+    public static final String STREAM_ID = "com.ranni.connector.coyote.streamID";
 
-    public static final String CONNECTION_ID = "com.ranni.coyote.connectionID";
+    public static final String CONNECTION_ID = "com.ranni.connector.coyote.connectionID";
 
     public static final boolean STRICT_SERVLET_COMPLIANCE = Boolean.parseBoolean(System.getProperty("com.ranni.STRICT_SERVLET_COMPLIANCE", "false"));;
     

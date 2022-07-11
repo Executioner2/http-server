@@ -2,8 +2,8 @@ package com.ranni.connector;
 
 import com.ranni.container.Context;
 import com.ranni.container.Wrapper;
-import com.ranni.coyote.ActionCode;
-import com.ranni.coyote.Adapter;
+import com.ranni.connector.coyote.ActionCode;
+import com.ranni.connector.coyote.Adapter;
 import com.ranni.util.ServerInfo;
 import com.ranni.util.SessionConfig;
 import com.ranni.util.URLEncoder;
@@ -91,7 +91,7 @@ public class CoyoteAdapter implements Adapter {
      */
     @Override
     @Deprecated // XXX - 这个标记仅表明此方法实现不完整
-    public void service(com.ranni.coyote.Request req, com.ranni.coyote.Response res) throws Exception {
+    public void service(com.ranni.connector.coyote.Request req, com.ranni.connector.coyote.Response res) throws Exception {
         Request request = (Request) req.getNote(ADAPTER_NOTES);
         Response response = (Response) res.getNote(ADAPTER_NOTES);
         
@@ -164,7 +164,7 @@ public class CoyoteAdapter implements Adapter {
      *                 
      * @return 如果返回<b>true</b>，则表示可以将请求送到容器的管道里。否则反之
      */
-    protected boolean postParseRequest(com.ranni.coyote.Request req, Request request, com.ranni.coyote.Response res, Response response) throws IOException, ServletException {
+    protected boolean postParseRequest(com.ranni.connector.coyote.Request req, Request request, com.ranni.connector.coyote.Response res, Response response) throws IOException, ServletException {
         
         if (req.scheme().isNull()) {
             // 以连接器协议为准
@@ -407,7 +407,7 @@ public class CoyoteAdapter implements Adapter {
      * @param req CoyoteRequest
      * @param request HttpServletRequest
      */
-    protected void parsePathParameters(com.ranni.coyote.Request req, Request request) {
+    protected void parsePathParameters(com.ranni.connector.coyote.Request req, Request request) {
         // 转字节块处理
         req.decodedURI().toBytes();
 
@@ -476,25 +476,25 @@ public class CoyoteAdapter implements Adapter {
 
     
     @Override
-    public boolean prepare(com.ranni.coyote.Request req, com.ranni.coyote.Response res) throws Exception {
+    public boolean prepare(com.ranni.connector.coyote.Request req, com.ranni.connector.coyote.Response res) throws Exception {
         return false;
     }
 
     
     @Override
-    public boolean asyncDispatch(com.ranni.coyote.Request req, com.ranni.coyote.Response res, SocketEvent status) throws Exception {
+    public boolean asyncDispatch(com.ranni.connector.coyote.Request req, com.ranni.connector.coyote.Response res, SocketEvent status) throws Exception {
         return false;
     }
 
     
     @Override
-    public void log(com.ranni.coyote.Request req, com.ranni.coyote.Response res, long time) {
+    public void log(com.ranni.connector.coyote.Request req, com.ranni.connector.coyote.Response res, long time) {
 
     }
 
     
     @Override
-    public void checkRecycled(com.ranni.coyote.Request req, com.ranni.coyote.Response res) {
+    public void checkRecycled(com.ranni.connector.coyote.Request req, com.ranni.connector.coyote.Response res) {
 
     }
 

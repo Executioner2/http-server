@@ -2,7 +2,7 @@ package com.ranni.connector;
 
 import com.ranni.container.Context;
 import com.ranni.container.session.Session;
-import com.ranni.coyote.Constants;
+import com.ranni.connector.coyote.Constants;
 import com.ranni.util.http.FastHttpDateFormat;
 import com.ranni.util.SessionConfig;
 import com.ranni.util.buf.CharChunk;
@@ -62,7 +62,7 @@ public class Response implements HttpServletResponse {
     /**
      * CoyoteResponse
      */
-    private com.ranni.coyote.Response coyoteResponse;
+    private com.ranni.connector.coyote.Response coyoteResponse;
 
     /**
      * 输出缓冲区
@@ -247,7 +247,7 @@ public class Response implements HttpServletResponse {
      *
      * @param coyoteResponse 要设置的CoyoteResponse
      */
-    public void setCoyoteRequest(com.ranni.coyote.Response coyoteResponse) {
+    public void setCoyoteRequest(com.ranni.connector.coyote.Response coyoteResponse) {
         this.coyoteResponse = coyoteResponse;
         outputBuffer.setResponse(coyoteResponse);
     }
@@ -256,7 +256,7 @@ public class Response implements HttpServletResponse {
     /**
      * @return 返回CoyoteResponse
      */
-    public com.ranni.coyote.Response getCoyoteResponse() {
+    public com.ranni.connector.coyote.Response getCoyoteResponse() {
         return coyoteResponse;
     }
 

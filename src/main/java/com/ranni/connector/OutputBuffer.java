@@ -1,9 +1,9 @@
 package com.ranni.connector;
 
-import com.ranni.coyote.ActionCode;
-import com.ranni.coyote.CloseNowException;
-import com.ranni.coyote.Constants;
-import com.ranni.coyote.Response;
+import com.ranni.connector.coyote.ActionCode;
+import com.ranni.connector.coyote.CloseNowException;
+import com.ranni.connector.coyote.Constants;
+import com.ranni.connector.coyote.Response;
 import com.ranni.util.buf.B2CConverter;
 import com.ranni.util.buf.C2BConverter;
 
@@ -215,7 +215,7 @@ public class OutputBuffer extends Writer {
      * 码转换器为null，则先按以下顺序依次尝试获取编码方式（Charset的实例）：
      * 1、coyoteResponse中获取
      * 2、若coyoteResponse没有，则设置为默认的编码方式
-     *    {@link com.ranni.coyote.Constants#DEFAULT_BODY_CHARSET}
+     *    {@link com.ranni.connector.coyote.Constants#DEFAULT_BODY_CHARSET}
      * 取得编码方式后从编码缓存中取得编码转换器，如果缓存中没有编码缓存器，则创建
      * 一个新的编码缓存器。
      *
