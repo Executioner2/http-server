@@ -19,7 +19,6 @@ import java.util.Set;
  */
 public class StandardHost extends ContainerBase implements Host {
     private String workDir; // 工作目录
-    private DefaultContext defaultContext; // 默认容器配置
     private String errorReportValveClass = "com.ranni.container.pip.ErrorReportValve"; // 默认的错误报告阀
     private String configClass = "com.ranni.startup.ContextConfig"; // 配置类全限定类名
     private String mapperClass = "com.ranni.container.host.StandardHostMapper"; // 默认的Host映射器
@@ -141,48 +140,6 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * 设置默认Context容器
-     * 如果默认容器不为空，则要先停掉原来的
-     *
-     * @param defaultContext
-     */
-    @Override
-    public void addDefaultContext(DefaultContext defaultContext) {
-        this.defaultContext = defaultContext;
-//        if (this.defaultContext != null) {
-//            if (started && this.defaultContext instanceof Lifecycle) {
-//                try {
-//                    ((Lifecycle) this.defaultContext).stop();
-//                } catch (LifecycleException e) {
-//                    log("StandardHost.stoppingDefaultContext", e);
-//                }
-//            }
-//        }
-//
-//        this.defaultContext = defaultContext;
-//
-//        if (started && this.defaultContext instanceof Lifecycle) {
-//            try {
-//                ((Lifecycle) this.defaultContext).start();
-//            } catch (LifecycleException e) {
-//                log("StandardHost.defaultContextStartingFail", e);
-//            }
-//        }
-    }
-
-
-    /**
-     * 返回默认的Context容器
-     *
-     * @return
-     */
-    @Override
-    public DefaultContext getDefaultContext() {
-        return this.defaultContext;
-    }
-
-
-    /**
      * 设置容器名字
      * 转小写
      *
@@ -208,21 +165,7 @@ public class StandardHost extends ContainerBase implements Host {
         
         super.addChild(child);
     }
-
-
-    /**
-     * 导入Context容器
-     * 
-     * @see {@link com.ranni.container.StandardDefaultContext#importDefaultContext(Context)}
-     * 
-     * @param context
-     */
-    @Override
-    public void importDefaultContext(Context context) {
-        if (this.defaultContext != null)
-            this.defaultContext.importDefaultContext(context);
-    }
-
+    
 
     /**
      * 添加别名
@@ -342,19 +285,7 @@ public class StandardHost extends ContainerBase implements Host {
     public void backgroundProcessor() {
         
     }
-
     
-    /**
-     * 添加默认的映射器
-     * 固定为StandardHost中的mapperClass属性（该属性可以修改）
-     * 
-     * @param mapperClass
-     */
-    @Override
-    protected void addDefaultMapper(String mapperClass) {
-        super.addDefaultMapper(this.mapperClass);
-    }
-
 
     /**
      * 启动Host容器

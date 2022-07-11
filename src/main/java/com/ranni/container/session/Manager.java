@@ -1,7 +1,6 @@
 package com.ranni.container.session;
 
 import com.ranni.container.Container;
-import com.ranni.container.DefaultContext;
 
 import java.io.IOException;
 
@@ -16,22 +15,6 @@ import java.io.IOException;
  * @Ref org.apache.catalina.Manager
  */
 public interface Manager {
-
-    /**
-     * 返回默认容器
-     *
-     * @return
-     */
-    DefaultContext getDefaultContext();
-
-
-    /**
-     * 设置默认容器
-     *
-     * @param defaultContext
-     */
-    void setDefaultContext(DefaultContext defaultContext);
-
 
     /**
      * 设置此manager关联的context容器

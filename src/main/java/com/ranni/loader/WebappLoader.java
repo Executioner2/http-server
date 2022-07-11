@@ -8,8 +8,6 @@ import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.logger.Logger;
-import com.ranni.naming.DirContextURLStreamHandler;
-import com.ranni.naming.DirContextURLStreamHandlerFactory;
 import com.ranni.naming.Resource;
 import com.ranni.util.LifecycleSupport;
 
@@ -24,7 +22,6 @@ import java.io.*;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.URLStreamHandlerFactory;
 import java.util.jar.JarFile;
 
 /**
@@ -301,8 +298,8 @@ public class WebappLoader implements Loader, Lifecycle {
             return;
 
         // 将JNDI协议注册到流处理工厂（在XML解析中有用到）
-        URLStreamHandlerFactory streamHandlerFactory = new DirContextURLStreamHandlerFactory();
-        URL.setURLStreamHandlerFactory(streamHandlerFactory);
+//        URLStreamHandlerFactory streamHandlerFactory = new DirContextURLStreamHandlerFactory();
+//        URL.setURLStreamHandlerFactory(streamHandlerFactory);
 
         // 创建类载入器
         try {
@@ -586,7 +583,7 @@ public class WebappLoader implements Loader, Lifecycle {
             classLoader.stop();
         
         // 解绑JNDI协议流处理工厂
-        DirContextURLStreamHandler.unbind(classLoader);
+//        DirContextURLStreamHandler.unbind(classLoader);
         classLoader = null;
     }
     

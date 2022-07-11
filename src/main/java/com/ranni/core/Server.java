@@ -1,7 +1,6 @@
 package com.ranni.core;
 
 import com.ranni.lifecycle.LifecycleException;
-import com.ranni.deploy.NamingResources;
 
 /**
  * Title: HttpServer
@@ -22,22 +21,6 @@ public interface Server {
      * @return
      */
     String getInfo();
-
-
-    /**
-     * 返回全局JNDI命名资源
-     * 
-     * @return
-     */
-    NamingResources getGlobalNamingResources();
-
-
-    /**
-     * 设置全局JNDI命名资源
-     * 
-     * @param globalNamingResources
-     */
-    void setGlobalNamingResources(NamingResources globalNamingResources);
 
 
     /**

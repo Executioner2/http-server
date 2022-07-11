@@ -1,6 +1,5 @@
 package com.ranni.startup;
 
-import com.ranni.container.DefaultContext;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
 import com.ranni.core.Server;
@@ -68,9 +67,6 @@ public class ServerConfigureParse extends ConfigureParseBase {
             host.setName(hostConfigure.getName());
             host.setAppBase(hostConfigure.getAppBase());
             host.setAutoDeploy(hostConfigure.isAutoDeploy());
-
-            if (hostConfigure.getDefaultContextClass() != null)
-                host.addDefaultContext((DefaultContext) getInstance(hostConfigure.getDefaultContextClass()));
 
             engine.addChild(host);
         }

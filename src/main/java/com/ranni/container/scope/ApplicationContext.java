@@ -4,7 +4,6 @@ import com.ranni.connector.Constants;
 import com.ranni.container.Context;
 import com.ranni.container.Host;
 import com.ranni.container.context.StandardContext;
-import com.ranni.naming.DirContextURLStreamHandler;
 import com.ranni.naming.Resource;
 import com.ranni.util.Enumerator;
 
@@ -142,7 +141,7 @@ public class ApplicationContext implements ServletContext {
                 resources.lookup(s);
                 
                 return new URL("jndi", null, 0, 
-                        getJNDIUri(hostName, fullPath), new DirContextURLStreamHandler(resources));
+                        getJNDIUri(hostName, fullPath));
                 
             } catch (Exception e) {
                 e.printStackTrace();

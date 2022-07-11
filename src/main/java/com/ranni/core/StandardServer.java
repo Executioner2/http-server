@@ -1,6 +1,5 @@
 package com.ranni.core;
 
-import com.ranni.deploy.NamingResources;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.lifecycle.LifecycleListener;
@@ -36,16 +35,6 @@ public class StandardServer implements Lifecycle, Server {
     @Override
     public String getInfo() {
         return null;
-    }
-
-    @Override
-    public NamingResources getGlobalNamingResources() {
-        return null;
-    }
-
-    @Override
-    public void setGlobalNamingResources(NamingResources globalNamingResources) {
-
     }
 
 

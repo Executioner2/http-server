@@ -5,13 +5,10 @@ import com.ranni.annotation.core.Controllers;
 import com.ranni.common.Globals;
 import com.ranni.container.Container;
 import com.ranni.container.Context;
-import com.ranni.container.Engine;
-import com.ranni.container.Host;
 import com.ranni.container.context.StandardContext;
 import com.ranni.container.scope.ApplicationContext;
 import com.ranni.container.wrapper.StandardWrapper;
 import com.ranni.core.FilterDef;
-import com.ranni.deploy.ApplicationParameter;
 import com.ranni.deploy.FilterMap;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleEvent;
@@ -94,18 +91,7 @@ public class ContextConfig implements LifecycleListener {
         for (int i = 0; i < children.length; i++) {
             context.removeChild(children[i]);
         }
-
-        // 移除应用程序监听器
-        String[] applicationListeners = context.findApplicationListeners();
-        for (int i = 0; i < applicationListeners.length; i++) {
-            context.removeApplicationListener(applicationListeners[i]);
-        }
-
-        // 移除所有应用程序参数
-        ApplicationParameter[] applicationParameters = context.findApplicationParameters();
-        for (int i = 0; i < applicationParameters.length; i++) {
-            context.removeApplicationParameter(applicationParameters[i].getName());
-        }
+        
 
         // TODO 移除错误页
         
@@ -120,20 +106,10 @@ public class ContextConfig implements LifecycleListener {
         for (int i = 0; i < filterMaps.length; i++) {
             context.removeFilterMap(filterMaps[i]);
         }
-
-        // 移除所有实例监听器
-        String[] instanceListeners = context.findInstanceListeners();
-        for (int i = 0; i < instanceListeners.length; i++) {
-            context.removeInstanceListener(instanceListeners[i]);
-        }
+        
 
         // TODO 移除MIME
-
-        // 移除所有参数
-        String[] parameters = context.findParameters();
-        for (int i = 0; i < parameters.length; i++) {
-            context.removeParameter(parameters[i]);
-        }
+        
 
         // TODO 移除 security role
 
@@ -175,18 +151,7 @@ public class ContextConfig implements LifecycleListener {
         context.setConfigured(false);
         ok = true;
         
-        // 如果容器不可覆盖，那么设当前容器为服务器的默认容器
-        Container container = context.getParent();
-        if (!context.getOverride()) {
-            if (container instanceof Host) {
-                ((Host) container).importDefaultContext(context);
-                container = container.getParent();
-            }
-            
-            if (container instanceof Engine) {
-                ((Engine) container).importDefaultContext(context);
-            }
-        }
+        // XXX - 如果容器不可覆盖，那么设当前容器为服务器的默认容器
         
         // 解析服务器默认xml文件
 //        defaultConfig();

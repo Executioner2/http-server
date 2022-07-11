@@ -154,22 +154,6 @@ public interface Host extends Container {
 
 
     /**
-     * 添加默认的Context容器
-     *
-     * @param defaultContext
-     */
-    void addDefaultContext(DefaultContext defaultContext);
-
-
-    /**
-     * 返回默认的Context容器
-     *
-     * @return
-     */
-    DefaultContext getDefaultContext();
-
-
-    /**
      * 返回此虚拟主机的规范名称
      *
      * @return
@@ -183,15 +167,7 @@ public interface Host extends Container {
      * @param name
      */
     void setName(String name);
-
-
-    /**
-     * 导入默认的容器
-     *
-     * @param context
-     */
-    void importDefaultContext(Context context);
-
+    
 
     /**
      * 给此虚拟主机添加别名

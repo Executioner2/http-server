@@ -1,7 +1,6 @@
 package com.ranni.container.session;
 
 import com.ranni.container.Container;
-import com.ranni.container.DefaultContext;
 import com.ranni.logger.Logger;
 
 import java.io.IOException;
@@ -24,7 +23,6 @@ public abstract class ManagerBase implements Manager {
 
     protected Container container; // 关联的context容器
     protected int debug = Logger.INFORMATION; // 日志级别
-    protected DefaultContext defaultContext; // 默认容器
     protected boolean distributable; // 持久化标志
     protected int maxInactiveInterval = 60; // 最大生存时间，单位秒
     protected static String name = "ManagerBase";
@@ -64,28 +62,6 @@ public abstract class ManagerBase implements Manager {
      */
     public int getDebug() {
         return this.debug;
-    }
-
-
-    /**
-     * 返回默认context容器
-     *
-     * @return
-     */
-    @Override
-    public DefaultContext getDefaultContext() {
-        return this.defaultContext;
-    }
-
-
-    /**
-     * 设置默认context容器
-     *
-     * @param defaultContext
-     */
-    @Override
-    public void setDefaultContext(DefaultContext defaultContext) {
-        this.defaultContext = defaultContext;
     }
 
 

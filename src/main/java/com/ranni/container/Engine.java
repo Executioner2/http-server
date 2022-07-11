@@ -58,28 +58,4 @@ public interface Engine extends Container {
      * @param service
      */
     void setService(Service service);
-
-
-    /**
-     * 设置默认Context容器
-     * 
-     * @param defaultContext
-     */
-    void addDefaultContext(DefaultContext defaultContext);
-
-
-    /**
-     * 返回默认的Context容器
-     * 
-     * @return
-     */
-    DefaultContext getDefaultContext();
-
-
-    /**
-     * 导入Context容器
-     * 
-     * @param context
-     */
-    void importDefaultContext(Context context);
 }

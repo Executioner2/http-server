@@ -1,7 +1,5 @@
 package com.ranni.deploy;
 
-import java.util.List;
-
 /**
  * Title: HttpServer
  * Description:
@@ -13,7 +11,6 @@ import java.util.List;
 public final class ServiceConfigure {
     private String name; // 服务名
     private String connectorClass = "com.ranni.connector.HttpConnector"; // 连接器实现类名
-    private List<ConnectorConfigure> connectors; // 连接器集合
 
     public String getName() {
         return name;
@@ -31,11 +28,4 @@ public final class ServiceConfigure {
         this.connectorClass = connectorClass;
     }
 
-    public List<ConnectorConfigure> getConnectors() {
-        return connectors;
-    }
-
-    public void setConnectors(List<ConnectorConfigure> connectors) {
-        this.connectors = connectors;
-    }
 }

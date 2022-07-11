@@ -52,9 +52,7 @@ public class StandardContext extends ContainerBase implements Context {
     private String[] wrapperListeners = new String[0]; // wrapper监听器类名
     private String[] applicationListeners = new String[0]; // 应用程序监听器类名，按照在web.xml文件中出现顺序排列
     private String[] instanceListeners = new String[0]; // 将新创建的Wrapper实例监听器加入到该集合
-    private ApplicationParameter[] applicationParameters = new ApplicationParameter[0]; // 应用程序参数集
     private Map<String, String> parameters = new HashMap<>(); // 参数集合
-    private NamingResources namingResources = new NamingResources(); // 命名资源管理实例
     private String namingContextName; // 命名容器全名
     private boolean paused; // 是否开始接收请求
     private String workDir; // 工作目录
@@ -108,7 +106,6 @@ public class StandardContext extends ContainerBase implements Context {
 
     public StandardContext() {
         pipeline.setBasic(new StandardContextValve(this));
-        namingResources.setContainer(this);
     }
 
 
@@ -232,7 +229,11 @@ public class StandardContext extends ContainerBase implements Context {
     public String getCharset(Locale loc) {
         return getCharsetMapper().getCharset(loc);
     }
-    
+
+    @Override
+    public boolean getUseHttpOnly() {
+        return false;
+    }
 
     /**
      * 是否开始接收请求
@@ -592,16 +593,7 @@ public class StandardContext extends ContainerBase implements Context {
         this.docBase = docBase;
     }
 
-    @Override
-    public NamingResources getNamingResources() {
-        return null;
-    }
-
-    @Override
-    public void setNamingResources(NamingResources namingResources) {
-
-    }
-
+    
     /**
      * 返回此容器的名字
      *
@@ -797,65 +789,7 @@ public class StandardContext extends ContainerBase implements Context {
             applicationListeners = strings;
         }
     }
-
-    /**
-     * 添加应用程序参数
-     * 如果传入的parameter的name与当前容器name相同且不允许重载，那将不会添加到集合中
-     *
-     * @param parameter
-     */
-    @Override
-    public void addApplicationParameter(ApplicationParameter parameter) {
-        if (name.equals(parameter.getName()) && !parameter.isOverride()) return;
-
-        synchronized (applicationParameters) {
-            ApplicationParameter[] parameters = new ApplicationParameter[this.applicationParameters.length + 1];
-            System.arraycopy(applicationParameters, 0, parameter, 0, applicationParameters.length);
-            parameters[applicationParameters.length] = parameter;
-            applicationParameters = parameters;
-        }
-    }
-
-
-    /**
-     * 添加应用程序参数
-     * 如果传入的parameters中有name与当前容器name相同且不允许重载，那将不会添加到集合中
-     *
-     * @param parameters
-     */
-    @Override
-    public void addApplicationParameter(ApplicationParameter[] parameters) {
-        if (parameters == null || parameters.length == 0) return;
-
-        List<ApplicationParameter> list = new ArrayList<>(parameters.length);
-        for (ApplicationParameter app : parameters) {
-            if (name.equals(app.getName()) && !app.isOverride())
-                continue;
-            list.add(app);
-        }
-
-        synchronized (applicationParameters) {
-            ApplicationParameter[] apps = new ApplicationParameter[this.applicationParameters.length + list.size()];
-            System.arraycopy(applicationParameters, 0, apps, 0, applicationParameters.length);
-
-            for (int i = 0, j = applicationListeners.length; i < list.size(); i++) {
-                apps[j++] = list.get(i);
-            }
-
-            applicationParameters = apps;
-        }
-    }
-
     
-    /**
-     * 添加环境
-     *
-     * @param environment
-     */
-    @Override
-    public void addEnvironment(ContextEnvironment environment) {
-        namingResources.addEnvironment(environment);
-    }
 
 
     /**
@@ -957,38 +891,6 @@ public class StandardContext extends ContainerBase implements Context {
         }
     }
 
-    /**
-     * 添加资源
-     *
-     * @param resource
-     */
-    @Override
-    public void addResource(ContextResource resource) {
-        namingResources.addResource(resource);
-    }
-
-
-    /**
-     * 添加资源环境类型
-     *
-     * @param name
-     * @param type
-     */
-    @Override
-    public void addResourceEnvRef(String name, String type) {
-        namingResources.addResourceEnvRef(name, type);
-    }
-
-
-    /**
-     * 添加资源连接
-     *
-     * @param resourceLink
-     */
-    @Override
-    public void addResourceLink(ContextResourceLink resourceLink) {
-        namingResources.addResourceLink(resourceLink);
-    }
 
     /**
      * Context的实现类会有个名为servletMappings的map数据结构
@@ -1076,31 +978,7 @@ public class StandardContext extends ContainerBase implements Context {
             wrapperListeners = strings;
         }
     }
-
-    @Override
-    public Wrapper createWrapper() {
-        return null;
-    }
-
-    @Override
-    public String[] findApplicationListeners() {
-        return new String[0];
-    }
-
-    @Override
-    public ApplicationParameter[] findApplicationParameters() {
-        return new ApplicationParameter[0];
-    }
-
-    @Override
-    public ContextEnvironment findEnvironment(String name) {
-        return null;
-    }
-
-    @Override
-    public ContextEnvironment[] findEnvironments() {
-        return new ContextEnvironment[0];
-    }
+    
 
 
     /**
@@ -1131,62 +1009,8 @@ public class StandardContext extends ContainerBase implements Context {
     public FilterMap[] findFilterMaps() {
         return filterMaps;
     }
-
-    @Override
-    public String[] findInstanceListeners() {
-        return new String[0];
-    }
-
-    @Override
-    public String findMimeMapping(String extension) {
-        return null;
-    }
-
-    @Override
-    public String[] findMimeMappings() {
-        return new String[0];
-    }
-
-    @Override
-    public String findParameter(String name) {
-        return null;
-    }
-
-    @Override
-    public String[] findParameters() {
-        return new String[0];
-    }
-
-    @Override
-    public ContextResource findResource(String name) {
-        return null;
-    }
-
-    @Override
-    public String findResourceEnvRef(String name) {
-        return null;
-    }
-
-    @Override
-    public String[] findResourceEnvRefs() {
-        return new String[0];
-    }
-
-    @Override
-    public ContextResourceLink findResourceLink(String name) {
-        return null;
-    }
-
-    @Override
-    public ContextResourceLink[] findResourceLinks() {
-        return new ContextResourceLink[0];
-    }
-
-    @Override
-    public ContextResource[] findResources() {
-        return new ContextResource[0];
-    }
-
+    
+    
     /**
      * 返回servletMapping中指定pattern对应的wrapper名
      *
@@ -1199,6 +1023,7 @@ public class StandardContext extends ContainerBase implements Context {
             return servletMappings.get(pattern);
         }
     }
+    
 
     /**
      * 返回servletMapping所有的key
@@ -1391,21 +1216,7 @@ public class StandardContext extends ContainerBase implements Context {
     public void removeParameter(String name) {
 
     }
-
-    @Override
-    public void removeResource(String name) {
-
-    }
-
-    @Override
-    public void removeResourceEnvRef(String name) {
-
-    }
-
-    @Override
-    public void removeResourceLink(String name) {
-
-    }
+    
 
     /**
      * 移除servletMapping中指定pattern对应的wrapper
@@ -1557,15 +1368,7 @@ public class StandardContext extends ContainerBase implements Context {
         }
     }
 
-    /**
-     * 
-     * @return
-     */
-    @Override
-    public boolean getUseHttpOnly() {
-        return false;
-    }
-
+    
     @Override
     public CookieProcessor getCookieProcessor() {
         return cookieProcessor;
@@ -1723,8 +1526,6 @@ public class StandardContext extends ContainerBase implements Context {
         
         if (ok) {
             try {
-                // 添加默认的映射器
-                addDefaultMapper(this.mapperClass);
                 started = true;
 
                 // 启动加载器
@@ -1743,13 +1544,6 @@ public class StandardContext extends ContainerBase implements Context {
                 // 启动相关组件 （领域，簇，JNDI资源等）
                 if (resources != null && resources instanceof Lifecycle)
                     ((Lifecycle) resources).start();
-
-                // 启动映射器
-                Mapper mappers[] = findMappers();
-                for (Mapper mapper : mappers) {
-                    if (mapper instanceof Lifecycle)
-                        ((Lifecycle) mapper).start();
-                }
                 
                 // 启动子容器
                 Container[] children = findChildren();
@@ -1849,8 +1643,6 @@ public class StandardContext extends ContainerBase implements Context {
      */
     private void unbindThread(ClassLoader oldCCL) {
         Thread.currentThread().setContextClassLoader(oldCCL);
-        
-        DirContextURLStreamHandler.unbind();
     }
 
 
@@ -1869,7 +1661,7 @@ public class StandardContext extends ContainerBase implements Context {
         
         Thread.currentThread().setContextClassLoader(getLoader().getClassLoader());
 
-        DirContextURLStreamHandler.bind(getResources());
+//        DirContextURLStreamHandler.bind(getResources());
                 
         return contextClassLoader;
     }
@@ -1902,15 +1694,6 @@ public class StandardContext extends ContainerBase implements Context {
         }
         
         return ok;
-    }
-
-    /**
-     * 添加默认映射器
-     *
-     * @param mapperClass
-     */
-    protected void addDefaultMapper(String mapperClass) {
-        super.addDefaultMapper(mapperClass);
     }
     
 
@@ -2035,12 +1818,6 @@ public class StandardContext extends ContainerBase implements Context {
                     ((Lifecycle) child).stop();
             }
             
-            // 关闭mapper
-            Mapper[] mappers = findMappers();
-            for (Mapper mapper : mappers) {
-                if (mapper instanceof Lifecycle)
-                    ((Lifecycle) manager).stop();
-            }
             
             // 停止监听器
             listenerStop(); // TODO 未实现

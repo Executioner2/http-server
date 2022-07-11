@@ -404,7 +404,7 @@ public abstract class BaseDirContext implements DirContext {
      */
     @Override
     public NameParser getNameParser(Name name) throws NamingException {
-        return new NameParserImpl();
+        throw new NamingException("未实现！");
     }
 
     /**
@@ -416,7 +416,7 @@ public abstract class BaseDirContext implements DirContext {
      */
     @Override
     public NameParser getNameParser(String name) throws NamingException {
-        return new NameParserImpl();
+        throw new NamingException("未实现！");
     }
 
     /**
