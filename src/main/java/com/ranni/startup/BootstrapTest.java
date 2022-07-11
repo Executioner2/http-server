@@ -70,15 +70,20 @@ public class BootstrapTest {
         wrapper.setServletClass("test.TestServlet");
         wrapper.setName("/TestServlet");
         
+        StandardWrapper wrapper1 = new StandardWrapper();
+        wrapper1.setServletClass("test.HtmlServlet");
+        wrapper1.setName("/HtmlServlet");
+        
         mapper.addContext("localhost", host, "/test", context);
 
         mapper.addWrapper("localhost", "/test", wrapper);
+        mapper.addWrapper("localhost", "/test", wrapper1);
 
         Engine engine = new StandardEngine();
         engine.addChild(host);
         host.addChild(context);
         context.addChild(wrapper);
-        
+        context.addChild(wrapper1);
         service.setContainer(engine);
         service.addConnector(connector);
         server.addService(service);

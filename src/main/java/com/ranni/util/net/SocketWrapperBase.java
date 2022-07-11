@@ -861,6 +861,10 @@ public abstract class SocketWrapperBase<E> {
             to.put(from);
             from.limit(fromLimit);
         }
+//        System.out.println();
+//        for (int i = 0; i < to.position(); i++) {
+//            System.out.print(to.get(i) + " ");
+//        }
         return max;
     }
 
@@ -1111,7 +1115,7 @@ public abstract class SocketWrapperBase<E> {
      * @throws IOException 可能抛出I/O异常
      */
     protected void doWrite(boolean block) throws IOException {
-        socketBufferHandler.configureReadBufferForRead();
+        socketBufferHandler.configureWriteBufferForRead();
         doWrite(block, socketBufferHandler.getWriteBuffer());
     }
 

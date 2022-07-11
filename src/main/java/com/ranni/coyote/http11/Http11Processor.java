@@ -814,7 +814,7 @@ public class Http11Processor extends AbstractProcessor {
             outputBuffer.addActiveFilter(outputFilters[Constants.CHUNKED_FILTER]);
             contentDelimitation = true;
             headers.addValue(Constants.TRANSFERENCODING).setString(Constants.CHUNKED);
-        } else if (contentLength == -1){
+        } else if (contentLength != -1){
             // 正常写入数据，添加普通数据写入阀
             headers.setValue("Content-Length").setLong(contentLength);
             outputBuffer.addActiveFilter(outputFilters[Constants.IDENTITY_FILTER]);

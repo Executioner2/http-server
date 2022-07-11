@@ -1277,15 +1277,18 @@ public class Response implements HttpServletResponse {
             return;
         }
         
-        getCoyoteResponse().setContentTypeNoCharset(m[0]);
-        if (!usingWriter) {
-            try {
-                getCoyoteResponse().setCharacterEncoding(m[1]);
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            }
-            isCharacterEncodingSet = true;
+        if (m[1] != null) {
+            getCoyoteResponse().setContentTypeNoCharset(m[0]);
+            if (!usingWriter) {
+                try {
+                    getCoyoteResponse().setCharacterEncoding(m[1]);
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+                isCharacterEncodingSet = true;
+            }    
         }
+        
     }
 
 
