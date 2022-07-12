@@ -4,8 +4,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 
 /**
  * Title: HttpServer
@@ -39,6 +38,17 @@ public final class JSONUtil {
             {"double".hashCode(), "java.lang.Double".hashCode()},
             {"java.lang.String".hashCode()},
     };
+    
+    public static final Set<Integer> dbSet = new HashSet<>(){{
+        add("byte".hashCode()); add("java.lang.Byte".hashCode());
+        add("char".hashCode()); add("java.lang.Character".hashCode());
+        add("short".hashCode()); add("java.lang.Short".hashCode());
+        add("int".hashCode()); add("java.lang.Integer".hashCode());
+        add("long".hashCode()); add("java.lang.Long".hashCode());
+        add("float".hashCode()); add("java.lang.Float".hashCode());
+        add("double".hashCode()); add("java.lang.Double".hashCode());
+        add("java.lang.String".hashCode());
+    }};
 
     
     private static final int JSON_MAX_DEEP = 100; // json最大的嵌套深度
@@ -47,6 +57,152 @@ public final class JSONUtil {
 
     private JSONUtil() {}
 
+
+    // ==================================== 对象转json ====================================
+
+    private static Object jsonElementType(Object val) {
+        if (val == null) {
+            
+            return "\"null\"";
+        } else if (val instanceof Byte || val instanceof Short
+                || val instanceof Integer || val instanceof Long
+                || val instanceof Float || val instanceof Double) {
+            
+            return String.valueOf(val);
+        } else if (val instanceof Character || val instanceof String) {
+            
+            return "\""+val+"\""; 
+        } else if (val instanceof Map) {
+            
+            return toJSONStringInternal((Map) val);
+        } else if (val instanceof Collection) {
+            
+            return toJSONList((Collection) val);
+        } else if (val.getClass().isArray()) {
+            
+            return toJSONList(Arrays.asList(val));
+        } else {
+            
+            return toJSONStringInternal(val);
+        }
+    }
+
+
+    /**
+     * 将集合转json数组
+     * 
+     * @param collection 要转换的集合
+     * @return 返回转换成的json数组
+     */
+    private static StringBuilder toJSONList(Collection collection) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        for (Object val : collection) {
+            sb.append(jsonElementType(val).toString());
+            sb.append(',');
+        }
+        if (sb.length() > 1) {
+            sb.setCharAt(sb.length() - 1, ']');
+        } else {
+            sb.append(']');
+        }
+        return sb;
+    }
+    
+    
+    /**
+     * 将object的getter属性转换为json字符串格式
+     * 
+     * @param obj 要转化的对象
+     * @return 返回转换后的json字符串
+     */
+    public static String toJSONString(Object obj) {
+        return  toJSONStringInternal(obj).toString();
+    }
+
+
+    /**
+     * 将object的getter属性转换为json字符串格式
+     *
+     * @param obj 要转化的对象
+     * @return 返回转换后的json StringBuilder
+     */
+    public static StringBuilder toJSONStringInternal(Object obj) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('{');
+        
+        Field[] fields = obj.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            field.setAccessible(true);
+            Object val = null;
+            try {
+                val = field.get(obj);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+
+            sb.append("\"");
+            sb.append(field.getName());
+            sb.append("\"");
+            sb.append(":");
+            
+            sb.append(jsonElementType(val));
+            sb.append(',');
+        }
+
+        if (sb.length() > 1) {
+            sb.setCharAt(sb.length() - 1, '}');
+        } else {
+            sb.append('}');
+        }
+        
+        return sb;
+    }
+
+
+    /**
+     * 将map转为json字符串
+     * 
+     * @param map 要转为json的map
+     * @return 返回转换成后json字符串
+     */
+    public static String toJSONString(Map map) {
+        return toJSONStringInternal(map).toString();
+    }
+
+
+    /**
+     * 将map转为json字符串
+     *
+     * @param map 要转为json的map
+     * @return 返回转换后的json StringBuilder
+     */
+    public static StringBuilder toJSONStringInternal(Map map) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('{');
+
+        for (Object key : map.keySet()) {
+            sb.append("\"");
+            sb.append(key);
+            sb.append("\"");
+            sb.append(":");
+
+            sb.append(jsonElementType(map.get(key)));
+            sb.append(',');
+        }
+        
+        
+        if (sb.length() > 1) {
+            sb.setCharAt(sb.length() - 1, '}');
+        } else {
+            sb.append('}');
+        }
+        return sb;
+    }
+
+
+
+    // ==================================== json转对象 ====================================
 
     /**
      * json值的实体
@@ -163,7 +319,7 @@ public final class JSONUtil {
      * @param json      json字符数组
      * @param index     解析的下标位置
      *              
-     * @return 返回解析到了json字符数组的位置
+     * @return 返回json字符数组解析到的位置
      */
     private static ValueEntity parseJSON(Class aClass, char[] json, int index) throws JSONException {
         Object obj = getInstance(aClass);

@@ -861,10 +861,7 @@ public abstract class SocketWrapperBase<E> {
             to.put(from);
             from.limit(fromLimit);
         }
-//        System.out.println();
-//        for (int i = 0; i < to.position(); i++) {
-//            System.out.print(to.get(i) + " ");
-//        }
+
         return max;
     }
 

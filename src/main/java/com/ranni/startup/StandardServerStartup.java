@@ -559,7 +559,6 @@ public class StandardServerStartup implements ServerStartup {
             throw new IllegalStateException("StandardServerStartup.initialize  已经初始化过了！");
         
         synchronized (this) {
-            
             if (initialized)
                 return;
 
@@ -573,7 +572,7 @@ public class StandardServerStartup implements ServerStartup {
             Server server = configureMap.getInstance();
             setDivisor(configureMap.getConfigure().getScanThreadDivisor()); // 设置扫描线程数量因子
             Service[] services = server.findServices();
-            Engine engine = (Engine) services[0].getContainer();
+            Engine engine = services[0].getContainer();
             setEngine(engine);
             setServer(server);
         }

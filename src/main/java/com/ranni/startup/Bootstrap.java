@@ -43,7 +43,6 @@ public final class Bootstrap {
             } catch (Exception e) {
                 System.err.println("服务器启动失败！");
                 e.printStackTrace();
-                return;
             }
         }
     }

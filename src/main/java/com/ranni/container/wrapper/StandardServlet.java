@@ -1,9 +1,6 @@
 package com.ranni.container.wrapper;
 
-import com.ranni.annotation.core.Controller;
-import com.ranni.annotation.core.RequestBody;
-import com.ranni.annotation.core.RequestMapping;
-import com.ranni.annotation.core.RequestParam;
+import com.ranni.annotation.core.*;
 import com.ranni.common.Globals;
 import com.ranni.container.ContainerServlet;
 import com.ranni.container.Wrapper;
@@ -12,11 +9,15 @@ import com.ranni.handler.JSONUtil;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.sql.rowset.serial.SerialException;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -53,8 +54,8 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
     /**
      * 初始化
      * 
-     * @param servletConfig
-     * @throws ServletException
+     * @param servletConfig servlet配置信息
+     * @throws ServletException 可能抛出Servlet异常
      */
     @Override
     public void init(ServletConfig servletConfig) throws ServletException {
@@ -110,9 +111,7 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
      */
     @Override
     public void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String uri = req.getRequestURI().substring(baseUri.length());        
-        req.setCharacterEncoding("UTF-8");
-        resp.setCharacterEncoding("UTF-8");
+        String uri = req.getRequestURI().substring(baseUri.length());
         if (!methodMap.containsKey(uri)) {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND, "请求未找到！ requestURI：" + req.getRequestURI());
             return;
@@ -131,10 +130,40 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
         try {
             Object[] args = parseParams(req, method); // 自动值填充
             Object res = method.invoke(controller, args); // 执行controller对应的方法并返回值
-            resp.setContentType("text/html"); // FIXME - 不能固定死
+            
+            ContentType contentType = requestMapping.contentType();
+            resp.setContentType(contentType.getValue());
+            if (resp.getCharacterEncoding() == null) {
+                resp.setCharacterEncoding("utf-8");
+            }
+
+            if (res == null) {
+                return;
+            }
+            
             // XXX - 应该做更灵活的处理
-            PrintWriter writer = resp.getWriter();
-            writer.print(res);
+            switch (contentType) {
+                case JSON: {
+                  // 顺到下面的TEXT  
+                } case TEXT: {
+                    PrintWriter writer = resp.getWriter();
+                    writer.print(JSONUtil.toJSONString(res));    
+                    break;
+                } case OCTET_STREAM: {
+                    if (!(res instanceof Serializable)) {
+                        throw new SerialException("对象不能序列化 " + res);
+                    }
+                    ServletOutputStream outputStream = resp.getOutputStream();
+                    ObjectOutputStream oos = new ObjectOutputStream(outputStream);
+                    oos.writeObject(res);
+                    break;
+                } case FORM_DATA: {
+                    // XXX - multipart/form-data类型。很重要，需要尽早实现  
+                } default: {
+                    throw new IllegalArgumentException("未知响应类型！");
+                }
+            }            
+            
         } catch (IllegalAccessException e) {
             resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "无方法执行权限！ " + method.getName());
             e.printStackTrace(System.err);
