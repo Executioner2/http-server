@@ -1,9 +1,6 @@
 package com.ranni.connector;
 
-import com.ranni.container.Context;
-import com.ranni.container.Host;
-import com.ranni.container.MappingData;
-import com.ranni.container.Wrapper;
+import com.ranni.container.*;
 import com.ranni.core.WebResourceRoot;
 import com.ranni.util.buf.Ascii;
 import com.ranni.util.buf.CharChunk;
@@ -388,6 +385,46 @@ public final class Mapper {
 
     /**
      * 添加Host容器
+     *
+     * @param host host容器
+     * @param aliases 别名
+     */
+    public synchronized void addHost(Host host, String[] aliases) {
+        MappedHost mappedHost = new MappedHost(host.getName(), host);
+        MappedHost[] newHosts = new MappedHost[hosts.length + 1];
+        if (insertMap(hosts, newHosts, mappedHost)) {
+            hosts = newHosts;
+            if (mappedHost.name.equals(defaultHostName)) {
+                defaultHost = mappedHost;
+            }
+        } else {
+            // 插入失败，已经有这个名字的Host映射了看相同名字的
+            // Host映射实例是否相等，如果不等，则直接返回，否则
+            // 为此容器添加新的别名
+            int i = find(hosts, host.getName());
+            if (i >= 0) {
+                mappedHost = hosts[i];
+            } else {
+                return;
+            }
+        }
+
+        // 添加别名
+        Collection<MappedHost> list = new ArrayList<>(aliases.length);
+        for (String alias : aliases) {
+            // 判断此别名是否存在
+            MappedHost aliasMappedHost = new MappedHost(alias, mappedHost);
+            if (addHostAliasImpl(aliasMappedHost)) {
+                list.add(aliasMappedHost);
+            }
+        }
+
+        mappedHost.addAliases(list);
+    }
+    
+    
+    /**
+     * 添加Host容器
      * 
      * @param name host容器名
      * @param aliases 别名
@@ -511,6 +548,49 @@ public final class Mapper {
     public void addContext(String hostName, Host host, String path, Context context) {
         addContext(hostName, host, path, context, null, null);
     }
+
+    
+    /**
+     * 添加Context容器
+     *
+     * @param context Context容器
+     * @param resources Web资源目录
+     */
+    public void addContext(Context context, WebResourceRoot resources) {
+        Host host = (Host) context.getParent();
+        if (host == null) {
+            return;
+        }
+        
+        MappedHost mappedHost = exactFind(hosts, host.getName());
+        if (mappedHost == null) {
+            addHost(host, new String[0]);
+            mappedHost = exactFind(hosts, host.getName());
+            if (mappedHost == null) {
+                return;
+            }
+        }
+
+        int slashCount = slashCount(context.getPath());
+        MappedContext contextMapped = new MappedContext(context.getPath(), context, slashCount, resources);
+
+        synchronized (mappedHost.contextList) {
+            ContextList contextList = mappedHost.contextList.addContext(contextMapped, slashCount);
+            if (contextList == null) {
+                // 已经有一个相同path的容器映射了
+                return;
+            }
+            mappedHost.contextList = contextList;
+        }
+
+        // 添加wrapper映射
+        synchronized (contextMapped) {
+            for (Container container : context.findChildren()) {
+                Wrapper wrapper = (Wrapper) container;
+                addWrapper(contextMapped, wrapper.getPath(), wrapper);
+            }
+        }
+    }
     
 
     /**
@@ -553,6 +633,51 @@ public final class Mapper {
             if (mappedWrappers != null) {
                 addWrappers(contextMapped, mappedWrappers);
             }    
+        }
+    }
+
+
+    /**
+     * 添加Context容器
+     *
+     * @param context Context容器
+     * @param resources Context的资源管理组件（内含了类加载器，JNDI容器等重要信息）
+     * @param mappedWrappers Context容器的Wrapper子容器集合
+     */
+    public void addContext(Context context, WebResourceRoot resources,
+                           Collection<MappedWrapper> mappedWrappers) {
+
+        Host host = (Host) context.getParent();
+        if (host == null) {
+            return;
+        }
+        
+        MappedHost mappedHost = exactFind(hosts, host.getName());
+        if (mappedHost == null) {
+            addHost(host.getName(), new String[0], host);
+            mappedHost = exactFind(hosts, host.getName());
+            if (mappedHost == null) {
+                return;
+            }
+        }
+
+        int slashCount = slashCount(context.getPath());
+        MappedContext contextMapped = new MappedContext(context.getPath(), context, slashCount, resources);
+
+        synchronized (mappedHost.contextList) {
+            ContextList contextList = mappedHost.contextList.addContext(contextMapped, slashCount);
+            if (contextList == null) {
+                // 已经有一个相同path的容器映射了
+                return;
+            }
+            mappedHost.contextList = contextList;
+        }
+
+        // 添加wrapper映射
+        synchronized (contextMapped) {
+            if (mappedWrappers != null) {
+                addWrappers(contextMapped, mappedWrappers);
+            }
         }
     }
 
@@ -604,6 +729,37 @@ public final class Mapper {
         }
     }
 
+
+    /**
+     * 添加wrapper到所属的context下。底层是根据path挂在
+     * 字典树上。
+     *
+     * @param wrapper wrapper容器
+     */
+    public void addWrapper(Wrapper wrapper) {
+        Context context = (Context) wrapper.getParent();
+        if (context == null) {
+            return;
+        }
+
+        Host host = (Host) context.getParent();
+        if (host == null) {
+            return;
+        }
+
+        MappedHost mappedHost = exactFind(hosts, host.getName());
+        if (mappedHost == null) {
+            return;
+        }
+
+        MappedContext mappedContext = exactFind(mappedHost.contextList.contexts, context.getPath());
+        if (mappedContext == null) {
+            return;
+        }
+
+        mappedContext.wrapperDictTree.addMappedWrapper(wrapper.getName(), wrapper);
+    }
+    
 
     /**
      * 添加wrapper到所属的context下。底层是根据path挂在

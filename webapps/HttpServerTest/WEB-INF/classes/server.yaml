@@ -1,0 +1,29 @@
+# 一份默认的服务器配置模板
+
+# 配置引擎
+engine:
+  name: DefaultEngine
+  clazz: com.ranni.container.engine.StandardEngine # 如果此属性为null，则使用默认的Engine实现类
+  defaultHost: localhost # 默认主机
+  hostClass: com.ranni.container.host.StandardHost # 统一配置host的实现类名
+  # 配置Host
+  hosts:
+    # 第一个host
+    - name: localhost # host的名字
+      appBase: webapps # host在服务器目录内的根目录
+      defaultContextClass: com.ranni.container.StandardDefaultContext # 默认的Context容器类
+      #  class: com.ranni.container.host.StandardHost # 单独为每个host配置类名
+
+
+      # 第二个host
+      #- name: host2
+      #  appBase: webapps2
+      #  class: com.ranni.container.host.StandardHost
+
+services:
+  - name: StandardService # 服务名
+    # 不推荐在这里配置连接器，应该交给webapp的application.yaml配置文件
+#    connectorClass: com.ranni.connector.HttpConnector 
+#    connectors: 
+#      - clazz: com.ranni.connector.HttpConnector # 连接器实现类名
+#        debug: 4

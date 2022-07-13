@@ -1,0 +1,8 @@
+bootstrap: com.ranni.test.Bootstrap # 启动类
+host: localhost # 主机（域名）
+ip: 127.0.0.1
+port: 8000 # 端口号，可省略，默认为8080
+
+# 重载
+reloadable: true
+backgroundProcessorDelay: 3

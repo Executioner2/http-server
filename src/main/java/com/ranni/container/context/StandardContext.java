@@ -590,6 +590,9 @@ public class StandardContext extends ContainerBase implements Context {
      */
     @Override
     public void setDocBase(String docBase) {
+        if (name == null) {
+            name = docBase;
+        }
         this.docBase = docBase;
     }
 

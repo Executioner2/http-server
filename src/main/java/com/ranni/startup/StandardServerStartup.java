@@ -153,7 +153,7 @@ public class StandardServerStartup implements ServerStartup {
                     if (temp.isDirectory()) {
                         queue.offer(temp);
                     } else if (temp.getName().endsWith(".class")) {
-                        classFiles.add(file);
+                        classFiles.add(temp);
                     }
                 }
                 
@@ -173,9 +173,9 @@ public class StandardServerStartup implements ServerStartup {
                     String className = path.substring(path.lastIndexOf("\\WEB-INF\\classes\\") + 17, path.lastIndexOf(".class"));
                     className = className.replaceAll("\\\\", ".");
                     Class<?> aClass = urlClassLoader.loadClass(className);
-                    if (aClass.getDeclaredAnnotation(WebBootstrap.class) != null) {
+                    if (aClass.getDeclaredAnnotation(WebBootstrap.class) != null) {                        
                         Method main = aClass.getMethod("main", String[].class);
-                        main.invoke(null, null);
+                        main.invoke(null, (Object) new String[0]);
                         return;
                     }
                 } catch (ClassNotFoundException e) {
@@ -582,6 +582,9 @@ public class StandardServerStartup implements ServerStartup {
         // 扫描Host
         scanHost(engine);
 
+        // 到这里服务端初始化完成
+        initialized = true;
+        
         if (serverStartup) {
             // 通过服务器启动，扫描容器
             scanContext();

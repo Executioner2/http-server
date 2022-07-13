@@ -1,8 +1,8 @@
 package com.ranni.startup;
 
 import com.ranni.common.Globals;
-import com.ranni.common.SystemProperty;
 import com.ranni.connector.Connector;
+import com.ranni.connector.Mapper;
 import com.ranni.container.Context;
 import com.ranni.container.Engine;
 import com.ranni.container.Host;
@@ -14,8 +14,8 @@ import com.ranni.core.Service;
 import com.ranni.deploy.ApplicationConfigure;
 import com.ranni.loader.WebappLoader;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 
 /**
@@ -62,14 +62,20 @@ public final class WebApplication {
     public static void run(Class<?> clazz, String[] args) {
         URL url = clazz.getResource("");
         String protocol = url.getProtocol();
-
+        
         // 通过url协议判断是哪种方式启动
         if ("file".equals(protocol)) {            
             // 通过webapp启动类取得webapp所在的路径
             // XXX - 待多环境测试
-            String packagePath = "/classes/" + clazz.getPackageName().replaceAll("\\.", "/") + "/";
-            String path = url.toString().substring(6, url.toString().lastIndexOf(packagePath));            
-            System.setProperty(SystemProperty.SERVER_BASE, path);
+            String packagePath = "/WEB-INF/classes/" + clazz.getPackageName().replaceAll("\\.", "/") + "/";
+            String path = url.getPath().substring(0, url.getPath().lastIndexOf(packagePath));
+            String docBase = "";
+            int index = path.lastIndexOf('/');
+            
+            if (index > -1) {
+                docBase = path.substring(index);
+                path = path.substring(0, index);
+            }
             
             // 解析配置文件
             try {
@@ -88,14 +94,25 @@ public final class WebApplication {
             
             try {
                 // 解析application.yaml配置文件
-                ClassLoader ccl = Thread.currentThread().getContextClassLoader();
-                URL resource = ccl.getResource(Constants.APPLICATION_YAML);
-                
+                ClassLoader ccl = clazz.getClassLoader();
+                InputStream resource = ccl.getResourceAsStream(Constants.APPLICATION_YAML);
+
                 if (resource == null)
-                    resource = ccl.getResource(Constants.APPLICATION_YML);
+                    resource = ccl.getResourceAsStream(Constants.APPLICATION_YML);
                 
                 ConfigureParse<Context, ApplicationConfigure> parse = new ApplicationConfigureParse(clazz);
-                ApplicationConfigure configure = parse.parse(new File(resource.toURI())).getConfigure();
+                ApplicationConfigure configure = parse.parse(resource).getConfigure();
+                
+                if (configure.getPath() == null) {
+                    configure.setPath(docBase);
+                }
+                if (configure.getDocBase() == null) {
+                    configure.setDocBase(docBase);
+                }
+                if (configure.getWorkDir() == null) {
+                    configure.setWorkDir(path);
+                }
+                
                 Context context = fitApplicationConfigure(clazz, serverStartup.getServer(), configure);
 
                 // 加入到服务器中
@@ -103,12 +120,12 @@ public final class WebApplication {
                 Host host = (Host) engine.findChild(configure.getHost());
                 engine.setDefaultHost(host.getName()); // 设置默认主机
 
-                // 设置工作目录和仓库目录
-                if (host instanceof StandardHost)
-                    ((StandardHost) host).setWorkDir(path);
-
+                // 设置host
                 host.addChild(context);
-                
+                Mapper mapper = engine.getService().getMapper();
+                mapper.addHost(host, new String[0]);
+                mapper.addContext(context, null);
+
             } catch (Exception e) {
                 e.printStackTrace();
                 return;
@@ -140,35 +157,37 @@ public final class WebApplication {
         URL url = webappBootstrapClazz.getResource("");
         StandardContext context = null;
         Connector connector = null;
-        String docBase = "";
-        String appBase = "";
-        String prefix = "/classes";
+        String docBase = configure.getDocBase();
+        String path = configure.getPath();
         
         if ("file".equals(url.getProtocol())) {
             // 文件URL协议
             connector = new Connector();
             context = new StandardContext();
 
-            Engine engine = (Engine) server.findServices()[0].getContainer();
+            Service[] services = server.findServices();
+            Service service = services[services.length - 1];
+            Engine engine = service.getContainer();
             Host host = (Host) engine.findChild(configure.getHost());
+            Mapper mapper = new Mapper();
+            service.setMapper(mapper);
 
             // 如果没有host，就新建一个
             if (host == null) {
                 host = new StandardHost();
-                host.setAppBase(appBase);
+                host.setAppBase(configure.getWorkDir());
                 host.setName(configure.getHost());
                 engine.addChild(host);
             } else {
                 // 把默认server配置文件中的webapps路径改掉
-                host.setAppBase(appBase);
+                host.setAppBase(configure.getWorkDir());
             }
             
             context.setDocBase(docBase);
-            context.setPath(docBase);
+            context.setPath(path);
             context.setReloadable(configure.isReloadable());
             context.setBackgroundProcessorDelay(configure.getBackgroundProcessorDelay());
             WebappLoader webappLoader = new WebappLoader();
-            webappLoader.setClassesPath(prefix);
             context.setLoader(webappLoader);
             ContextConfig contextConfig = new ContextConfig();
             context.addLifecycleListener(contextConfig);
@@ -182,7 +201,7 @@ public final class WebApplication {
 
             // 将服务和连接器关联
             for (String serviceName : configure.getServices()) {
-                Service service = server.findService(serviceName);
+                service = server.findService(serviceName);
                 service.addConnector(connector);
             }
         }

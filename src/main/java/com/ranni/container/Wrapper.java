@@ -244,4 +244,18 @@ public interface Wrapper extends Container {
      * servlet支持的方法
      */
     String[] getServletMethods() throws ServletException;
+
+
+    /**
+     * 设置请求路径
+     * 
+     * @param path 请求路径
+     */
+    void setPath(String path);
+
+
+    /**
+     * @return 返回请求路径
+     */
+    String getPath();
 }

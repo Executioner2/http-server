@@ -16,7 +16,9 @@ import java.util.List;
  */
 public class ApplicationConfigure {
     private String bootstrap; // 启动类
-    private String path; // 路径    
+    private String path; // webapp的请求路径
+    private String docBase; // webapp的文档路径
+    private String workDir; // host的工作目录
     private String host = "localhost"; // 所属主机
     private String ip; // ip地址
     private boolean reloadable; // 是否可重载
@@ -104,5 +106,21 @@ public class ApplicationConfigure {
 
     public void setScheme(String scheme) {
         this.scheme = scheme;
+    }
+    
+    public String getDocBase() {
+        return docBase;
+    }
+
+    public void setDocBase(String docBase) {
+        this.docBase = docBase;
+    }
+
+    public String getWorkDir() {
+        return workDir;
+    }
+
+    public void setWorkDir(String workDir) {
+        this.workDir = workDir;
     }
 }

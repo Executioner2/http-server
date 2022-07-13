@@ -45,6 +45,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     private boolean unloading; // 是否正在卸载中
     private boolean unavailable; // 此wrapper是否不可用
     private long available; // 此wrapper什么时候可用，为0L则表示永久可用，为Long.MAX_VALUE则表示永久不可用)
+    private String path; // 请求路径
 
     protected String servletClass; // servlet类全限定类名
     protected InstanceSupport instanceSupport = new InstanceSupport(this); // 实例监听器工具实例
@@ -583,6 +584,17 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         
     }
 
+
+    @Override
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    @Override
+    public String getPath() {
+        return this.path;
+    }
+    
 
     /**
      * 进入管道依次执行阀

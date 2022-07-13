@@ -178,7 +178,7 @@ public interface Context extends Container, ContextBind {
     
 
     /**
-     * 返回此web应用程序的上下文路径
+     * 返回此web应用程序的请求路径
      *
      * @return
      */
