@@ -11,14 +11,14 @@ import javax.naming.Binding;
 import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.naming.directory.DirContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.CodeSource;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -30,63 +30,96 @@ import java.util.jar.JarFile;
  * @Email 1205878539@qq.com
  * @Date 2022-04-06 15:45
  */
-public class WebappClassLoader extends CommonClassLoader implements Reloader, Lifecycle {
-    // 不允许载入的类和包
-    private static final String[] packageTriggers = {
-            "javax",                                     // Java extensions
-            "org.xml.sax",                               // SAX 1 & 2
-            "org.w3c.dom",                               // DOM 1 & 2
-            "org.apache.xerces",                         // Xerces 1 & 2
-            "org.apache.xalan"                           // Xalan
-    };
-    private static final String[] triggers = {
-            "javax.servlet.Servlet"                     // Servlet API
-    };
+public class WebappClassLoader extends AbstractClassLoader implements Reloader, Lifecycle {
 
-    private ClassLoader parent; // 父-类加载器
-    private ClassLoader system; // 应用（系统）类加载器
-    private Object lock = new Object(); // 锁
-    private int debug = Logger.ERROR; // 日志输出等级            
-
-    protected DirContext resources; // 容器资源
-    protected boolean delegate; // 委托标志
-    protected boolean hasExternalRepositories; // 是否有拓展仓库集
-    protected boolean started; // 是否已经启动
-    protected String[] repositories = new String[0]; // 类仓库名，与类文件仓库的下标是对应的
-    protected File[] files = new File[0]; // 类文件仓库，与类仓库名的的下标是对应的
-    protected String jarPath; // JAR包的路径
-    protected List<String> jarNames = new ArrayList<>(); // JAR包名集合
-    protected List<JarFile> jarFiles = new ArrayList<>(); // JAR包列表
-    protected List<File> jarRealFiles = new ArrayList<>(); // 存放JAR包中资源的文件夹集合
-    protected List<Long> lastModifiedDates = new ArrayList<>(); // JAR的最后修改日期
-    protected List<String> paths = new ArrayList<>(); // JAR包路径列表
-    protected Set<String> notFoundResources = new HashSet<>(); // 未找到的资源名
-    protected Map<String, ResourceEntry> resourceEntries = new HashMap<>(); // 已经载入的缓存资源
-
-    public WebappClassLoader() {
-        super(new URL[0]);
-        this.parent = getParent();
-        this.system = getSystemClassLoader();
-    }
-
-    public WebappClassLoader(ClassLoader parent) {
-        super(new URL[0], parent);
-        this.parent = getParent();
-        this.system = getSystemClassLoader();
-    }
-
+    // ==================================== 属性字段 ====================================\
 
     /**
-     * 类加载
+     * 锁
+     */
+    private Object lock = new Object();
+
+    /**
+     * 日志输出等级
+     */
+    private int debug = Logger.ERROR;
+
+    /**
+     * 是否已经启动
+     */
+    protected boolean started;
+
+    /**
+     * 类仓库名，与类文件仓库的下标是对应的
+     */
+    protected String[] repositories = new String[0];
+
+    /**
+     * 类文件仓库，与类仓库名的的下标是对应的
+     */
+    protected File[] files = new File[0];
+
+    /**
+     * JAR包的路径
+     */
+    protected String jarPath;
+
+    /**
+     * JAR包名集合
+     */
+    protected List<String> jarNames = new ArrayList<>();
+
+    /**
+     * JAR包列表
+     */
+    protected List<JarFile> jarFiles = new ArrayList<>();
+
+    /**
+     * 存放JAR包中资源的文件夹集合
+     */
+    protected List<File> jarRealFiles = new ArrayList<>();
+
+    /**
+     * JAR的最后修改日期
+     */
+    protected List<Long> lastModifiedDates = new ArrayList<>();
+
+    /**
+     * JAR包路径列表
+     */
+    protected List<String> paths = new ArrayList<>();
+
+    /**
+     * 是否有拓展仓库集
+     */
+    protected boolean hasExternalRepositories;
+
+
+    // ==================================== 核心方法 ====================================
+
+    /**
+     * 根据类名找到这个类文件并加载到JVM虚拟机中
      *
-     * @param name
-     * @return
-     * @throws ClassNotFoundException
+     * @param name 全限定类名
+     * @return 返回找到并加载的类
+     * @throws ClassNotFoundException 如果没有找到这个类将抛出此异常
      */
     @Override
-    public Class<?> loadClass(String name) throws ClassNotFoundException {
-        return loadClass(name, false);
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        Class clazz = findClassInternal(name);
+
+        // 如果从主库中找不到资源而刚好有扩展库，那就尝试从扩展库中去找
+        if (clazz == null && hasExternalRepositories) {
+            clazz = super.findClass(name);
+        } 
+
+        if (clazz == null) {
+            throw new ClassNotFoundException(name);
+        }
+
+        return clazz;
     }
+    
 
     /**
      * 类加载
@@ -100,117 +133,10 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         if (!started)
             throw new ClassNotFoundException(name);
-
-        Class clazz = null;
-
-        // 尝试从WebappClassLoader的缓存中查询
-        clazz = findLoadedClass0(name);
-        if (clazz != null) {
-            // 是否需要重新解析
-            if (resolve)
-                resolveClass(clazz);
-            return clazz;
-        }
-
-        // 尝试从父类的缓存中查询
-        clazz = findLoadedClass(name);
-        if (clazz != null) {
-            // 是否需要重新解析
-            if (resolve)
-                resolveClass(clazz);
-            return clazz;
-        }
-
-        // 从系统类加载器中加载（JDK 9之前的双亲委派机制）
-        try {
-            clazz = system.loadClass(name);
-            if (clazz != null) {
-                // 是否需要重新加载
-                if (resolve)
-                    resolveClass(clazz);
-                return clazz;
-            }
-        } catch (ClassNotFoundException e) {
-            ;
-        }
-
-        // 是否委托加载，如果是被过滤的包也要启用委托
-        boolean delegateLoad = delegate || filter(name);
-
-        // 尝试委托加载
-        if (delegateLoad) {
-            ClassLoader loader = parent == null ? system : parent;
-
-            try {
-                clazz = loader.loadClass(name);
-                if (clazz != null) {
-                    // 是否需要重新加载
-                    if (resolve)
-                        resolveClass(clazz);
-                    return clazz;
-                }
-            } catch (ClassNotFoundException e) {
-                ;
-            }
-        }
-
-        // 尝试从本地加载
-        try {
-            clazz = findClass(name);
-            if (clazz != null) {
-                // 是否需要重新加载
-                if (resolve)
-                    resolveClass(clazz);
-                return clazz;
-            }
-        } catch (ClassNotFoundException e) {
-            ;
-        }
-
-        // 如果本地加载未加载上，且还没有委托加载，则尝试委托加载
-        if (!delegateLoad) {
-            ClassLoader loader = parent == null ? system : parent;
-
-            try {
-                clazz = loader.loadClass(name);
-                if (clazz != null) {
-                    // 是否需要重新加载
-                    if (resolve)
-                        resolveClass(clazz);
-                    return clazz;
-                }
-            } catch (ClassNotFoundException e) {
-                ;
-            }
-        }
-
-        // 没有找到这个类
-        throw new ClassNotFoundException(name);
+        
+        return super.loadClass(name, resolve);
     }
-
-
-    /**
-     * 查询类
-     *
-     * @param name
-     * @return
-     * @throws ClassNotFoundException
-     */
-    @Override
-    protected Class<?> findClass(String name) throws ClassNotFoundException {
-        Class clazz = findClassInternal(name);
-
-        // 如果从主库中找不到资源而刚好有扩展库，那就尝试从扩展库中去找
-        if (clazz == null && hasExternalRepositories) {
-            clazz = super.findClass(name);
-        }
-
-        if (clazz == null) {
-            throw new ClassNotFoundException(name);
-        }
-
-        return clazz;
-    }
+    
 
     /**
      * 从本地存储中查找类
@@ -274,6 +200,7 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
 
         return clazz;
     }
+    
 
     /**
      * 从本地资源中查询并解析资源
@@ -397,19 +324,9 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
                 entry.certificates = jarEntry.getCertificates();
             }
         }
-
-        // 找到并解析了这个资源，现在把解析好的资源对象放到集合中
-        synchronized (resourceEntries) {
-            // 如果已经存在了就返回存在的（多线程问题）
-            ResourceEntry entry2 = resourceEntries.get(name);
-            if (entry2 == null) {
-                resourceEntries.put(name, entry);
-            } else {
-                entry = entry2;
-            }
-        }
-
-        return entry;
+        
+        // 找到并解析了这个资源，现在把解析好的资源对象放到集合中然后返回
+        return resourceEntries.putIfAbsent(name, entry);
     }
 
 
@@ -444,31 +361,6 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
         return true;
     }
 
-
-    /**
-     * 是否是被过滤的包
-     *
-     * @param name
-     * @return
-     */
-    protected boolean filter(String name) {
-       if (name == null) return false;
-
-       String packageName = null;
-       int pos = name.lastIndexOf('.');
-       if (pos != -1)
-           packageName = name.substring(0, pos);
-       else
-           return false;
-
-        for (int i = 0; i < packageTriggers.length; i++) {
-            if (packageName.startsWith(packageTriggers[i])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     /**
      * 添加拓展仓库
@@ -573,46 +465,6 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
     
 
     /**
-     * 设置JNDI的容器资源
-     *
-     * @param resources
-     */
-    public void setResources(DirContext resources) {
-        this.resources = resources;
-    }
-    
-
-    /**
-     * 返回容器资源
-     *
-     * @return
-     */
-    public DirContext getResources() {
-        return this.resources;
-    }
-
-
-    /**
-     * 设置委托标志
-     *
-     * @param delegate
-     */
-    public void setDelegate(boolean delegate) {
-        this.delegate = delegate;
-    }
-
-
-    /**
-     * 返回委托标志
-     *
-     * @return
-     */
-    public boolean getDelegate() {
-        return this.delegate;
-    }
-
-
-    /**
      * 将class仓库名和具体的File对象加入到集合
      *
      * @param repository
@@ -710,6 +562,7 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
 
     }
 
+    
     /**
      * 不支持哦哦哦
      *
@@ -720,6 +573,7 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
         return new LifecycleListener[0];
     }
 
+    
     /**
      * 不支持哦哦哦
      *
@@ -730,6 +584,7 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
 
     }
 
+    
     /**
      * 仅设置启动标志位为true
      *
@@ -740,19 +595,7 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
         started = true;
     }
 
-    /**
-     * 查询缓存中是否已经加载此类
-     *
-     * @param name
-     * @return
-     */
-    protected Class findLoadedClass0(String name) {
-        ResourceEntry entry = resourceEntries.get(name);
-        if (entry != null)
-            return entry.loadedClass;
-        return null;
-    }
-
+    
     /**
      * 释放资源
      *
@@ -770,9 +613,6 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
             }
         }
 
-        notFoundResources.clear(); // 清除未找到的资源文件缓存
-        resourceEntries.clear(); // 清除已解析的资源文件
-
         repositories = new String[0];
         jarPath = null;
         files = new File[0];
@@ -782,6 +622,8 @@ public class WebappClassLoader extends CommonClassLoader implements Reloader, Li
         paths.clear();
         lastModifiedDates.clear();
         hasExternalRepositories = false;
+
+        super.recycle();
     }
 
 

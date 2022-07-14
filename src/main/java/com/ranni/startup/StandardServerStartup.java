@@ -11,6 +11,7 @@ import com.ranni.deploy.ConfigureMap;
 import com.ranni.deploy.ServerConfigure;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
+import com.ranni.loader.AbstractClassLoader;
 import com.ranni.util.WARDecUtil;
 
 import javax.annotation.processing.FilerException;
@@ -19,8 +20,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLStreamHandler;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,42 +37,132 @@ import java.util.zip.ZipException;
  * @Date 2022/5/13 11:39
  */
 public class StandardServerStartup implements ServerStartup {
-    private static final int MAX_THREAD = 8; // 最大线程数
-    private volatile static StandardServerStartup instance; // 单例的StandardServerStartup
-    private static AtomicInteger finishCount = new AtomicInteger(0); // 扫描线程完成数
-    private static Deque<ScanFileEntity> scanFiles = new ConcurrentLinkedDeque<>(); // 扫描文件数
-    private String serverConfigurePath; // 服务器配置文件
-    
-    protected boolean initialized; // 是否已经初始化
-    protected Engine engine; // 引擎
-    protected Server server; // 服务器
-    protected float divisor = 0.4f; // 线程数量因子，范围：[0.1, 1]
-    protected boolean serverStartup; // 是否从服务器启动的标志位
-    protected boolean started; // 服务器是否已启动
-    protected ConfigureMap<Server, ServerConfigure> configureMap; // 服务器实例与服务器实例映射
-    protected ConfigureParse<Server, ServerConfigure> configureParse; // 配置文件解析实例
 
-
-    private StandardServerStartup() { }
-
+    // ==================================== 属性字段 ====================================
 
     /**
-     * 返回单例StandardServerStartup
-     * 
-     * @return
+     * 单例的StandardServerStartup
      */
-    public static StandardServerStartup getInstance() {
-        if (instance == null) {
-            synchronized (StandardServerStartup.class) {
-                if (instance == null) {
-                    instance = new StandardServerStartup();
-                }
-            }
+    private volatile static StandardServerStartup instance;
+
+    /**
+     * 扫描线程完成数
+     */
+    private static AtomicInteger finishCount = new AtomicInteger(0);
+
+    /**
+     * 扫描文件数
+     */
+    private static Deque<ScanFileEntity> scanFiles = new ConcurrentLinkedDeque<>();
+
+    /**
+     * 服务器配置文件
+     */
+    private String serverConfigurePath;
+
+    /**
+     * webapp启动类的加载器
+     */
+    private final BootstrapClassLoader bootstrapClassLoader;
+
+    /**
+     * 服务器基本路径
+     */
+    private final String serverBase;
+
+    /**
+     * 是否已经初始化
+     */
+    protected boolean initialized;
+
+    /**
+     * 引擎
+     */
+    protected Engine engine;
+
+    /**
+     * 服务器
+     */
+    protected Server server;
+
+    /**
+     * 最大线程数
+     */
+    @Deprecated
+    private static final int MAX_THREAD = 8;
+    
+    /**
+     * 线程数量因子，范围：[0.1, 1]
+     */
+    @Deprecated
+    protected float divisor = 0.4f;
+
+    /**
+     * 是否从服务器启动的标志位
+     */
+    protected boolean serverStartup;
+
+    /**
+     * 服务器是否已启动
+     */
+    protected boolean started;
+
+    /**
+     * 服务器实例与服务器实例映射
+     */
+    protected ConfigureMap<Server, ServerConfigure> configureMap;
+
+    /**
+     * 配置文件解析实例
+     */
+    protected ConfigureParse<Server, ServerConfigure> configureParse;
+
+
+    // ==================================== 私有构造方法 ====================================
+    
+    private StandardServerStartup() {
+        this.serverBase = System.getProperty(SystemProperty.SERVER_BASE);  
+        this.bootstrapClassLoader = new BootstrapClassLoader();
+    }
+
+
+    // ==================================== 内部类 ====================================
+
+    /**
+     * 启动类加载器
+     */
+    class BootstrapClassLoader extends AbstractClassLoader {
+        /**
+         * 服务器根目录
+         */
+        private String serverBase;
+
+        /**
+         * 缓存已经加载的类
+         */
+        private final Map<String, Class> cache = Collections.synchronizedMap(new HashMap<>());
+
+
+        public BootstrapClassLoader() {
+            super();
+            this.serverBase = getServerBase();
+        }
+
+
+        /**
+         * 根据类名找到这个类文件并加载到JVM虚拟机中
+         *
+         * @param name 全限定类名
+         * @return 返回找到并加载的类
+         * @throws ClassNotFoundException 如果没有找到这个类将抛出此异常
+         */
+        @Override
+        protected Class<?> findClass(String name) throws ClassNotFoundException {
+            return super.findClass(name);
         }
         
-        return instance;
     }
-    
+        
 
     /**
      * 扫描文件实体
@@ -143,8 +232,6 @@ public class StandardServerStartup implements ServerStartup {
         private void scanBootstrap(File file) throws MalformedURLException {
             Queue<File> queue = new LinkedList<>();
             List<File> classFiles = new LinkedList<>();
-            URL[] urls = new URL[1];
-            URLClassLoader urlClassLoader = null;
             queue.offer(file);
             
             while (!queue.isEmpty()) {
@@ -158,11 +245,6 @@ public class StandardServerStartup implements ServerStartup {
                 }
                 
                 if (!classFiles.isEmpty()) {
-                    URLStreamHandler streamHandler = null;
-                    String base = f.getAbsolutePath().substring(0, f.getAbsolutePath().lastIndexOf("\\WEB-INF\\classes\\") + 17);
-                    String repository = (new URL("file", null, base)).toString();
-                    urls[0] = new URL(null, repository, streamHandler);
-                    urlClassLoader = new URLClassLoader(urls);
                     break;
                 }
             }
@@ -170,9 +252,19 @@ public class StandardServerStartup implements ServerStartup {
             for (File f : classFiles) {
                 try {
                     String path = f.getAbsolutePath();
-                    String className = path.substring(path.lastIndexOf("\\WEB-INF\\classes\\") + 17, path.lastIndexOf(".class"));
-                    className = className.replaceAll("\\\\", ".");
-                    Class<?> aClass = urlClassLoader.loadClass(className);
+                    if (!path.startsWith(serverBase)) {
+                        continue;
+                    }
+                    Class<?> aClass = null;
+                    
+                    synchronized (bootstrapClassLoader) {
+                        aClass = bootstrapClassLoader.loadClass(path.substring(serverBase.length()));
+                    }
+                    
+                    if (aClass == null) {
+                        continue;
+                    }
+                    
                     if (aClass.getDeclaredAnnotation(WebBootstrap.class) != null) {                        
                         Method main = aClass.getMethod("main", String[].class);
                         main.invoke(null, (Object) new String[0]);
@@ -189,6 +281,26 @@ public class StandardServerStartup implements ServerStartup {
                 }
             }
         }
+    }
+
+    
+    // ==================================== 核心方法 ====================================
+
+    /**
+     * 返回单例StandardServerStartup
+     *
+     * @return
+     */
+    public static StandardServerStartup getInstance() {
+        if (instance == null) {
+            synchronized (StandardServerStartup.class) {
+                if (instance == null) {
+                    instance = new StandardServerStartup();
+                }
+            }
+        }
+
+        return instance;
     }
     
     
@@ -271,7 +383,7 @@ public class StandardServerStartup implements ServerStartup {
                 File file2 = webapps.get(file1.getName());
                 if (file2 != null && file2.lastModified() >= file1.lastModified()) {
                     // war包未修改
-                    iterator.remove(); 
+                    iterator.remove();
                 } else {
                     String absolutePath = file1.getAbsolutePath();
                     absolutePath.substring(0, absolutePath.lastIndexOf("."));
@@ -283,7 +395,6 @@ public class StandardServerStartup implements ServerStartup {
 
             // 解压war包，后台解压                      
             warDecUtil.unzip(new ConcurrentLinkedDeque<>(wars), true);
-
         }
 
         // 等待war包解压完
@@ -518,7 +629,7 @@ public class StandardServerStartup implements ServerStartup {
     public ConfigureParse<Server, ServerConfigure> getConfigureParse() {
         return this.configureParse;
     }
-
+    
 
     /**
      * 设置线程数量因子
@@ -590,7 +701,16 @@ public class StandardServerStartup implements ServerStartup {
             scanContext();
         }
     }
+    
 
+    /**
+     * @return 返回服务器基本路径
+     */
+    @Override
+    public String getServerBase() {
+        return serverBase;
+    }
+    
 
     /**
      * 是否已经初始化
@@ -604,8 +724,9 @@ public class StandardServerStartup implements ServerStartup {
 
 
     /**
+     * 设置服务器配置文件路径
      * 
-     * @param path
+     * @param path 服务器配置文件路径
      */
     @Override
     public void setServerConfigurePath(String path) {

@@ -1,7 +1,6 @@
 package com.ranni.startup;
 
 import com.ranni.common.SystemProperty;
-import com.ranni.loader.CommonClassLoader;
 
 /**
  * Title: HttpServer
@@ -13,18 +12,17 @@ import com.ranni.loader.CommonClassLoader;
  * @Date 2022/5/15 15:46
  */
 public final class Bootstrap {
-    private static final ServerStartup serverStartup = StandardServerStartup.getInstance();
-    
-    public static void main(String[] args) {
+    static {
         String base = System.getProperty("user.dir"); // 服务器根目录
         if (base.endsWith("\\bin")) {
             base = base.substring(0, base.length() - 4);
         }
         System.setProperty(SystemProperty.SERVER_BASE, base);
-        
+    }
+    private static final ServerStartup serverStartup = StandardServerStartup.getInstance();
+    
+    public static void main(String[] args) {
         // 设置类加载器
-        CommonClassLoader commonClassLoader = new CommonClassLoader();
-        Thread.currentThread().setContextClassLoader(commonClassLoader);
         serverStartup.setServerStartup(true);
         startup();
     }

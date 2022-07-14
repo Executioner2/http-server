@@ -138,4 +138,10 @@ public interface ServerStartup {
      * @param path
      */
     void setServerConfigurePath(String path);
+    
+
+    /**
+     * @return 返回服务器基本路径
+     */
+    String getServerBase();
 }

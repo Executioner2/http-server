@@ -68,10 +68,19 @@ public final class WebApplication {
         if ("file".equals(protocol)) {            
             // 通过webapp启动类取得webapp所在的路径
             // XXX - 待多环境测试
-            String packagePath = "/WEB-INF/classes/" + clazz.getPackageName().replaceAll("\\.", "/") + "/";
-            String path = url.getPath().substring(0, url.getPath().lastIndexOf(packagePath));
+            String packagePath = clazz.getPackageName().replaceAll("\\.", "/") + "/";
+            int index = url.getPath().lastIndexOf("/WEB-INF/classes/" + packagePath);
+            String path = null;
+            if (index > -1) {
+                path = url.getPath().substring(0, index);
+            } else if ((index = url.getPath().lastIndexOf("/classes/" + packagePath)) > -1) {
+                path = url.getPath().substring(0, index); 
+            } else {
+                return;
+            }
+            
             String docBase = "";
-            int index = path.lastIndexOf('/');
+            index = path.lastIndexOf('/');
             
             if (index > -1) {
                 docBase = path.substring(index);
