@@ -168,7 +168,6 @@ public class StandardWrapperValve extends ValveBase {
                 wrapper.unload();
         } catch (Throwable e) {
             if (throwable == null) {
-                throwable = e;
                 exception(request, response, e);
             }
         }

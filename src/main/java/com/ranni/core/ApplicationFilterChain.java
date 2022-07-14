@@ -4,8 +4,6 @@ import com.ranni.container.monitor.InstanceEvent;
 import com.ranni.util.InstanceSupport;
 
 import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -86,13 +84,8 @@ public final class ApplicationFilterChain implements FilterChain {
         
         // 开始执行servlet的service方法
         try {
-            support.fireInstanceEvent(InstanceEvent.BEFORE_SERVICE_EVENT, servlet, request, response);            
-            if (request instanceof HttpServletRequest
-                && response instanceof HttpServletResponse) {
-                servlet.service((HttpServletRequest) request, (HttpServletResponse) response);
-            } else {
-                servlet.service(request, response);
-            }
+            support.fireInstanceEvent(InstanceEvent.BEFORE_SERVICE_EVENT, servlet, request, response);
+            servlet.service(request, response);
             support.fireInstanceEvent(InstanceEvent.AFTER_SERVICE_EVENT, servlet, request, response);
         } catch (IOException e) {
             support.fireInstanceEvent(InstanceEvent.AFTER_SERVICE_EVENT, servlet, request, response, e);

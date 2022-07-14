@@ -2,6 +2,7 @@ package com.ranni.startup;
 
 import com.ranni.common.Globals;
 import com.ranni.connector.Connector;
+import com.ranni.connector.CoyoteAdapter;
 import com.ranni.connector.Mapper;
 import com.ranni.container.Context;
 import com.ranni.container.Engine;
@@ -121,7 +122,6 @@ public final class WebApplication {
                 engine.setDefaultHost(host.getName()); // 设置默认主机
 
                 // 设置host
-                host.addChild(context);
                 Mapper mapper = engine.getService().getMapper();
                 mapper.addHost(host, new String[0]);
                 mapper.addContext(context, null);
@@ -182,7 +182,8 @@ public final class WebApplication {
                 // 把默认server配置文件中的webapps路径改掉
                 host.setAppBase(configure.getWorkDir());
             }
-            
+
+            host.addChild(context);
             context.setDocBase(docBase);
             context.setPath(path);
             context.setReloadable(configure.isReloadable());
@@ -198,6 +199,7 @@ public final class WebApplication {
             connector.setPort(configure.getPort());
             connector.setAddress(configure.getIp());
             connector.setScheme(configure.getScheme());
+            connector.setAdapter(new CoyoteAdapter(connector));
 
             // 将服务和连接器关联
             for (String serviceName : configure.getServices()) {

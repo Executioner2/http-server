@@ -18,5 +18,5 @@ public @interface RequestMapping {
     String value(); // 映射的path
     String method() default ""; // 请求的方法
     ContentType contentType() default ContentType.JSON; // 返回的类型
-    
+    Charset charset() default Charset.NULL; // 编码方式
 }

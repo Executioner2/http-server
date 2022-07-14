@@ -58,7 +58,7 @@ public class StandardContext extends ContainerBase implements Context {
     private String workDir; // 工作目录
     private boolean privileged; // 此容器是否具备特权
     private boolean available; // 此WebApp是否可用
-    private boolean configured; // TODO 此Context容器的配置标志，在start()通过生命周期事件触发配置监听器对此context容器进行配置，为true时WebApp才能启动
+    private boolean configured; // 此Context容器的配置标志，在start()通过生命周期事件触发配置监听器对此context容器进行配置，为true时WebApp才能启动
     private FilterMap[] filterMaps = new FilterMap[0]; // 过滤器映射集合
     private CharsetMapper charsetMapper; // 字符集
     private String charsetMapperClass = "com.ranni.util.CharsetMapper"; // 默认的字符集类
@@ -1574,8 +1574,8 @@ public class StandardContext extends ContainerBase implements Context {
             }
         }
         
-        // TODO 检查配置有无问题
-        if (!getConfigured())
+        // 检查配置有无问题
+        if (getConfigured())
             ok = true;
 
         // 设置JNDI资源到全局作用域中

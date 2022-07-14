@@ -3,6 +3,7 @@ package com.ranni.container.wrapper;
 import com.ranni.annotation.core.*;
 import com.ranni.common.Globals;
 import com.ranni.container.ContainerServlet;
+import com.ranni.container.Context;
 import com.ranni.container.Wrapper;
 import com.ranni.handler.JSONException;
 import com.ranni.handler.JSONUtil;
@@ -40,6 +41,7 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
     private Object controller; // controller实例 
     private Class clazz; // controller类
     private String baseUri; // 基本路径
+    private int prefixLen; // 前缀长度
     private Map<String, Method> methodMap = new HashMap<>(); // 方法映射
     private String info = "StandardServlet/1.0"; // 实现信息
     private Wrapper wrapper; // wrapper
@@ -74,6 +76,7 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
         } 
 
         this.baseUri = ((Controller) clazz.getDeclaredAnnotation(Controller.class)).value();
+        this.prefixLen = ((Context) wrapper.getParent()).getPath().length() + baseUri.length();
         
         // 扫描所有Mapping注解标识的method
         Method[] methods = clazz.getMethods();
@@ -111,7 +114,7 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
      */
     @Override
     public void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String uri = req.getRequestURI().substring(baseUri.length());
+        String uri = req.getRequestURI().substring(prefixLen);
         if (!methodMap.containsKey(uri)) {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND, "请求未找到！ requestURI：" + req.getRequestURI());
             return;
@@ -136,6 +139,9 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
             if (resp.getCharacterEncoding() == null) {
                 resp.setCharacterEncoding("utf-8");
             }
+            if (requestMapping.charset() != Charset.NULL) {
+                resp.setCharacterEncoding(requestMapping.charset().getValue());
+            }
 
             if (res == null) {
                 return;
@@ -143,9 +149,11 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
             
             // XXX - 应该做更灵活的处理
             switch (contentType) {
-                case JSON: {
-                  // 顺到下面的TEXT  
-                } case TEXT: {
+                case TEXT: case HTML: {
+                    PrintWriter writer = resp.getWriter();
+                    writer.print(res);
+                    break;
+                } case JSON: {
                     PrintWriter writer = resp.getWriter();
                     writer.print(JSONUtil.toJSONString(res));    
                     break;

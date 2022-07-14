@@ -3,8 +3,10 @@ package com.ranni.startup;
 import com.ranni.annotation.core.Controller;
 import com.ranni.annotation.core.Controllers;
 import com.ranni.common.Globals;
+import com.ranni.connector.Mapper;
 import com.ranni.container.Container;
 import com.ranni.container.Context;
+import com.ranni.container.Engine;
 import com.ranni.container.context.StandardContext;
 import com.ranni.container.scope.ApplicationContext;
 import com.ranni.container.wrapper.StandardWrapper;
@@ -287,8 +289,12 @@ public class ContextConfig implements LifecycleListener {
         standardWrapper = new StandardWrapper();
         standardWrapper.setServletClass(servletBaseClass);
         standardWrapper.setName(controller);
-        context.addServletMapping(annotation.value(), controller);
+        standardWrapper.setPath(annotation.value());
+        context.addServletMapping(annotation.value(), controller); // XXX - 需要移除此方法
         context.addChild(standardWrapper);
+        Engine engine = (Engine) context.getParent().getParent();
+        Mapper mapper = engine.getService().getMapper();
+        mapper.addWrapper(standardWrapper);
     }
     
 

@@ -109,7 +109,11 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
          */
         @Override
         public void run() {
-            System.out.println("接收线程启动！"); // TODO - sout
+            try {
+                System.out.println("接收线程启动！" + "[" + serverSocket.getLocalAddress()+ "]"); // TODO - sout
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             if (!isPaused()) {
                 try {
                     countUpOrAwaitConnection();

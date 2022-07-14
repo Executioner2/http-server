@@ -221,6 +221,8 @@ public final class Mapper {
             // 其实这个内存占用并不是太高，只是利用率可能会很低
             Node[] map = new Node[26];
             MappedWrapper mappedWrapper;
+            boolean slash;
+            boolean end;
         }
         
         private volatile Node root = new Node();
@@ -239,6 +241,7 @@ public final class Mapper {
 
             for (int i = 0; i < uri.length(); i++) {
                 if (uri.charAt(i) == '/') {
+                    node.slash = true;
                     continue;
                 }
                 int index = getIndex(uri.charAt(i));
@@ -248,6 +251,7 @@ public final class Mapper {
                 node = node.map[index];
             }
             
+            node.end = true;
             node.mappedWrapper = new MappedWrapper(uri, wrapper);            
         }
 
@@ -256,6 +260,7 @@ public final class Mapper {
             
             for (char ch : wrapper.name.toCharArray()) {
                 if (ch == '/') {
+                    node.slash = true;
                     continue;
                 }
                 int index = getIndex(ch);
@@ -265,6 +270,7 @@ public final class Mapper {
                 node = node.map[index];
             }
 
+            node.end = true;
             node.mappedWrapper = wrapper;
         }
 
@@ -282,11 +288,14 @@ public final class Mapper {
             MappedWrapper res = null;
 
             for (int i = uri.charAt(offset) == '/' ? 1 : 0; i < uri.length() - offset; i++) {
-                if (uri.charAt(i + offset) == '/' && prev.mappedWrapper != null) {
-                    res = prev.mappedWrapper;
+                if (uri.charAt(i + offset) == '/') {
+                    if (node.end) {
+                        res = node.mappedWrapper;
+                    }
+                    continue;
                 }
                 
-                int index = getIndex(uri.charAt(i + offset));
+                int index = getIndex(uri.charAt(i + offset));                
                 if (node.map[index] == null) {
                     // 不用break是为了避免出现下面这种情况：
                     //   url1: /test/a/dc/a
@@ -757,7 +766,7 @@ public final class Mapper {
             return;
         }
 
-        mappedContext.wrapperDictTree.addMappedWrapper(wrapper.getName(), wrapper);
+        mappedContext.wrapperDictTree.addMappedWrapper(wrapper.getPath(), wrapper);
     }
     
 

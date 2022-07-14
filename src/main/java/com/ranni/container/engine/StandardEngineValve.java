@@ -8,7 +8,6 @@ import com.ranni.container.pip.ValveBase;
 import com.ranni.container.pip.ValveContext;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
@@ -51,16 +50,9 @@ public class StandardEngineValve extends ValveBase {
      */
     @Override
     public void invoke(Request request, Response response, ValveContext valveContext) throws IOException, ServletException {
-        if (!(request instanceof HttpServletRequest) 
-            || !(response instanceof HttpServletResponse)) {
-            return;
-        }
-        
-        HttpServletRequest hsr = (HttpServletRequest) request;
-        
         // 如果是HTTP/1.1请求，就必须携带serverName
-        if ("HTTP/1.1".equals(hsr.getProtocol())
-            && hsr.getServerName() == null) {
+        if ("HTTP/1.1".equals(request.getProtocol())
+            && request.getServerName() == null) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, request.getRequest().getServerName());
         }
         

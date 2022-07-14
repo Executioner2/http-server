@@ -71,6 +71,22 @@
     <!-- 打war包 -->
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgs>
+            <arg>-parameters</arg>
+          </compilerArgs>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>compile</phase>
+          </execution>
+        </executions>
+      </plugin>
+      
+      
+      <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <configuration>
           <failOnMissingWebXml>false</failOnMissingWebXml>
