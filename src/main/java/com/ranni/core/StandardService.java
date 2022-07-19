@@ -1,13 +1,15 @@
 package com.ranni.core;
 
-import com.ranni.container.Container;
 import com.ranni.connector.Connector;
-import com.ranni.container.Engine;
 import com.ranni.connector.Mapper;
+import com.ranni.container.Container;
+import com.ranni.container.Engine;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.lifecycle.LifecycleListener;
 import com.ranni.util.LifecycleSupport;
+
+import java.util.concurrent.*;
 
 /**
  * Title: HttpServer
@@ -19,15 +21,65 @@ import com.ranni.util.LifecycleSupport;
  * @Date 2022/5/6 10:53
  */
 public final class StandardService implements Lifecycle, Service {
-    private Engine container; // 关联的容器
-    private String name; // 服务名称
-    private Server server; // 关联的服务器
-    private Connector[] connectors = new Connector[0]; // 连接器集合
-    private LifecycleSupport lifecycle = new LifecycleSupport(this); // 生命周期管理工具实例
-    private boolean started; // 服务启动标志位
-    private boolean initialize; // 服务初始化标志位
-    private Mapper mapper; // 映射实例
 
+    // ==================================== 属性字段 ====================================
+
+    /**
+     * 关联的容器
+     */
+    private Engine container;
+
+    /**
+     * 服务名称
+     */
+    private String name;
+
+    /**
+     * 关联的服务器
+     */
+    private Server server;
+
+    /**
+     * 连接器集合
+     */
+    private Connector[] connectors = new Connector[0];
+
+    /**
+     * 生命周期管理工具实例
+     */
+    private LifecycleSupport lifecycle = new LifecycleSupport(this);
+
+    /**
+     * 服务启动标志位
+     */
+    private boolean started;
+
+    /**
+     * 服务初始化标志位
+     */
+    private boolean initialize;
+
+    /**
+     * 映射实例
+     */
+    private Mapper mapper; 
+
+    /**
+     * 线程池
+     */
+    private Executor executor;
+
+    /**
+     * 线程池初始线程数
+     */
+    private int minSpareThreads = 10;
+
+    /**
+     * 线程池最大线程数
+     */
+    private int maxThreads = 200;
+
+    // ==================================== 核心方法 ====================================
 
     /**
      * 返回关联的容器 
@@ -256,6 +308,8 @@ public final class StandardService implements Lifecycle, Service {
     }
 
 
+    // ==================================== 生命周期相关 ====================================
+
     /**
      * 初始化所有连接器
      * 
@@ -378,5 +432,92 @@ public final class StandardService implements Lifecycle, Service {
         }
         
         lifecycle.fireLifecycleEvent(AFTER_STOP_EVENT, null);
+    }
+
+
+    // ==================================== 多线程 ====================================
+
+
+    /**
+     * @return 返回线程池初始化线程数
+     */
+    @Override
+    public int getMinSpareThreads() {
+        return minSpareThreads;
+    }
+
+
+    /**
+     * 设置线程池初始化线程数
+     * 
+     * @param minSpareThreads 线程池初始化线程数
+     */
+    @Override
+    public void setMinSpareThreads(int minSpareThreads) {
+        this.minSpareThreads = minSpareThreads;
+    }
+
+
+    /**
+     * @return 返回线程池最大线程数
+     */
+    @Override
+    public int getMaxThreads() {
+        return maxThreads;
+    }
+
+
+    /**
+     * 设置线程池最大线程数
+     * 
+     * @param maxThreads 线程池最大线程数
+     */
+    @Override
+    public void setMaxThreads(int maxThreads) {
+        this.maxThreads = maxThreads;
+    }
+
+    
+    /**
+     * @return 返回多线程执行器
+     */
+    @Override
+    public Executor getExecutor() {
+        return executor;
+    }
+
+
+    /**
+     * 设置线程池
+     *
+     * @param executor 使用自定义的线程池
+     */
+    @Override
+    public void setExecutor(Executor executor) {
+        this.executor = executor;
+    }
+
+
+    /**
+     * 创建线程池
+     */
+    private void createExecutor() {
+        executor = new ThreadPoolExecutor(getMinSpareThreads(), getMaxThreads(), 60,
+                    TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), Executors.defaultThreadFactory());
+    }
+
+
+    /**
+     * 多线程任务执行
+     *
+     * @param task 管理的组件申请的多线程任务
+     */
+    @Override
+    public void execute(Runnable task) {
+        if (getExecutor() == null) {
+            createExecutor();
+        }
+
+        getExecutor().execute(task);
     }
 }

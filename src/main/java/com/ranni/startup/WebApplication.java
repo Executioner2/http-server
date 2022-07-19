@@ -15,7 +15,6 @@ import com.ranni.core.Service;
 import com.ranni.deploy.ApplicationConfigure;
 import com.ranni.loader.WebappLoader;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
@@ -61,9 +60,9 @@ public final class WebApplication {
      * @param args
      */
     public static void run(Class<?> clazz, String[] args) {
+        System.out.println(clazz.getClassLoader());
         URL url = clazz.getResource("");
         String protocol = url.getProtocol();
-        
         // 通过url协议判断是哪种方式启动
         if ("file".equals(protocol)) {            
             // 通过webapp启动类取得webapp所在的路径
@@ -96,7 +95,7 @@ public final class WebApplication {
                 if (!serverStartup.getInitialized())
                     serverStartup.initialize();
                 
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 return;
             }

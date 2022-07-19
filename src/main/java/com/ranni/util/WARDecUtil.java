@@ -4,7 +4,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
@@ -85,81 +86,85 @@ public final class WARDecUtil {
     /**
      * 解压任务内部类
      */
-    private class unzipTask implements Runnable {
+    private static class UnzipTask implements Runnable {
+        private WARDecUtil warDecUtil;
+
+        public UnzipTask(WARDecUtil warDecUtil) {
+            this.warDecUtil = warDecUtil;
+        }
 
         @Override
         public void run() {
-            while (!files.isEmpty()) {
+            while (!warDecUtil.files.isEmpty()) {
                 try {
-                    unzip(files.pop());
+                    unzip(warDecUtil.files.pop());
+                    
+                    // 统计
+                    count.incrementAndGet();
                 } catch (NoSuchElementException e) {
                     // 抛出此异常是多线程的竞争，但是并无需加锁，直接跳出循环即可
                     break;
                 }
             }
 
-            finishCount.incrementAndGet();
+            warDecUtil.finishCount.incrementAndGet();
         }
-        
-        
-        /**
-         * 正式解压压缩文件
-         * 注意，重新解压的压缩文件会覆盖原来的内容
-         * 但是，压缩文件中如果有文件被删除了，之前提取出来了的被删除的文件还是会存在于文件夹中
-         * 
-         * @param file
-         */
-        private void unzip(File file) {
-            ZipFile zipFile = null;
-            
-            if (file.isDirectory() || !file.canRead())
-                return;
-            
-            try {
-                zipFile = new ZipFile(file);
-            } catch (Exception e) {
-                return;
-            }
+    }
+    
 
-            String absolutePath = file.getAbsolutePath();
-            String base = absolutePath.substring(0, absolutePath.lastIndexOf(".")) + File.separator;
+    /**
+     * 正式解压压缩文件
+     * 注意，重新解压的压缩文件会覆盖原来的内容
+     * 但是，压缩文件中如果有文件被删除了，之前提取出来了的被删除的文件还是会存在于文件夹中
+     *
+     * @param file
+     */
+    public static void unzip(File file) {
+        ZipFile zipFile = null;
 
-            Enumeration<? extends ZipEntry> entries = zipFile.entries();
-            while (entries.hasMoreElements()) {
-                ZipEntry zipEntry = entries.nextElement();
-                File target = new File(base + zipEntry.getName());
+        if (file.isDirectory() || !file.canRead())
+            return;
 
-                if (!zipEntry.isDirectory()) {
-                    if (!target.exists()) {
-                        try {
-                            target.createNewFile();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
+        try {
+            zipFile = new ZipFile(file);
+        } catch (Exception e) {
+            return;
+        }
 
-                    // 拷贝文件内容
-                    try (InputStream is = zipFile.getInputStream(zipEntry);
-                         FileOutputStream fos = new FileOutputStream(target)) {
+        String absolutePath = file.getAbsolutePath();
+        String base = absolutePath.substring(0, absolutePath.lastIndexOf(".")) + File.separator;
 
-                        byte[] buffer = new byte[1024 * 10]; // 10MB的读取
-                        int len = -1;
-                        while ((len = is.read(buffer, 0, buffer.length)) != -1) {
-                            fos.write(buffer, 0, len);
-                        }
-                        fos.flush();
+        Enumeration<? extends ZipEntry> entries = zipFile.entries();
+        while (entries.hasMoreElements()) {
+            ZipEntry zipEntry = entries.nextElement();
+            File target = new File(base + zipEntry.getName());
+
+            if (!zipEntry.isDirectory()) {
+                if (!target.exists()) {
+                    try {
+                        target.createNewFile();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-
-                } else {
-                    target.mkdirs();
                 }
 
-                // 统计
-                count.incrementAndGet();                
-            }
+                // 拷贝文件内容
+                try (InputStream is = zipFile.getInputStream(zipEntry);
+                     FileOutputStream fos = new FileOutputStream(target)) {
 
+                    byte[] buffer = new byte[1024 * 10]; // 10MB的读取
+                    int len = -1;
+                    while ((len = is.read(buffer, 0, buffer.length)) != -1) {
+                        fos.write(buffer, 0, len);
+                    }
+                    fos.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            } else {
+                target.mkdirs();
+            }
         }
     }
     
@@ -191,7 +196,7 @@ public final class WARDecUtil {
             int number = Math.min(files.size() / MAX_THREAD, MAX_THREAD);
 
             for (int i = 0; i < number; i++)
-                new Thread(new unzipTask()).start();
+                new Thread(new UnzipTask(this)).start();
             
             while (finishCount.get() < number) {
                 try {

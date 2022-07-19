@@ -12,20 +12,25 @@ import com.ranni.deploy.ServerConfigure;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.loader.AbstractClassLoader;
+import com.ranni.naming.FileDirContext;
+import com.ranni.naming.Resource;
+import com.ranni.naming.ResourceAttributes;
 import com.ranni.util.WARDecUtil;
 
 import javax.annotation.processing.FilerException;
+import javax.naming.NamingException;
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.CodeSigner;
+import java.security.CodeSource;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import java.util.zip.ZipException;
 
 
 /**
@@ -39,7 +44,7 @@ import java.util.zip.ZipException;
 public class StandardServerStartup implements ServerStartup {
 
     // ==================================== 属性字段 ====================================
-
+    
     /**
      * 单例的StandardServerStartup
      */
@@ -59,11 +64,7 @@ public class StandardServerStartup implements ServerStartup {
      * 服务器配置文件
      */
     private String serverConfigurePath;
-
-    /**
-     * webapp启动类的加载器
-     */
-    private final BootstrapClassLoader bootstrapClassLoader;
+    
 
     /**
      * 服务器基本路径
@@ -86,18 +87,6 @@ public class StandardServerStartup implements ServerStartup {
     protected Server server;
 
     /**
-     * 最大线程数
-     */
-    @Deprecated
-    private static final int MAX_THREAD = 8;
-    
-    /**
-     * 线程数量因子，范围：[0.1, 1]
-     */
-    @Deprecated
-    protected float divisor = 0.4f;
-
-    /**
      * 是否从服务器启动的标志位
      */
     protected boolean serverStartup;
@@ -117,37 +106,136 @@ public class StandardServerStartup implements ServerStartup {
      */
     protected ConfigureParse<Server, ServerConfigure> configureParse;
 
+    /**
+     * 启动包装类集合
+     */
+    protected List<BootstrapWrapper> bootstrapWrappers = new ArrayList<>();
+    
+    /**
+     * 等待超时时长 （秒）
+     */
+    private long awaitTime = 60;
+
 
     // ==================================== 私有构造方法 ====================================
     
     private StandardServerStartup() {
-        this.serverBase = System.getProperty(SystemProperty.SERVER_BASE);  
-        this.bootstrapClassLoader = new BootstrapClassLoader();
+        this.serverBase = System.getProperty(SystemProperty.SERVER_BASE);
     }
 
 
     // ==================================== 内部类 ====================================
 
     /**
+     * 启动类启动状态
+     */
+    enum BootstrapStatus {
+        /**
+         * 从来没有启动过
+         */
+        NOT_YET,
+
+        /**
+         * 启动失败
+         */
+        FAIL,
+
+        /**
+         * 执行过main方法
+         */
+        INVOKE,
+
+        /**
+         * 启动成功并关闭
+         */
+        SUCCEED;        
+    }
+    
+    
+    /**
+     * 启动类的包装类
+     */
+    class BootstrapWrapper {
+        /**
+         * 启动类
+         */
+        private Class clazz;
+
+        /**
+         * main方法
+         */
+        private Method main;
+
+        /**
+         * main方法的参数
+         */
+        private String[] args = new String[0];
+
+        /**
+         * 上次启动状态
+         */
+        private BootstrapStatus prevStatus = BootstrapStatus.NOT_YET;
+
+        
+        public BootstrapWrapper(Class clazz) {
+            this.clazz = clazz;
+        }
+        
+        
+        public void setArgs(String[] args) {
+            this.args = args;
+        }
+        
+        public void startup() throws Exception {
+            this.startup(args);
+        }
+        
+        public void startup(String[] args) throws Exception {
+            this.startup((Object) args);
+        }
+        
+        private void startup(Object args) throws Exception  {
+            try {
+                if (main == null) {
+                    main = clazz.getDeclaredMethod("main", String[].class);
+                }
+
+                prevStatus = BootstrapStatus.INVOKE;
+                main.invoke(null, args);
+                prevStatus = BootstrapStatus.SUCCEED;
+
+            } catch (Exception e) {
+                prevStatus = BootstrapStatus.FAIL;
+                throw e;
+            }
+        }
+            
+    }
+    
+    
+    /**
      * 启动类加载器
      */
     class BootstrapClassLoader extends AbstractClassLoader {
-        /**
-         * 服务器根目录
-         */
-        private String serverBase;
-
-        /**
-         * 缓存已经加载的类
-         */
-        private final Map<String, Class> cache = Collections.synchronizedMap(new HashMap<>());
-
-
-        public BootstrapClassLoader() {
-            super();
-            this.serverBase = getServerBase();
+        
+        public BootstrapClassLoader(String base) {
+            FileDirContext context = new FileDirContext();
+            context.setDocBase(base);
+            setResources(context);
         }
 
+
+        /**
+         * 查询资源URL
+         * 
+         * @param name
+         * @return
+         */
+        @Override
+        public URL findResource(String name) {
+            return super.findResource(name);
+        }
+        
 
         /**
          * 根据类名找到这个类文件并加载到JVM虚拟机中
@@ -158,7 +246,74 @@ public class StandardServerStartup implements ServerStartup {
          */
         @Override
         protected Class<?> findClass(String name) throws ClassNotFoundException {
-            return super.findClass(name);
+            if (!name.endsWith(".class")) {
+                name += ".class";
+            }
+
+            Object obj = null;
+            
+            try {
+                obj = resources.lookup(name);
+            } catch (NamingException e) {
+                e.printStackTrace();
+            }
+            
+            if (obj == null || !(obj instanceof Resource)) {
+                throw new ClassNotFoundException("未找到该资源。" + name);
+            }
+            
+            try {
+
+                Resource res = (Resource) obj;
+                int index = name.indexOf("classes");
+                URL url = null;
+                String realName = name;
+                
+                if (index > -1) {
+                    realName = name.substring(index + 8, name.length() - 6);
+                }
+
+                realName = realName.replaceAll("\\\\|/", ".");
+                
+                if (resources instanceof FileDirContext) {
+                    url = new File(((FileDirContext) resources).getBase(), name).toURI().toURL();
+                } else {
+                    url = new File(serverBase, name).toURI().toURL();
+                }
+
+                CodeSource codeSource = new CodeSource(url, new CodeSigner[0]);
+
+                InputStream is = res.streamContent();
+
+                ResourceAttributes ra = (ResourceAttributes) resources.getAttributes(name);
+                int length = (int) ra.getContentLength();
+
+                byte[] content = new byte[length];
+                int n = -1;
+                int pos = 0;
+                
+                do {
+                    n = is.read(content, pos, length - pos);
+                    pos += n;
+                } while (n > 0);
+                
+                is.close();
+                
+                return defineClass(realName, content, 0,
+                        length, codeSource);
+                
+            } catch (NamingException ne) {
+                ne.printStackTrace();
+            } catch (MalformedURLException mue) {
+                mue.printStackTrace();
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            
+            return null;
+            
         }
         
     }
@@ -198,26 +353,19 @@ public class StandardServerStartup implements ServerStartup {
      * webapp启动类的扫描线程
      */
     private class WebappBootstrapScan implements Runnable {
+        private File file;
 
+        public WebappBootstrapScan(File file) {
+            this.file = file;
+        }
+        
         @Override
         public void run() {
-            while (!scanFiles.isEmpty()) {
-                try {
-                    ScanFileEntity scanFileEntity = scanFiles.pop();
-                    File file = scanFileEntity.getFile();
-                    // FIXME - 需要重写
-                    
-                    scanBootstrap(file);
-                } catch (NoSuchElementException e) {
-                    e.printStackTrace();
-                    break;
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                    break;
-                }
+            try {
+                scanBootstrap(file);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            
-            finishCount.incrementAndGet();
         }
 
 
@@ -229,7 +377,7 @@ public class StandardServerStartup implements ServerStartup {
          * 
          * @param file
          */
-        private void scanBootstrap(File file) throws MalformedURLException {
+        private void scanBootstrap(File file) throws IOException {
             Queue<File> queue = new LinkedList<>();
             List<File> classFiles = new LinkedList<>();
             queue.offer(file);
@@ -248,37 +396,105 @@ public class StandardServerStartup implements ServerStartup {
                     break;
                 }
             }
-            
+
+            String canonicalPath = file.getCanonicalPath();
+            BootstrapClassLoader loader = new BootstrapClassLoader(canonicalPath);
             for (File f : classFiles) {
                 try {
-                    String path = f.getAbsolutePath();
-                    if (!path.startsWith(serverBase)) {
-                        continue;
-                    }
-                    Class<?> aClass = null;
+                    String path = f.getCanonicalPath();
+                    Class<?> aClass = loader.loadClass(path.substring(canonicalPath.length()));
                     
-                    synchronized (bootstrapClassLoader) {
-                        aClass = bootstrapClassLoader.loadClass(path.substring(serverBase.length()));
-                    }
-                    
-                    if (aClass == null) {
-                        continue;
-                    }
-                    
-                    if (aClass.getDeclaredAnnotation(WebBootstrap.class) != null) {                        
-                        Method main = aClass.getMethod("main", String[].class);
-                        main.invoke(null, (Object) new String[0]);
+                    if (aClass != null && aClass.getDeclaredAnnotation(WebBootstrap.class) != null) {                        
+                        bootstrapWrappers.add(new BootstrapWrapper(aClass));                      
                         return;
                     }
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
-                } catch (InvocationTargetException e) {
-                    e.printStackTrace();
-                } catch (NoSuchMethodException e) {
-                    e.printStackTrace();
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                } 
+            }
+        }
+    }
+
+
+    /**
+     * 容器扫描
+     */
+    class ContextScan implements Runnable {
+
+        private Host host;
+        private Service service;
+
+        public ContextScan(Host host, Service service) {
+            this.host = host;
+            this.service = service;
+        }
+
+
+        /**
+         * 容器扫描
+         */
+        @Override
+        public void run() {
+            try {
+                scanContext();                
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            finishCount.incrementAndGet();
+        }
+
+
+        /**
+         * 扫描容器
+         */
+        private void scanContext() throws IOException {
+            ServerConfigure serverConfigure = configureMap.getConfigure();
+
+            Map<String, File> webapps = new HashMap<>();
+            Deque<File> wars = new LinkedList<>();
+
+            // 遍历Host容器
+            String path = System.getProperty(SystemProperty.SERVER_BASE) + File.separator + host.getAppBase();
+            File repository = new File(path);
+
+            if (!repository.exists())
+                return;
+
+            if (!repository.isDirectory())
+                throw new FilerException("此路径应该是个目录！");
+
+            // 把目录和war文件分离出来
+            for (File file : repository.listFiles()) {
+                if (file.isDirectory()) {
+                    webapps.put(file.getName(), file);
+                } else if (serverConfigure.isUnpackWARS()
+                        && file.getName().endsWith(".war")) {
+
+                    wars.push(file);
                 }
+            }
+
+            // 删除不需要解压的war（未修改的war包就不需要解压）
+            Iterator<File> iterator = wars.iterator();
+            while (iterator.hasNext()) {
+                File file1 = iterator.next();
+                int end = file1.getName().length() - 4;
+                String name = file1.getName().substring(0, end);                
+                File file2 = webapps.get(name);                
+                
+                if (file2 != null && file2.lastModified() >= file1.lastModified()) {
+                    // war包未修改
+                    iterator.remove();
+                } else {
+                    String absolutePath = file1.getAbsolutePath().substring(0, end);
+                    WARDecUtil.unzip(file1);
+                    webapps.put(name, new File(absolutePath));
+                }
+            }
+
+            // 扫描启动类
+            for (File file : webapps.values()) {
+                new WebappBootstrapScan(file).run();
             }
         }
     }
@@ -332,111 +548,7 @@ public class StandardServerStartup implements ServerStartup {
         } finally {
             // 回收资源
             this.recycle();                
-        }
-        
-    }
-
-
-    /**
-     * 扫描所有主机
-     * 只有拥有启动类的webapp才会被创建Context容器并加入到服务器中进行管理
-     */
-    private void scanHost(Engine engine) throws IOException {
-        ServerConfigure serverConfigure = configureMap.getConfigure();
-
-        Map<String, File> webapps = new HashMap<>();
-        Deque<File> wars = new LinkedList<>();        
-        WARDecUtil warDecUtil = WARDecUtil.getInstance(); // 解压工具
-        int warCount = 0; // 将被解压的war包数量
-        
-        // 遍历Host容器
-        for (Container container : engine.findChildren()) {
-            Host host = (Host) container;
-            String path = System.getProperty(SystemProperty.SERVER_BASE) + File.separator + host.getAppBase();
-            File repository = new File(path);
-            
-            if (!repository.exists())
-                continue;
-            
-            if (!repository.isDirectory())
-                throw new FilerException("此路径应该是个目录！");
-            
-            webapps.clear();
-            wars.clear();
-            
-            // 把目录和war文件分离出来
-            for (File file : repository.listFiles()) {
-                if (file.isDirectory()) {
-                    webapps.put(file.getName(), file);
-                    scanFiles.push(new ScanFileEntity(file, host));
-                } else if (serverConfigure.isUnpackWARS() 
-                        && file.getName().endsWith(".war")) {
-                    
-                    wars.push(file);
-                }
-            }
-            
-            // 删除不需要解压的war（未修改的war包就不需要解压）
-            Iterator<File> iterator = wars.iterator();
-            while (iterator.hasNext()) {
-                File file1 = iterator.next();
-                File file2 = webapps.get(file1.getName());
-                if (file2 != null && file2.lastModified() >= file1.lastModified()) {
-                    // war包未修改
-                    iterator.remove();
-                } else {
-                    String absolutePath = file1.getAbsolutePath();
-                    absolutePath.substring(0, absolutePath.lastIndexOf("."));
-                    scanFiles.push(new ScanFileEntity(new File(absolutePath), host));
-                    webapps.put(file1.getName(), file1);
-                    warCount++;
-                }
-            }
-
-            // 解压war包，后台解压                      
-            warDecUtil.unzip(new ConcurrentLinkedDeque<>(wars), true);
-        }
-
-        // 等待war包解压完
-        int i = 0;
-        while (true) {
-            if (warCount == warDecUtil.getCount())
-                break;
-            
-            if (i++ == 10)
-                throw new ZipException("StandardServerStartup.scanContext  解压超时！");
-            
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }        
-    }
-
-
-    /**
-     * 扫描容器
-     */
-    private void scanContext() {
-        int n = scanFiles.size();
-        
-        if (n <= 0)
-            return;
-        
-        int upper = Math.min(Math.max(1, (int) (n * divisor)), MAX_THREAD);
-
-        for (int i = 0; i < upper; i++) {
-            new Thread(new WebappBootstrapScan()).start();            
-        }
-        
-        while (finishCount.get() < upper) {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
 
@@ -465,7 +577,6 @@ public class StandardServerStartup implements ServerStartup {
                 if (!file.exists())
                     file = new File(filePath, Constants.DEFAULT_SERVER_YML);
             }
-
 
             InputStream input = null;
             
@@ -632,24 +743,6 @@ public class StandardServerStartup implements ServerStartup {
     
 
     /**
-     * 设置线程数量因子
-     * 取值在[0.1, 1]
-     * 
-     * @param divisor
-     */
-    @Override
-    public void setDivisor(float divisor) {
-        if (started)
-            throw new IllegalStateException("服务器已启动，不能再更改线程数量因子！"); 
-                    
-        if (divisor < 0.1f || divisor > 1.0f)
-            throw new IllegalArgumentException("参数异常，线程数量因子应在[0.1, 1]范围内");
-               
-        this.divisor = divisor;
-    }
-    
-
-    /**
      * 返回engine
      * 
      * @return
@@ -665,7 +758,7 @@ public class StandardServerStartup implements ServerStartup {
      * 要在调用startup()之前调用此方法
      */
     @Override
-    public void initialize() throws IOException {
+    public void initialize() throws Exception {
         if (initialized)
             throw new IllegalStateException("StandardServerStartup.initialize  已经初始化过了！");
         
@@ -674,6 +767,7 @@ public class StandardServerStartup implements ServerStartup {
                 return;
 
             // 解析服务器配置信息
+            // Host是通过server.yaml指定的，所以不需要扫描，仅通过配置文件中指定的路径创建Host容器即可
             ConfigureMap<Server, ServerConfigure> configureMap = getConfigureMap();
 
             if (configureMap == null)
@@ -681,25 +775,82 @@ public class StandardServerStartup implements ServerStartup {
 
             // 获取server和engine
             Server server = configureMap.getInstance();
-            setDivisor(configureMap.getConfigure().getScanThreadDivisor()); // 设置扫描线程数量因子
             Service[] services = server.findServices();
-            Engine engine = services[0].getContainer();
+            Engine engine = services[0].getContainer(); // 所有services的engine都是同一个，因为engine只会存在一个
             setEngine(engine);
             setServer(server);
         }
         
-        // 下面两条支持多线程，所以要在临界区外
+        // 多线程扫描context容器
+        for (Container host : engine.findChildren()) {
+            engine.getService().execute(new ContextScan((Host) host, engine.getService()));
+        }
         
-        // 扫描Host
-        scanHost(engine);
+        long end = getAwaitTime();
+        if (finishCount.get() != engine.findChildren().length) { // 这个比较不存在并发问题
+            try {
+                if (end > 0) {
+                    int i = 0;
+                    for (; i < end; i++) {
+                        if (finishCount.get() == engine.findChildren().length) {
+                            break;
+                        }
 
+                        Thread.sleep(1000);
+                    }
+                    if (i >= end) {
+                        throw new TimeoutException("StandardServerStartup.initialize 容器扫描超时！");
+                    }
+                    
+                } else {
+                    while (finishCount.get() != engine.findChildren().length) {
+                        Thread.sleep(1000);
+                    }
+                }
+            } catch (InterruptedException e) {
+                ;
+            }                
+        }
+
+        System.out.println("服务器初始化完成"); // TODO - sout
         // 到这里服务端初始化完成
         initialized = true;
         
         if (serverStartup) {
-            // 通过服务器启动，扫描容器
-            scanContext();
+            // 通过服务器启动
+            for (BootstrapWrapper wrapper : bootstrapWrappers) {
+                if (wrapper.prevStatus == BootstrapStatus.FAIL) {
+                   continue; 
+                }
+                
+                try {
+                    wrapper.startup();
+                } catch (Exception e) {
+                    wrapper.prevStatus = BootstrapStatus.FAIL;
+                    e.printStackTrace();
+                }
+            }
         }
+    }
+
+
+    /**
+     * 设置等待超时时长
+     *
+     * @param awaitTime 超时时长
+     */
+    @Override
+    public void setAwaitTime(long awaitTime) {
+        this.awaitTime = awaitTime;
+    }
+
+
+    /**
+     * @return 返回等待超时时长，负数为无限等待
+     */
+    @Override
+    public long getAwaitTime() {
+        return awaitTime;
     }
     
 

@@ -5,6 +5,8 @@ import com.ranni.connector.Mapper;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.connector.Connector;
 
+import java.util.concurrent.Executor;
+
 /**
  * Title: HttpServer
  * Description:
@@ -114,4 +116,57 @@ public interface Service {
      * @param mapper 映射实例
      */
     void setMapper(Mapper mapper);
+
+
+    /**
+     * 供service管理的组件执行多线程任务。
+     * 一个service下如果有多线程任务应该
+     * 交给service来执行，这样可以包装线
+     * 程数量的可控性。
+     * 
+     * @param task
+     */
+    void execute(Runnable task);
+
+
+    /**
+     * @return 返回多线程执行器
+     */
+    Executor getExecutor();
+
+
+    /**
+     * 设置线程池
+     * 
+     * @param executor 使用自定义的线程池
+     */
+    void setExecutor(Executor executor);
+
+
+    /**
+     * @return 返回线程池初始化线程数
+     */
+    int getMinSpareThreads();
+
+
+    /**
+     * 设置线程池初始化线程数
+     * 
+     * @param minSpareThreads 线程池初始化线程数
+     */
+    void setMinSpareThreads(int minSpareThreads);
+
+
+    /**
+     * @return 返回线程池最大线程数
+     */
+    int getMaxThreads();
+
+
+    /**
+     * 设置线程池最大线程数
+     * 
+     * @param maxThreads 线程池最大线程数
+     */
+    void setMaxThreads(int maxThreads);
 }

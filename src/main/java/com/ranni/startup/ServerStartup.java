@@ -5,8 +5,6 @@ import com.ranni.core.Server;
 import com.ranni.deploy.ConfigureMap;
 import com.ranni.deploy.ServerConfigure;
 
-import java.io.IOException;
-
 /**
  * Title: HttpServer
  * Description:
@@ -101,14 +99,6 @@ public interface ServerStartup {
 
 
     /**
-     * 设置线程数量因子
-     * 
-     * @param divisor
-     */
-    void setDivisor(float divisor);
-
-
-    /**
      * 返回engine
      * 
      * @return
@@ -120,7 +110,7 @@ public interface ServerStartup {
      * 初始化，解析服务器配置
      * 要在调用startup()之前调用此方法
      */
-    void initialize() throws IOException;
+    void initialize() throws Exception;
 
 
     /**
@@ -144,4 +134,18 @@ public interface ServerStartup {
      * @return 返回服务器基本路径
      */
     String getServerBase();
+
+
+    /**
+     * 设置等待超时时长
+     * 
+     * @param awaitTime 超时时长
+     */
+    void setAwaitTime(long awaitTime);
+
+
+    /**
+     * @return 返回等待超时时长，负数为无限等待
+     */
+    long getAwaitTime();
 }

@@ -309,7 +309,7 @@ public class WebappClassLoader extends AbstractClassLoader implements Reloader, 
                 int pos = 0;
                 int n = 0;
                 do {
-                    n = binaryStream.read(binaryContent, pos, contentLength - n);
+                    n = binaryStream.read(binaryContent, pos, contentLength - pos);
                     pos += n;
                 } while (n > 0);
                 binaryStream.close();

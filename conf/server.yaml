@@ -14,7 +14,6 @@ engine:
       defaultContextClass: com.ranni.container.StandardDefaultContext # 默认的Context容器类
       #  class: com.ranni.container.host.StandardHost # 单独为每个host配置类名
 
-
       # 第二个host
       #- name: host2
       #  appBase: webapps2
