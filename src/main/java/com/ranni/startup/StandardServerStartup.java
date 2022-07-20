@@ -245,7 +245,6 @@ public class StandardServerStartup implements ServerStartup {
                 }
             } catch (NamingException e) {
                 res = null;
-                e.printStackTrace();
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
@@ -261,10 +260,10 @@ public class StandardServerStartup implements ServerStartup {
                 } else {
                     res = ((FileDirContext.FileResource) lookup).getURI().toURL();
                 }
-            } catch (NamingException ex) {
+            } catch (NamingException e) {
                 res = null;
-            } catch (MalformedURLException ex) {
-                throw new RuntimeException(ex);
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
             }
 
             if (res == null) {

@@ -326,7 +326,8 @@ public class WebappClassLoader extends AbstractClassLoader implements Reloader, 
         }
         
         // 找到并解析了这个资源，现在把解析好的资源对象放到集合中然后返回
-        return resourceEntries.putIfAbsent(name, entry);
+        resourceEntries.putIfAbsent(name, entry);
+        return resourceEntries.get(name);
     }
 
 
