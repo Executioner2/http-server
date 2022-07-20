@@ -87,9 +87,10 @@ public class StandardServerStartup implements ServerStartup {
     protected Server server;
 
     /**
-     * 是否从服务器启动的标志位
+     * 服务器启动方式
      */
-    protected boolean serverStartup;
+    protected StartingMode startingMode = StartingMode.SERVER;
+
 
     /**
      * 服务器是否已启动
@@ -233,7 +234,44 @@ public class StandardServerStartup implements ServerStartup {
          */
         @Override
         public URL findResource(String name) {
-            return super.findResource(name);
+            URL res = null;
+            
+            try {
+                Object lookup = getResources().lookup(name);
+                if (lookup instanceof FileDirContext) {
+                    res = ((FileDirContext) lookup).getBase().toURI().toURL();
+                } else if (lookup instanceof FileDirContext.FileResource) {
+                    res = ((FileDirContext.FileResource) lookup).getURI().toURL();
+                }
+            } catch (NamingException e) {
+                res = null;
+                e.printStackTrace();
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+
+            if (res != null) {
+                return res;
+            }
+            
+            try {
+                Object lookup = getResources().lookup(com.ranni.common.Constants.WEBAPP_CLASSES + File.separator + name);
+                if (lookup instanceof FileDirContext) {
+                    res = ((FileDirContext) lookup).getBase().toURI().toURL();
+                } else {
+                    res = ((FileDirContext.FileResource) lookup).getURI().toURL();
+                }
+            } catch (NamingException ex) {
+                res = null;
+            } catch (MalformedURLException ex) {
+                throw new RuntimeException(ex);
+            }
+
+            if (res == null) {
+                res = super.findResource(name);
+            }
+            
+            return res;
         }
         
 
@@ -613,36 +651,26 @@ public class StandardServerStartup implements ServerStartup {
                     input = new FileInputStream(new File(resource.toURI()));
                 }
             }
+
+            ConfigureMap<Server, ServerConfigure> parse = null;
             
-            return configureParse.parse(input, true);
+            // 根据启动模式微调server.yaml配置文件
+            if (startingMode == StartingMode.SERVER) {
+                parse = configureParse.parse(input, true);
+            } else {
+                parse = configureParse.parse(input, false);
+                ServerConfigure configure = parse.getConfigure();
+                // 必然存在第0个默认的host配置
+                configure.getEngine().getHosts().get(0).setAppBase("");
+                parse.setInstance(configureParse.fit(configure));
+            }             
+            
+            return parse;
             
         } catch (Exception e) {
             e.printStackTrace(System.err);
             return null;
         }
-    }
-
-
-    /**
-     * 从服务器启动标志位
-     *
-     * @param serverStartup
-     */
-    @Override
-    public void setServerStartup(boolean serverStartup) {
-        this.serverStartup = serverStartup;
-    }
-
-
-    /**
-     * 从服务器启动标志位
-     *
-     * @param serverStartup
-     * @return
-     */
-    @Override
-    public boolean getServerStartup(boolean serverStartup) {
-        return this.serverStartup;
     }
 
 
@@ -705,7 +733,9 @@ public class StandardServerStartup implements ServerStartup {
         scanFiles.clear();
         this.started = false;
         this.configureMap = null;
-        this.serverStartup = false;
+        this.startingMode = StartingMode.SERVER;
+        this.awaitTime = 60;
+        this.bootstrapWrappers.clear();
         this.configureParse = null;
         this.engine = null;
         this.server = null;
@@ -781,42 +811,43 @@ public class StandardServerStartup implements ServerStartup {
             setServer(server);
         }
         
-        // 多线程扫描context容器
-        for (Container host : engine.findChildren()) {
-            engine.getService().execute(new ContextScan((Host) host, engine.getService()));
-        }
-        
-        long end = getAwaitTime();
-        if (finishCount.get() != engine.findChildren().length) { // 这个比较不存在并发问题
-            try {
-                if (end > 0) {
-                    int i = 0;
-                    for (; i < end; i++) {
-                        if (finishCount.get() == engine.findChildren().length) {
-                            break;
+        if (startingMode == StartingMode.SERVER) {
+            // 多线程扫描context容器
+            for (Container host : engine.findChildren()) {
+                engine.getService().execute(new ContextScan((Host) host, engine.getService()));
+            }
+
+            long end = getAwaitTime();
+            if (finishCount.get() != engine.findChildren().length) { // 这个比较不存在并发问题
+                try {
+                    if (end > 0) {
+                        int i = 0;
+                        for (; i < end; i++) {
+                            if (finishCount.get() == engine.findChildren().length) {
+                                break;
+                            }
+
+                            Thread.sleep(1000);
+                        }
+                        if (i >= end) {
+                            throw new TimeoutException("StandardServerStartup.initialize 容器扫描超时！");
                         }
 
-                        Thread.sleep(1000);
+                    } else {
+                        while (finishCount.get() != engine.findChildren().length) {
+                            Thread.sleep(1000);
+                        }
                     }
-                    if (i >= end) {
-                        throw new TimeoutException("StandardServerStartup.initialize 容器扫描超时！");
-                    }
-                    
-                } else {
-                    while (finishCount.get() != engine.findChildren().length) {
-                        Thread.sleep(1000);
-                    }
+                } catch (InterruptedException e) {
+                    ;
                 }
-            } catch (InterruptedException e) {
-                ;
-            }                
+            }
         }
-
-        System.out.println("服务器初始化完成"); // TODO - sout
+        
         // 到这里服务端初始化完成
         initialized = true;
         
-        if (serverStartup) {
+        if (startingMode == StartingMode.SERVER) {
             // 通过服务器启动
             for (BootstrapWrapper wrapper : bootstrapWrappers) {
                 if (wrapper.prevStatus == BootstrapStatus.FAIL) {
@@ -833,6 +864,43 @@ public class StandardServerStartup implements ServerStartup {
         }
     }
 
+
+    /**
+     * 重新通过BootstrapClassLoader载入启动类
+     * 
+     * @param clazz 要被重载的Bootstrap类
+     * @return 返回重载后的类
+     */
+    @Deprecated
+    public static Class reloadBootstrapClass(Class clazz) {
+        System.out.println(clazz);
+        System.out.println(clazz.getPackage());
+        System.out.println(clazz.getClassLoader().getResource(""));
+        System.out.println(System.getProperty("user.dir"));
+        return null;
+    }
+
+    /**
+     * 设置服务器启动方式
+     * 
+     * @param startingMode 服务器启动方式
+     */
+    @Override
+    public void setStartingMode(StartingMode startingMode) {
+        if (initialized) {
+            throw new IllegalStateException("standardServerStartup.setStartingMode 设置启动方式出错，服务器已初始化！");
+        }
+        
+        this.startingMode = startingMode;
+    }
+
+    /**
+     * @return 返回服务器启动方式
+     */
+    @Override
+    public StartingMode getStartingMode() {
+        return this.startingMode;
+    }
 
     /**
      * 设置等待超时时长

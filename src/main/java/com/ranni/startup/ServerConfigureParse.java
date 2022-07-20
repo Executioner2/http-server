@@ -19,8 +19,8 @@ import com.ranni.deploy.ServiceConfigure;
  * @Date 2022/5/13 20:53
  */
 public class ServerConfigureParse extends ConfigureParseBase {
-    private String serverClass = "com.ranni.core.StandardServer"; // server全限定类名
-    private String serviceClass = "com.ranni.core.StandardService"; // service全限定类名
+
+    // ==================================== 构造方法 ====================================
 
     public ServerConfigureParse() {
         this(ServerConfigure.class);
@@ -29,23 +29,25 @@ public class ServerConfigureParse extends ConfigureParseBase {
     public ServerConfigureParse(Class clazz) {
         super(clazz);
     }
-    
 
+    
+    // ==================================== 核心方法 ====================================
+    
     /**
      * 装配
      *
-     * @return
-     * @param load
+     * @param load 配置类
+     * @return 返回Server实例
      */
     @Override
-    protected Object fit(Object load) throws Exception {
+    public Object fit(Object load) throws Exception {
         ServerConfigure serverConfigure = (ServerConfigure) load;
 
         if (serverConfigure.getServices().isEmpty())
             throw new IllegalStateException("至少要有一个Service实例！");
 
         // 创建一个server
-        Server server = (Server) getInstance(serverClass);
+        Server server = (Server) getInstance(serverConfigure.getServerClass());
 
         // 配置engine
         EngineConfigure engineConfigure = serverConfigure.getEngine();
@@ -56,6 +58,10 @@ public class ServerConfigureParse extends ConfigureParseBase {
         // 配置host
         for (HostConfigure hostConfigure : engineConfigure.getHosts()) {
 
+            if (!hostConfigure.isValid()) {
+                continue;
+            }
+            
             Host host;
 
             if (hostConfigure.getClazz() == null) {
@@ -73,6 +79,7 @@ public class ServerConfigureParse extends ConfigureParseBase {
 
         // 配置服务
         for (ServiceConfigure serviceConfigure : serverConfigure.getServices()) {
+            String serviceClass = serviceConfigure.getServiceClass() == null ? serverConfigure.getServiceClass() : serviceConfigure.getServiceClass();
             Service service = (Service) getInstance(serviceClass);
             service.setContainer(engine);
             service.setName(serviceConfigure.getName());
@@ -94,44 +101,5 @@ public class ServerConfigureParse extends ConfigureParseBase {
         Object o = aClass.getDeclaredConstructor().newInstance();
         return o;
     }
-
-
-    /**
-     * 设置server实现类的全限定类名
-     * 
-     * @param clazz
-     */
-    public void setServerClass(String clazz) {
-        this.serverClass = clazz;
-    }
-
-
-    /**
-     * 返回server实现类的全限定类名
-     * 
-     * @return
-     */
-    public String getServerClass() {
-        return serverClass;
-    }
-
-
-    /**
-     * 返回服务接口实现类的全限定类名
-     * 
-     * @return
-     */
-    public String getServiceClass() {
-        return serviceClass;
-    }
-
-
-    /**
-     * 设置服务接口实现类的全限定类名
-     * 
-     * @param serviceClass
-     */
-    public void setServiceClass(String serviceClass) {
-        this.serviceClass = serviceClass;
-    }
+    
 }

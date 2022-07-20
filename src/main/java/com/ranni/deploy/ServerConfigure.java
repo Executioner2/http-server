@@ -12,18 +12,36 @@ import java.util.List;
  * @Date 2022/5/13 18:26
  */
 public final class ServerConfigure {
-    private boolean unpackWARS; // 是否自动解压war包
-    private EngineConfigure engine; // 服务器引擎
-    private List<ServiceConfigure> services; // 服务集合
-    private float scanThreadDivisor = 0.4f; // 扫描线程数量因子
 
-    public float getScanThreadDivisor() {
-        return scanThreadDivisor;
-    }
+    // ==================================== 属性字段 ====================================
 
-    public void setScanThreadDivisor(float scanThreadDivisor) {
-        this.scanThreadDivisor = scanThreadDivisor;
-    }
+    /**
+     * 是否自动解压war包
+     */
+    private boolean unpackWARS;
+
+    /**
+     * 服务器引擎
+     */
+    private EngineConfigure engine;
+
+    /**
+     * 服务集合
+     */
+    private List<ServiceConfigure> services;
+    
+    /**
+     * 服务器全限定类名
+     */
+    private String serverClass = "com.ranni.core.StandardServer";
+
+    /**
+     * 服务全限定类名
+     */
+    private String serviceClass = "com.ranni.core.StandardService";
+
+
+    // ==================================== getter and setter ====================================
 
     public boolean isUnpackWARS() {
         return unpackWARS;
@@ -47,6 +65,22 @@ public final class ServerConfigure {
 
     public void setServices(List<ServiceConfigure> services) {
         this.services = services;
+    }
+
+    public String getServerClass() {
+        return serverClass;
+    }
+
+    public void setServerClass(String serverClass) {
+        this.serverClass = serverClass;
+    }
+
+    public String getServiceClass() {
+        return serviceClass;
+    }
+
+    public void setServiceClass(String serviceClass) {
+        this.serviceClass = serviceClass;
     }
 }
 

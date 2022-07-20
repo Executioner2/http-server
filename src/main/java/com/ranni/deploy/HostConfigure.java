@@ -10,11 +10,41 @@ package com.ranni.deploy;
  * @Date 2022/5/13 21:05
  */
 public final class HostConfigure {
-    private String name; // host的名字
-    private String appBase; // host目录
-    private String clazz; // host的类名
-    private boolean autoDeploy = true; // 自动部署
-    private String defaultContextClass; // 默认的Context容器全限定类名
+
+    // ==================================== 属性字段 ====================================
+
+    /**
+     * host的名字
+     */
+    private String name;
+
+    /**
+     * host目录
+     */
+    private String appBase;
+    
+    /**
+     * host的类名
+     */
+    private String clazz;
+
+    /**
+     * 自动部署
+     */
+    private boolean autoDeploy = true;
+
+    /**
+     * 默认的Context容器全限定类名
+     */
+    private String defaultContextClass;
+
+    /**
+     * 如果为<b>true</b>，则表示要以此配置创建一个host容器
+     */
+    private boolean valid;
+    
+
+    // ==================================== getter and setter ====================================
 
     public String getName() {
         return name;
@@ -54,5 +84,13 @@ public final class HostConfigure {
 
     public void setAutoDeploy(boolean autoDeploy) {
         this.autoDeploy = autoDeploy;
+    }
+
+    public boolean isValid() {
+        return valid;
+    }
+
+    public void setValid(boolean valid) {
+        this.valid = valid;
     }
 }

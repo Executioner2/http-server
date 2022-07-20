@@ -16,9 +16,10 @@ import java.io.InputStream;
  * @Email 1205878539@qq.com
  * @Date 2022/5/16 15:13
  */
-public abstract class ConfigureParseBase<T, E> implements ConfigureParse {
+public abstract class ConfigureParseBase<T, E> implements ConfigureParse<T, E> {
     protected Yaml yaml;
     protected Class clazz;
+    protected ServerStartup serverStartup;
     
     
     public ConfigureParseBase(Class clazz) {
@@ -48,10 +49,11 @@ public abstract class ConfigureParseBase<T, E> implements ConfigureParse {
 
         // 装配
         T fit = null;
-        if (autoFit && getClazz() != null)
-            fit = fit((T) load);
+        if (autoFit && getClazz() != null) {
+            fit = fit(load);
+        }
 
-        return new ConfigureMap<T, E>(fit, load);
+        return new ConfigureMap(fit, load);
     }
 
 
@@ -93,15 +95,6 @@ public abstract class ConfigureParseBase<T, E> implements ConfigureParse {
     public ConfigureMap<T, E> parse(File file, boolean autoFit) throws Exception {
         return parse(new FileInputStream(file), autoFit);
     }
-
-
-    /**
-     * 装配
-     * 
-     * @return
-     * @param load
-     */
-    protected abstract T fit(T load) throws Exception;
     
 
     /**

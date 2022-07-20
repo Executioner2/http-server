@@ -28,7 +28,6 @@ public final class Bootstrap {
         // 设置类加载器
         FileDirContext dirContext = new FileDirContext();
         dirContext.setDocBase(base);
-        serverStartup.setServerStartup(true);
         startup();
     }
 

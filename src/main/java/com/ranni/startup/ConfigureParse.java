@@ -68,4 +68,14 @@ public interface ConfigureParse<T, E> {
      * @return
      */
     Class getClazz();
+
+
+    /**
+     * 装配。将配置文件中的值填充到指
+     * 定的实例中
+     * 
+     * @param configure 配置信息
+     * @return 返回指定类型实现类
+     */
+    T fit(E configure) throws Exception;
 }

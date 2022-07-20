@@ -3,6 +3,7 @@ package com.ranni.naming;
 import javax.naming.*;
 import javax.naming.directory.*;
 import java.io.*;
+import java.net.URI;
 import java.util.*;
 
 /**
@@ -733,7 +734,7 @@ public class FileDirContext extends BaseDirContext {
     /**
      * 文件的包装类，以FileDirContext的内部类存在
      */
-    protected class FileResource extends Resource {
+    public class FileResource extends Resource {
         protected File file;
 
 
@@ -741,6 +742,14 @@ public class FileDirContext extends BaseDirContext {
             this.file = file;
         }
 
+
+        /**
+         * @return 返回URI
+         */
+        public URI getURI() {
+            return file.toURI();
+        }
+        
 
         /**
          * 取得输入流

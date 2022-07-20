@@ -1,6 +1,7 @@
 package com.ranni.startup;
 
 import com.ranni.common.Globals;
+import com.ranni.common.SystemProperty;
 import com.ranni.connector.Connector;
 import com.ranni.connector.CoyoteAdapter;
 import com.ranni.connector.Mapper;
@@ -60,46 +61,53 @@ public final class WebApplication {
      * @param args
      */
     public static void run(Class<?> clazz, String[] args) {
-        System.out.println(clazz.getClassLoader());
         URL url = clazz.getResource("");
         String protocol = url.getProtocol();
+        String docBase = "";
+        String path = "";
+        
+        if (!(clazz.getClassLoader() instanceof StandardServerStartup.BootstrapClassLoader)) {
+            // 不是通过BootstrapClassLoader类加载器加载的
+            // 解析服务器配置文件并对服务器进行初始化
+            try {
+                if (serverStartup.getInitialized()) {
+                    // 如果是IDE方式启动，服务器不应该初始化
+                    throw new IllegalStateException("webApplication.run 服务器异常初始化！");
+                }
+
+                serverStartup.setStartingMode(StartingMode.WEBAPP_IDE); // JAR包启动是另一种加载器
+                serverStartup.setConfigureParse(new ServerConfigureParse());
+                serverStartup.initialize();
+                
+            } catch (Exception e) {
+                e.printStackTrace();
+                return;
+            }
+        }
+        
         // 通过url协议判断是哪种方式启动
         if ("file".equals(protocol)) {            
             // 通过webapp启动类取得webapp所在的路径
             // XXX - 待多环境测试
             String packagePath = clazz.getPackageName().replaceAll("\\.", "/") + "/";
             int index = url.getPath().lastIndexOf("/WEB-INF/classes/" + packagePath);
-            String path = null;
             if (index > -1) {
                 path = url.getPath().substring(0, index);
             } else if ((index = url.getPath().lastIndexOf("/classes/" + packagePath)) > -1) {
-                path = url.getPath().substring(0, index); 
+                path = url.getPath().substring(0, index);
             } else {
                 return;
             }
             
-            String docBase = "";
             index = path.lastIndexOf('/');
             
             if (index > -1) {
                 docBase = path.substring(index);
                 path = path.substring(0, index);
             }
-            
-            // 解析配置文件
-            try {
-                
-                if (serverStartup.getConfigureParse() == null)
-                    serverStartup.setConfigureParse(new ServerConfigureParse());
-                
-                if (!serverStartup.getInitialized())
-                    serverStartup.initialize();
-                
-            } catch (Exception e) {
-                e.printStackTrace();
-                return;
+            if (serverStartup.getStartingMode() != StartingMode.SERVER) {
+                System.setProperty(SystemProperty.SERVER_BASE, path);
             }
-            
             
             try {
                 // 解析application.yaml配置文件
@@ -113,7 +121,11 @@ public final class WebApplication {
                 ApplicationConfigure configure = parse.parse(resource).getConfigure();
                 
                 if (configure.getPath() == null) {
-                    configure.setPath(docBase);
+                    if (serverStartup.getStartingMode() == StartingMode.SERVER) {
+                        configure.setPath(docBase);
+                    } else {
+                        configure.setPath("");
+                    }
                 }
                 if (configure.getDocBase() == null) {
                     configure.setDocBase(docBase);
@@ -196,7 +208,12 @@ public final class WebApplication {
             context.setPath(path);
             context.setReloadable(configure.isReloadable());
             context.setBackgroundProcessorDelay(configure.getBackgroundProcessorDelay());
+
             WebappLoader webappLoader = new WebappLoader();
+            if (serverStartup.getStartingMode() == StartingMode.WEBAPP_IDE) {
+                webappLoader.setClassesPath(com.ranni.common.Constants.CLASSES);   
+            }            
+            
             context.setLoader(webappLoader);
             ContextConfig contextConfig = new ContextConfig();
             context.addLifecycleListener(contextConfig);

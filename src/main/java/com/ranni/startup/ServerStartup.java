@@ -14,28 +14,12 @@ import com.ranni.deploy.ServerConfigure;
  * @Email 1205878539@qq.com
  * @Date 2022/5/13 11:38
  */
-public interface ServerStartup {
+public interface ServerStartup {    
+    
     /**
      * 启动服务器
      */
     void startup() throws Exception;
-
-
-    /**
-     * 从服务器启动标志位
-     *
-     * @param serverStartup
-     */
-    void setServerStartup(boolean serverStartup);
-
-
-    /**
-     * 从服务器启动标志位
-     *
-     * @param serverStartup
-     * @return
-     */
-    boolean getServerStartup(boolean serverStartup);
 
 
     /**
@@ -148,4 +132,18 @@ public interface ServerStartup {
      * @return 返回等待超时时长，负数为无限等待
      */
     long getAwaitTime();
+
+
+    /**
+     * 设置服务器启动方式
+     * 
+     * @param startingMode 服务器启动方式
+     */
+    void setStartingMode(StartingMode startingMode);
+
+
+    /**
+     * @return 返回服务器启动方式
+     */
+    StartingMode getStartingMode();
 }

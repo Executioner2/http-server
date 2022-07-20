@@ -48,7 +48,7 @@ public class ApplicationConfigureParse extends ConfigureParseBase {
      * @throws  Exception
      */
     @Override
-    protected Object fit(Object load) throws Exception {
+    public Object fit(Object load) throws Exception {
         if (webappBootstrapClazz == null)
             throw new IllegalArgumentException("ApplicationConfigureParse.fit  填充失败！webapp的启动类不能为null！");
         
