@@ -14,6 +14,7 @@ import com.ranni.naming.FileDirContext;
  */
 public final class Bootstrap {
     private static final String base;
+    
     static {
         String tmp = System.getProperty("user.dir"); // 服务器根目录
         if (tmp.endsWith("\\bin")) {
@@ -22,6 +23,7 @@ public final class Bootstrap {
         base = tmp;
         System.setProperty(SystemProperty.SERVER_BASE, base);
     }
+    
     private static final ServerStartup serverStartup = StandardServerStartup.getInstance();
     
     public static void main(String[] args) {
