@@ -296,12 +296,13 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
 
 
                             if (readInterest && !Nio2Endpoint.isInline()) {
+                                // 注册了都感兴趣，并且不是内联读取，那么视为新的有数据的连接处理
                                 readNotify = true;
                             } else {
                                 // 到这里表示当前要么没有表示过读感兴趣
                                 // 要么就是处于内联读取触发此方法的所以
                                 // 要释放信号量
-                                readPending.release();  
+                                readPending.release();
                             }
                             readInterest = false;
                         }

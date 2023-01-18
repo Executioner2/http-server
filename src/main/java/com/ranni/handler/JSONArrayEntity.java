@@ -9,5 +9,6 @@ package com.ranni.handler;
  * @Email 1205878539@qq.com
  * @Date 2022/5/11 22:12
  */
+@Deprecated
 public class JSONArrayEntity {
 }

@@ -1,0 +1,27 @@
+@startuml
+title v1.0.2 协议处理器 UML图
+
+abstract class AbstractProcessor
+abstract class AbstractHttp11Protocol
+abstract class SocketWrapperBase
+
+class Http11Processor
+class Adapter <<inner class>>
+class Response
+class Request
+class Http11InputBuffer
+class Http11OutputBuffer
+class HttpParser
+
+AbstractProcessor "1" *-- "1" Request
+AbstractProcessor "1" *-- "1" Response
+AbstractProcessor "1" *-- "1" Adapter
+AbstractProcessor "1" *-- "1" SocketWrapperBase
+AbstractProcessor <|-- Http11Processor
+
+Http11Processor "n" o-- "1" AbstractHttp11Protocol
+Http11Processor "1" *-- "1" Http11InputBuffer
+Http11Processor "1" *-- "1" Http11OutputBuffer
+Http11Processor "1" *-- "1" HttpParser
+
+@enduml

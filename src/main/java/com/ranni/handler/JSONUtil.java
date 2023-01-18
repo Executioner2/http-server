@@ -14,6 +14,7 @@ import java.util.*;
  * @Email 1205878539@qq.com
  * @Date 2022/5/9 22:03
  */
+@Deprecated
 public final class JSONUtil {
 
     /**

@@ -425,7 +425,7 @@ public class FileDirContext extends BaseDirContext {
         Object res = null;
         File file = file(name); // 取得文件
 
-        if (file == null)
+        if (file == null)            
             throw new NamingException("资源不存在！  " + name);
 
         if (file.isDirectory()) {

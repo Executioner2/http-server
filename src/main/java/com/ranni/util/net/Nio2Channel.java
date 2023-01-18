@@ -129,7 +129,7 @@ public class Nio2Channel implements AsynchronousByteChannel {
     @Override
     public <A> void read(ByteBuffer dst, A attachment, 
                          CompletionHandler<Integer, ? super A> handler) {
-        read(dst, 0L, TimeUnit.MILLISECONDS, attachment, handler);
+        sc.read(dst, 0L, TimeUnit.MILLISECONDS, attachment, handler);
     }
 
     public <A> void read(ByteBuffer dst, long timeout, TimeUnit unit, A attachment,

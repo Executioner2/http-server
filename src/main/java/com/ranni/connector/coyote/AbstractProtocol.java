@@ -319,7 +319,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler {
 
         /**
          * 究极核心的方法。处理socket的各种事件
-         * 
+         *  
          * @param wrapper 套接字包装
          * @param status 处理事件
          * @return 返回socket状态

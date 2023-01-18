@@ -260,7 +260,7 @@ public class WebappClassLoader extends AbstractClassLoader implements Reloader, 
                 }
 
             } catch (NamingException e) {
-                e.printStackTrace();
+                ;
             }
         } // for end
 

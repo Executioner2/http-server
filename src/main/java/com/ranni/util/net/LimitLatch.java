@@ -136,6 +136,9 @@ public class LimitLatch {
 
     /**
      * 释放所有等待的线程
+     * 设置released为true并释放了头节点后，第二个节点成为
+     * 头节点并尝试获取锁，执行{@link LimitLatch.Sync#tryAcquireShared(int)}，
+     * 由于released为true，所以第二个头节点也会被唤醒，然后再唤醒后面的，依此类推。
      * 
      * @return 如果返回<b>true</b>，则表示释放成功
      */
@@ -163,7 +166,7 @@ public class LimitLatch {
     public boolean hasQueuedThreads() {
         return sync.hasQueuedThreads();
     }
-
+    
 
     /**
      * @return 返回队列中等待着的线程的访问列表

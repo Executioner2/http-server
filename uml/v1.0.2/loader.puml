@@ -9,14 +9,16 @@ class ResourceEntry
 class WebappClassLoader
 class WebappLoader
 class java.net.URLClassLoader
+abstract class AbstractClassLoader
 
 Lifecycle <|.. WebappClassLoader
 Lifecycle <|.. WebappLoader
 java.lang.Runnable <|.. WebappLoader
 Loader <|.. WebappLoader
 Reloader <|.. WebappClassLoader
-java.net.URLClassLoader <|-- WebappClassLoader
+java.net.URLClassLoader <|-- AbstractClassLoader
 WebappLoader <-- WebappClassLoader
 WebappLoader "1" o-- "n" ResourceEntry
+AbstractClassLoader <|-- WebappClassLoader
 
 @enduml

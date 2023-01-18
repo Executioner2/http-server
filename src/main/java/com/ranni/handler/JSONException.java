@@ -8,6 +8,7 @@ package com.ranni.handler;
  * @Email 1205878539@qq.com
  * @Date 2022/5/9 19:55
  */
+@Deprecated
 public class JSONException extends Exception {
     private String msg;
     private Throwable throwable;

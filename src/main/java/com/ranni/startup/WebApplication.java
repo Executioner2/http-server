@@ -99,6 +99,7 @@ public final class WebApplication {
                 return;
             }
             
+            if (args != null && args.length > 0) path += "/" + args[0];
             index = path.lastIndexOf('/');
             
             if (index > -1) {
@@ -210,9 +211,6 @@ public final class WebApplication {
             context.setBackgroundProcessorDelay(configure.getBackgroundProcessorDelay());
 
             WebappLoader webappLoader = new WebappLoader();
-            if (serverStartup.getStartingMode() == StartingMode.WEBAPP_IDE) {
-                webappLoader.setClassesPath(com.ranni.common.Constants.CLASSES);   
-            }            
             
             context.setLoader(webappLoader);
             ContextConfig contextConfig = new ContextConfig();

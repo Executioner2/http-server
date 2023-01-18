@@ -1,12 +1,13 @@
 package com.ranni.container.wrapper;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.ranni.annotation.core.*;
 import com.ranni.common.Globals;
 import com.ranni.container.ContainerServlet;
 import com.ranni.container.Context;
 import com.ranni.container.Wrapper;
 import com.ranni.handler.JSONException;
-import com.ranni.handler.JSONUtil;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -22,7 +23,6 @@ import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -136,6 +136,9 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
             
             ContentType contentType = requestMapping.contentType();
             resp.setContentType(contentType.getValue());
+            // TODO - 后置处理
+            
+            resp.setHeader("Access-Control-Allow-Origin", "*");
             if (resp.getCharacterEncoding() == null) {
                 resp.setCharacterEncoding("utf-8");
             }
@@ -143,7 +146,7 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
                 resp.setCharacterEncoding(requestMapping.charset().getValue());
             }
 
-            if (res == null) {
+            if (res == null) {                
                 return;
             }
             
@@ -155,7 +158,12 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
                     break;
                 } case JSON: {
                     PrintWriter writer = resp.getWriter();
-                    writer.print(JSONUtil.toJSONString(res));    
+                    try {
+                        writer.print(JSON.toJSONString(res));    
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                        
                     break;
                 } case OCTET_STREAM: {
                     if (!(res instanceof Serializable)) {
@@ -235,7 +243,8 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
                     String value = hsr.getParameter(paramName);
 
                     if (value != null) {
-                        res[i] = JSONUtil.getInstance(parameters[i].getType(), value);
+                        res[i] = JSONObject.parseObject(value, parameters[i].getType());
+//                        res[i] = JSONUtil.getInstance(parameters[i].getType(), value);
 
                         if (res[i] == null)
                             res[i] = value;
@@ -244,16 +253,18 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
                     break;
                     
                 } else if (annotation instanceof RequestBody) {
-                    // 将JSON字符串转为实例
+                    // 将JSON字符串转为实例                    
                     Class<?> type = parameters[i].getType();
                     Object obj = null;
                     
                     // 解析JSON字符串并填充到实例中
                     if (Collection.class.isAssignableFrom(type)) {
-                        // 是数组
-                        obj = JSONUtil.parseJSON(((RequestBody) annotation).value(), ArrayList.class, hsr.getParameter(paramName));
+                        // 是数组                        
+                        obj = JSONObject.parseObject(hsr.getParameter(paramName), ((RequestBody) annotation).value());
+//                        obj = JSONUtil.parseJSON(((RequestBody) annotation).value(), ArrayList.class, hsr.getParameter(paramName));
                     } else {
-                        obj = JSONUtil.parseJSON(type, null, hsr.getParameter(paramName));
+                        obj = JSONObject.parseObject(hsr.getParameter(paramName), type);
+//                        obj = JSONUtil.parseJSON(type, null, hsr.getParameter(paramName));
                     }
                     
                     res[i] = obj;
