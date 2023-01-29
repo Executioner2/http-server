@@ -18,4 +18,6 @@ import java.lang.annotation.Target;
 public @interface RequestBody {
     
     Class value() default Null.class; 
+    
+    String name() default "data";
 }

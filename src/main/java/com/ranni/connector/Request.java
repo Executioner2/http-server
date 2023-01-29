@@ -1261,8 +1261,11 @@ public class Request implements HttpServletRequest {
         if (!parametersParsed) {
             parseParameters();
         }
+
+        Parameters parameters = coyoteRequest.getParameters();
+        if (!parameters.bodyIsNull()) return parameters.getBodyString();
         
-        return coyoteRequest.getParameters().getParameter(name);
+        return parameters.getParameter(name);
     }
 
 
@@ -1273,7 +1276,7 @@ public class Request implements HttpServletRequest {
         parametersParsed = true;
 
         Parameters parameters = coyoteRequest.getParameters();
-        boolean success = false;
+        boolean success = false;        
         
         try {
             parameters.setLimit(getConnector().getMaxParameterCount());
@@ -1307,7 +1310,9 @@ public class Request implements HttpServletRequest {
                 contentType = contentType.trim();
             }
 
-            if ("multipart/form-data".equals(contentType)) {
+            boolean isJson = ("application/json").equals(contentType);
+            
+            if (!isJson && "multipart/form-data".equals(contentType)) {
                 // multipart的不编码数据（html的form表单可通过此格式提交附加文件）
                 parseParts(false); // 解析文件
                 success = true;
@@ -1321,7 +1326,7 @@ public class Request implements HttpServletRequest {
             }
 
             // 不是标准的post表单数据内容类型
-            if (!("application/x-www-form-urlencoded").equals(contentType)) {
+            if (!isJson && !("application/x-www-form-urlencoded").equals(contentType)) {
                 success = true;
                 return;
             }
@@ -1362,7 +1367,11 @@ public class Request implements HttpServletRequest {
                 }
 
                 // 解析请求体
-                parameters.processParameters(formData, 0, len);
+                if (isJson) {
+                    parameters.processOriginalString(formData, 0, len);
+                } else {                 
+                    parameters.processParameters(formData, 0, len);    
+                }
                 
             } else if ("chunked".equalsIgnoreCase(coyoteRequest
                     .getHeader("transfer-encoding"))) {
@@ -1398,8 +1407,8 @@ public class Request implements HttpServletRequest {
         }
         
     }
-
-
+    
+    
     /**
      * 读取客户端发来的部分请求体中的数据
      * 

@@ -7,7 +7,6 @@ import com.ranni.common.Globals;
 import com.ranni.container.ContainerServlet;
 import com.ranni.container.Context;
 import com.ranni.container.Wrapper;
-import com.ranni.handler.JSONException;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -23,7 +22,6 @@ import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -120,6 +118,13 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
             return;
         }
 
+        resp.setHeader("Access-Control-Allow-Origin", "*");
+        resp.setHeader("Allow", "OPTIONS, GET, HEAD, POST");
+        resp.setHeader("Access-Control-Allow-Headers", "Content-Type,XFILENAME,XFILECATEGORY,XFILESIZE");
+        if ("OPTIONS".equalsIgnoreCase(req.getMethod())) {            
+            return;
+        }
+
         Method method = methodMap.get(uri);
         RequestMapping requestMapping = method.getDeclaredAnnotation(RequestMapping.class);
         
@@ -136,9 +141,9 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
             
             ContentType contentType = requestMapping.contentType();
             resp.setContentType(contentType.getValue());
+            resp.setCharacterEncoding("UTF-8"); // XXX - 不优雅
             // TODO - 后置处理
             
-            resp.setHeader("Access-Control-Allow-Origin", "*");
             if (resp.getCharacterEncoding() == null) {
                 resp.setCharacterEncoding("utf-8");
             }
@@ -161,6 +166,7 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
                     try {
                         writer.print(JSON.toJSONString(res));    
                     } catch (Exception e) {
+                        System.err.println(res);
                         e.printStackTrace();
                     }
                         
@@ -224,20 +230,18 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
      * @param hsr
      * @param method
      */
-    private Object[] parseParams(HttpServletRequest hsr, Method method) throws JSONException {
+    private Object[] parseParams(HttpServletRequest hsr, Method method) {
         Parameter[] parameters = method.getParameters(); // 所有形参
         Object[] res = new Object[parameters.length];
-        boolean isGet = "GET".equals(hsr.getMethod());
         
         for (int i = 0; i < parameters.length; i++) {
             
             for (Annotation annotation : parameters[i].getDeclaredAnnotations()) {
-
-                String paramName = ((RequestParam) annotation).value();
-                if (paramName == null || "".equals(paramName))
-                    paramName = parameters[i].getName();
                 
                 if (annotation instanceof RequestParam) {
+                    String paramName = ((RequestParam) annotation).value();
+                    if (paramName == null || "".equals(paramName))
+                        paramName = parameters[i].getName();
                     
                     // XXX 是否应该让非GET请求的URI携带参数无效化
                     String value = hsr.getParameter(paramName);
@@ -253,22 +257,14 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
                     break;
                     
                 } else if (annotation instanceof RequestBody) {
+                    
+                    String paramName = ((RequestBody) annotation).name();
+                    if (paramName == null || "".equals(paramName))
+                        paramName = parameters[i].getName();
+                    
                     // 将JSON字符串转为实例                    
                     Class<?> type = parameters[i].getType();
-                    Object obj = null;
-                    
-                    // 解析JSON字符串并填充到实例中
-                    if (Collection.class.isAssignableFrom(type)) {
-                        // 是数组                        
-                        obj = JSONObject.parseObject(hsr.getParameter(paramName), ((RequestBody) annotation).value());
-//                        obj = JSONUtil.parseJSON(((RequestBody) annotation).value(), ArrayList.class, hsr.getParameter(paramName));
-                    } else {
-                        obj = JSONObject.parseObject(hsr.getParameter(paramName), type);
-//                        obj = JSONUtil.parseJSON(type, null, hsr.getParameter(paramName));
-                    }
-                    
-                    res[i] = obj;
-                    
+                    res[i] = JSONObject.parseObject(hsr.getParameter(paramName), type);                  
                     break;
                 }
             }

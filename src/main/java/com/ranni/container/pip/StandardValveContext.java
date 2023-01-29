@@ -17,9 +17,9 @@ import java.io.IOException;
  * @Date 2022-03-27 21:14
  */
 public final class StandardValveContext implements ValveContext {
-    private int stage; // 阀执行计数
     private Valve basic; // 基础阀
     private Valve[] valves; // 非基础阀
+    private ThreadLocal<Integer> local; // 阀执行计数
 
     /**
      * 返回该类的信息
@@ -40,7 +40,7 @@ public final class StandardValveContext implements ValveContext {
      */
     @Override
     public void setValve(Valve basic, Valve[] valves) {
-        stage = 0;
+        local = new ThreadLocal<>();
         this.basic = basic;
         this.valves = valves;
     }
@@ -56,16 +56,19 @@ public final class StandardValveContext implements ValveContext {
     @Override
     public void invokeNext(Request request, Response response) throws IOException, ServletException {
         // 在这里就要开始计数+1，因为有可能在阀中调用此方法
-        int count = stage;
-        stage++;
-
-        if (count < valves.length) {
+        Integer stage = local.get();
+        stage = stage == null ? 0 : stage;
+        
+        if (stage < valves.length) {
             // 执行非基础阀
-            valves[count].invoke(request, response, this);
-        } else if (count == valves.length && basic != null) {
+            local.set(stage + 1);
+            valves[stage].invoke(request, response, this);
+        } else if (stage == valves.length && basic != null) {
             // 执行基础阀
+            local.set(0);
             basic.invoke(request, response, this);
         } else {
+            local.set(0);
             throw new ServletException("没有阀可以执行了！");
         }
     }

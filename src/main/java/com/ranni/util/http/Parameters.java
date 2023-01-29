@@ -35,6 +35,8 @@ public final class Parameters {
 
     private final Map<String,ArrayList<String>> paramHashValues =
             new LinkedHashMap<>();
+    
+    private MessageBytes body;
     private boolean didQueryParameters=false;
 
     private MessageBytes queryMB;
@@ -116,6 +118,14 @@ public final class Parameters {
     // -------------------- Data access --------------------
     // Access to the current name/values, no side effect ( processing ).
     // You must explicitly call handleQueryParameters and the post methods.
+    
+    public boolean bodyIsNull() {
+        return body == null || body.isNull();
+    }
+    
+    public String getBodyString() {
+        return body == null ? null : body.toString();
+    }
 
     public String[] getParameterValues(String name) {
         handleQueryParameters();
@@ -336,6 +346,16 @@ public final class Parameters {
             tmpValue.recycle();
             // Only recycle copies if we used them
         }
+    }
+    
+    public void processOriginalString(byte bytes[], int start, int len) {
+        processOriginalString(bytes, start, len, charset);
+    }
+
+    private void processOriginalString(byte bytes[], int start, int len, Charset charset) {
+        body = MessageBytes.newInstance();
+        body.setBytes(bytes, start, len);
+        body.setCharset(charset);        
     }
 
     private void urlDecode(ByteChunk bc)
