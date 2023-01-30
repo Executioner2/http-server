@@ -8,6 +8,7 @@ import com.ranni.container.ContainerServlet;
 import com.ranni.container.Context;
 import com.ranni.container.Wrapper;
 
+import javax.annotation.processing.Generated;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -19,7 +20,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
-import java.lang.annotation.Annotation;
+import java.lang.annotation.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.HashMap;
@@ -117,14 +118,14 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
             resp.sendError(HttpServletResponse.SC_NOT_FOUND, "请求未找到！ requestURI：" + req.getRequestURI());
             return;
         }
-
+        
         resp.setHeader("Access-Control-Allow-Origin", "*");
         resp.setHeader("Allow", "OPTIONS, GET, HEAD, POST");
         resp.setHeader("Access-Control-Allow-Headers", "Content-Type,XFILENAME,XFILECATEGORY,XFILESIZE");
         if ("OPTIONS".equalsIgnoreCase(req.getMethod())) {            
             return;
         }
-
+        
         Method method = methodMap.get(uri);
         RequestMapping requestMapping = method.getDeclaredAnnotation(RequestMapping.class);
         
@@ -136,7 +137,8 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
         
         // 调用处理方法
         try {
-            Object[] args = parseParams(req, method); // 自动值填充
+            req.setCharacterEncoding("UTF-8");
+            Object[] args = parseParams(req, resp, method); // 自动值填充
             Object res = method.invoke(controller, args); // 执行controller对应的方法并返回值
             
             ContentType contentType = requestMapping.contentType();
@@ -228,50 +230,65 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
      * FIXME - 存在编码问题
      * 
      * @param hsr
+     * @param resp
      * @param method
      */
-    private Object[] parseParams(HttpServletRequest hsr, Method method) {
+    private Object[] parseParams(HttpServletRequest hsr, HttpServletResponse resp, Method method) {
         Parameter[] parameters = method.getParameters(); // 所有形参
         Object[] res = new Object[parameters.length];
         
         for (int i = 0; i < parameters.length; i++) {
-            
-            for (Annotation annotation : parameters[i].getDeclaredAnnotations()) {
-                
-                if (annotation instanceof RequestParam) {
-                    String paramName = ((RequestParam) annotation).value();
-                    if (paramName == null || "".equals(paramName))
-                        paramName = parameters[i].getName();
-                    
-                    // XXX 是否应该让非GET请求的URI携带参数无效化
-                    String value = hsr.getParameter(paramName);
-
-                    if (value != null) {
-                        res[i] = JSONObject.parseObject(value, parameters[i].getType());
-//                        res[i] = JSONUtil.getInstance(parameters[i].getType(), value);
-
-                        if (res[i] == null)
-                            res[i] = value;
-                    }
-                    
-                    break;
-                    
-                } else if (annotation instanceof RequestBody) {
-                    
-                    String paramName = ((RequestBody) annotation).name();
-                    if (paramName == null || "".equals(paramName))
-                        paramName = parameters[i].getName();
-                    
-                    // 将JSON字符串转为实例                    
-                    Class<?> type = parameters[i].getType();
-                    res[i] = JSONObject.parseObject(hsr.getParameter(paramName), type);                  
-                    break;
-                }
+            if (parameters[i].getType().equals(HttpServletRequest.class)) {
+                res[i] = hsr;
+                continue;
+            } else if (parameters[i].getType().equals(HttpServletResponse.class)) {
+                res[i] = resp;
+                continue;
             }
             
+//            if (parameters[i].getDeclaredAnnotations().length == 0) {
+//                // 尝试构造json字符串
+//                res[i] = JSONObject.parseObject(constructorJsonString(parameters[i], hsr), parameters[i].getType());
+//                continue;
+//            }
+            
+            for (Annotation annotation : parameters[i].getDeclaredAnnotations()) {
+                Annotation param = getParam(annotation.annotationType());
+                if (param == null) continue;
+                    
+                String paramName = ((Param) param).value();
+                if (paramName == null || "".equals(paramName))
+                    paramName = parameters[i].getName();
+                Class<?> type = parameters[i].getType();
+                res[i] = JSONObject.parseObject(hsr.getParameter(paramName), type);
+                break;
+            }            
         }
         
         return res;
+    }
+    
+    private Annotation getParam(Class<?> clazz) {
+        Annotation[] annotations = clazz.getAnnotations();
+        for (Annotation annotation : annotations) {
+            if (annotation.annotationType() != Deprecated.class &&
+                    annotation.annotationType() != SuppressWarnings.class &&
+                    annotation.annotationType() != Override.class &&
+                    annotation.annotationType() != Generated.class &&
+                    annotation.annotationType() != Target.class &&
+                    annotation.annotationType() != Retention.class &&
+                    annotation.annotationType() != Documented.class &&
+                    annotation.annotationType() != Inherited.class
+            ) {
+                if (annotation.annotationType() == Param.class) {
+                    return annotation;
+                } else {
+                    getParam(annotation.annotationType());
+                }
+            }
+        }
+        
+        return null;
     }
     
 

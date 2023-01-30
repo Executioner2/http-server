@@ -449,7 +449,7 @@ public final class Request {
         remotePort = -1;
         available = 0;
         sendfile = true;
-
+        
         serverCookies.recycle();
         parameters.recycle();
         pathParameters.clear();

@@ -16,6 +16,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)
+@Param
 public @interface RequestParam {
     String value() default ""; // 别名
 }

@@ -338,7 +338,6 @@ public class Request implements HttpServletRequest {
         attributes.clear();
         sslAttributesParsed = false;
         notes.clear();
-
         recycleSessionInfo();
         recycleCookieInfo(false);
 
@@ -1367,7 +1366,7 @@ public class Request implements HttpServletRequest {
                 }
 
                 // 解析请求体
-                if (isJson) {
+                if (isJson && "POST".equals(getMethod())) {
                     parameters.processOriginalString(formData, 0, len);
                 } else {                 
                     parameters.processParameters(formData, 0, len);    

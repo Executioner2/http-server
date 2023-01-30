@@ -36,7 +36,7 @@ public final class Parameters {
     private final Map<String,ArrayList<String>> paramHashValues =
             new LinkedHashMap<>();
     
-    private MessageBytes body;
+    private MessageBytes body = MessageBytes.newInstance();
     private boolean didQueryParameters=false;
 
     private MessageBytes queryMB;
@@ -112,6 +112,7 @@ public final class Parameters {
         charset = DEFAULT_BODY_CHARSET;
         decodedQuery.recycle();
         parseFailedReason = null;
+        body.recycle();
     }
 
 
@@ -120,11 +121,11 @@ public final class Parameters {
     // You must explicitly call handleQueryParameters and the post methods.
     
     public boolean bodyIsNull() {
-        return body == null || body.isNull();
+        return body.isNull();
     }
     
     public String getBodyString() {
-        return body == null ? null : body.toString();
+        return body.toString();
     }
 
     public String[] getParameterValues(String name) {
@@ -353,7 +354,6 @@ public final class Parameters {
     }
 
     private void processOriginalString(byte bytes[], int start, int len, Charset charset) {
-        body = MessageBytes.newInstance();
         body.setBytes(bytes, start, len);
         body.setCharset(charset);        
     }

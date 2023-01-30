@@ -297,7 +297,6 @@ public class Response implements HttpServletResponse {
         usingWriter = false;
         appCommitted = false;
         isCharacterEncodingSet = false;
-
         applicationResponse = null;
         if (getRequest().getDiscardFacades()) {
             if (facade != null) {
