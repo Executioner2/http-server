@@ -47,7 +47,7 @@ public class Connector implements Lifecycle {
     private String proxyName; // 服务器名
     private boolean allowTrace; // 是否支持TRACE请求方法
     private boolean useIPVHosts; // 主机标识方式，是IP标识还是name标识
-
+    private int maxCookieCount = 200;
     protected boolean secure; // 安全标志位
     protected String scheme; // 协议类型
     protected int redirectPort = 80; // 转发端口
@@ -179,7 +179,7 @@ public class Connector implements Lifecycle {
     
 
     public int getMaxCookieCount() {
-        return 0;
+        return maxCookieCount;
     }
 
 

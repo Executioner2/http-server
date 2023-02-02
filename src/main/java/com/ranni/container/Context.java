@@ -594,8 +594,10 @@ public interface Context extends Container, ContextBind {
 
     
     String getSessionCookieDomain();
-    
 
+
+    void setCookieProcessor(CookieProcessor cookieProcessor);
+    
     CookieProcessor getCookieProcessor();
 
 

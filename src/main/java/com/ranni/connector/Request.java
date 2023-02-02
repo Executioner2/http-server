@@ -907,10 +907,21 @@ public class Request implements HttpServletRequest {
         }
 
         session = manager.createSession();
-
+        
         if (session == null)
             return null;
 
+        // TODO COOKIE响应设置
+        StringBuilder setCookie = new StringBuilder();
+        SessionCookieConfig sessionCookieConfig = context.getServletContext().getSessionCookieConfig();
+        setCookie.append(sessionCookieConfig.getName());
+        setCookie.append("=");        
+        setCookie.append(session.getId());
+        setCookie.append("; Path=");
+        setCookie.append(sessionCookieConfig.getPath());
+        setCookie.append("; HttpOnly;");
+
+        response.setHeader("Set-Cookie", setCookie.toString());
         return session;
     }
 
@@ -2141,6 +2152,7 @@ public class Request implements HttpServletRequest {
     
     
     public ServerCookies getServerCookies() {
+        parseCookies();
         return coyoteRequest.getCookies();
     }
 

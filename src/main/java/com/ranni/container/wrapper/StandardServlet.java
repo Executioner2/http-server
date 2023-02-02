@@ -119,9 +119,10 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
             return;
         }
         
-        resp.setHeader("Access-Control-Allow-Origin", "*");
+        resp.setHeader("Access-Control-Allow-Credentials", "true");
+        resp.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
         resp.setHeader("Allow", "OPTIONS, GET, HEAD, POST");
-        resp.setHeader("Access-Control-Allow-Headers", "Content-Type,XFILENAME,XFILECATEGORY,XFILESIZE");
+        resp.setHeader("Access-Control-Allow-Headers", "Content-Type,XFILENAME,XFILECATEGORY,XFILESIZE,X-TOKEN");
         if ("OPTIONS".equalsIgnoreCase(req.getMethod())) {            
             return;
         }

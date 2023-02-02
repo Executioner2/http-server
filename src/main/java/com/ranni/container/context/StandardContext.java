@@ -4,20 +4,27 @@ import com.ranni.common.Globals;
 import com.ranni.common.SystemProperty;
 import com.ranni.connector.Request;
 import com.ranni.connector.Response;
-import com.ranni.container.*;
+import com.ranni.container.Container;
+import com.ranni.container.ContainerBase;
+import com.ranni.container.Context;
+import com.ranni.container.Host;
 import com.ranni.container.host.StandardHost;
 import com.ranni.container.scope.ApplicationContext;
 import com.ranni.container.session.StandardManager;
 import com.ranni.core.ApplicationFilterConfig;
 import com.ranni.core.FilterDef;
-import com.ranni.deploy.*;
+import com.ranni.deploy.FilterMap;
 import com.ranni.lifecycle.Lifecycle;
 import com.ranni.lifecycle.LifecycleException;
 import com.ranni.loader.WebappLoader;
-import com.ranni.naming.*;
+import com.ranni.naming.BaseDirContext;
+import com.ranni.naming.FileDirContext;
+import com.ranni.naming.ProxyDirContext;
+import com.ranni.naming.WARDirContext;
 import com.ranni.util.CharsetMapper;
 import com.ranni.util.RequestUtil;
 import com.ranni.util.http.CookieProcessor;
+import com.ranni.util.http.Rfc6265CookieProcessor;
 
 import javax.naming.directory.DirContext;
 import javax.servlet.FilterConfig;
@@ -1371,7 +1378,15 @@ public class StandardContext extends ContainerBase implements Context {
         }
     }
 
-    
+
+    @Override
+    public void setCookieProcessor(CookieProcessor cookieProcessor) {
+        if (cookieProcessor == null) {
+            throw new IllegalArgumentException("standardContext.cookieProcessor.null");
+        }
+        this.cookieProcessor = cookieProcessor;
+    }
+
     @Override
     public CookieProcessor getCookieProcessor() {
         return cookieProcessor;
@@ -1505,6 +1520,10 @@ public class StandardContext extends ContainerBase implements Context {
                 
                 setLoader(new WebappLoader(getParentClassLoader()));
             }
+        }
+
+        if (cookieProcessor == null) {
+            cookieProcessor = new Rfc6265CookieProcessor();
         }
 
         // 设置session管理器

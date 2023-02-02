@@ -117,8 +117,8 @@ public interface Lifecycle {
     /**
      * @return 返回当前生命周期状态
      */
-    default String getState() {
-        return null; 
+    default LifecycleState getState() {
+        return LifecycleState.STARTING_PREP; 
     }
 
 }

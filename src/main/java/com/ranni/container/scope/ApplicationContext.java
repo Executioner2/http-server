@@ -4,6 +4,7 @@ import com.ranni.connector.Constants;
 import com.ranni.container.Context;
 import com.ranni.container.Host;
 import com.ranni.container.context.StandardContext;
+import com.ranni.core.ApplicationSessionCookieConfig;
 import com.ranni.naming.Resource;
 import com.ranni.util.Enumerator;
 
@@ -35,12 +36,24 @@ public class ApplicationContext implements ServletContext {
     private Set<String> readOnlyAttributes = new HashSet<>(); // 只读属性名
     private ServletContext facade = new ApplicationContextFacade(this); // 外观类
     private Map<String, String> parameters = null; // 参数
+    
+    private ApplicationSessionCookieConfig defaultCookieConfig;
+
+    Set<SessionTrackingMode> sessionTrackingModes = new HashSet<>() {{
+        add(SessionTrackingMode.COOKIE);
+        add(SessionTrackingMode.URL);
+    }};
 
 
     public ApplicationContext(String basePath, StandardContext context) {
         super();
         this.basePath = basePath;
         this.context = context;
+        defaultCookieConfig = new ApplicationSessionCookieConfig(context);
+        defaultCookieConfig.setName("sessionId");
+        defaultCookieConfig.setHttpOnly(true);
+        defaultCookieConfig.setPath("/");
+        defaultCookieConfig.setSecure(true);
     }
 
     @Override
@@ -417,22 +430,22 @@ public class ApplicationContext implements ServletContext {
 
     @Override
     public SessionCookieConfig getSessionCookieConfig() {
-        return null;
+        return this.defaultCookieConfig;
     }
 
     @Override
     public void setSessionTrackingModes(Set<SessionTrackingMode> sessionTrackingModes) {
-
+        this.sessionTrackingModes = sessionTrackingModes;
     }
 
     @Override
     public Set<SessionTrackingMode> getDefaultSessionTrackingModes() {
-        return null;
+        return sessionTrackingModes;
     }
 
     @Override
     public Set<SessionTrackingMode> getEffectiveSessionTrackingModes() {
-        return Collections.EMPTY_SET;
+        return sessionTrackingModes;
     }
 
     @Override
