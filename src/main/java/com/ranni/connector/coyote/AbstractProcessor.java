@@ -100,6 +100,7 @@ public abstract class AbstractProcessor implements Processor, ActionHook {
     @Override
     @Deprecated // XXX - 实现并不完整，加上@Deprecated是为了提醒调用者
     public SocketState process(SocketWrapperBase<?> socketWrapper, SocketEvent event) throws IOException {
+//        System.out.println("AbstractProcessor#process()");
         SocketState state = SocketState.CLOSED;
         Iterator<DispatchType> dispatches = null; // 需要进行的调度
         

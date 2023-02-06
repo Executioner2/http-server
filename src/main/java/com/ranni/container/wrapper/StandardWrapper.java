@@ -34,7 +34,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     private Servlet instance; // servlet 实例
     private StandardWrapperFacade facade = new StandardWrapperFacade(this);
     private Map<String, String> parameters = new HashMap(); // 参数列表
-    private boolean singleThreadModel; // 是否是单线程servlet模式，如果不是，每次请求都会创建新的servlet实例
+    private boolean singleThreadModel = false; // 是否是单线程servlet模式，如果不是，每次请求都会创建新的servlet实例
     private ConcurrentLinkedDeque<Servlet> instancePool = null; // 单线程servlet模式下才会有servlet实例池
     private int maxInstances = 20; // 默认的单线程servlet模式下最大实例数量
     private int countAllocated; // 活动的实例数量
@@ -249,14 +249,14 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                 synchronized (this) {
                     instance = loadServlet();
                     // 插入实例获取事件，这里很重要，有个ControllerConfig将会监听此事件，然后对Controller实例进行扫描配置
-                    instanceSupport.fireInstanceEvent(InstanceEvent.INSTANCE_EVENT, instance);
+//                    instanceSupport.fireInstanceEvent(InstanceEvent.INSTANCE_EVENT, instance);
                 }
             }
 
-            // 第一次的加载有可能加载的使STM servlet
+            // 第一次的加载有可能加载的是STM servlet
             // 所以要进行此判断
             if (!singleThreadModel) {
-                countAllocated++;
+                ++countAllocated;
                 return instance;
             }
         }
@@ -268,7 +268,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                 // 那么就往STM池中放新的STM实例，否则进入等待状态
                 if (nInstances < maxInstances) {
                     instancePool.push(loadServlet());
-                    nInstances++;
+                    ++nInstances;
                 } else {
                     try {
                         instancePool.wait();
@@ -278,7 +278,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                 }
             }
 
-            countAllocated++;
+            ++countAllocated;
             return instancePool.pop();
         }
     }
@@ -373,8 +373,10 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         }
 
         // 调用servlet的init()
-        try {
+        try {            
             servlet.init(facade);
+            // 插入实例获取事件，这里很重要，有个ControllerConfig将会监听此事件，然后对Controller实例进行扫描配置
+            instanceSupport.fireInstanceEvent(InstanceEvent.INSTANCE_EVENT, instance);
         } catch (ServletException e) {
             e.printStackTrace();
         }
@@ -423,12 +425,12 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     @Override
     public void deallocate(Servlet servlet) throws ServletException {
         if (!singleThreadModel) {
-            countAllocated--;
+            --countAllocated;
             return;
         }
 
         synchronized (instancePool) {
-            countAllocated--;
+            --countAllocated;
             instancePool.push(servlet);
             instancePool.notifyAll();
         }
@@ -680,6 +682,13 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         // 此wrapper容器启动之前
         lifecycle.fireLifecycleEvent(Lifecycle.BEFORE_START_EVENT, null);
         started = true;
+
+        if (singleThreadModel) {
+            if (instancePool == null) {
+                // 创建一个实例池
+                instancePool = new ConcurrentLinkedDeque<>();
+            }
+        }
 
         // 启动加载器
         if (loader != null && loader instanceof Lifecycle)

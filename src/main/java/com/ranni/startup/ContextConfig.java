@@ -257,7 +257,7 @@ public class ContextConfig implements LifecycleListener {
         Class<?> aClass = context.getLoader().getClassLoader().loadClass(controller);
         Controller annotation = aClass.getDeclaredAnnotation(Controller.class);
         if (annotation == null)
-            throw new IllegalStateException("ContextConfig.addController  非controller类！");
+            return;
 
         ApplicationContext servletContext = (ApplicationContext) context.getServletContext();
         StandardWrapper standardWrapper = null;

@@ -142,20 +142,20 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
             Object[] args = parseParams(req, resp, method); // 自动值填充
             Object res = method.invoke(controller, args); // 执行controller对应的方法并返回值
             
+            if ((res == null || res instanceof Void)) return;
+
             ContentType contentType = requestMapping.contentType();
+            if (contentType == null) return;
+            
             resp.setContentType(contentType.getValue());
             resp.setCharacterEncoding("UTF-8"); // XXX - 不优雅
             // TODO - 后置处理
-            
+
             if (resp.getCharacterEncoding() == null) {
                 resp.setCharacterEncoding("utf-8");
             }
             if (requestMapping.charset() != Charset.NULL) {
                 resp.setCharacterEncoding(requestMapping.charset().getValue());
-            }
-
-            if (res == null) {                
-                return;
             }
             
             // XXX - 应该做更灵活的处理
@@ -166,13 +166,7 @@ public final class StandardServlet extends HttpServlet implements ContainerServl
                     break;
                 } case JSON: {
                     PrintWriter writer = resp.getWriter();
-                    try {
-                        writer.print(JSON.toJSONString(res));    
-                    } catch (Exception e) {
-                        System.err.println(res);
-                        e.printStackTrace();
-                    }
-                        
+                    writer.print(JSON.toJSONString(res));                        
                     break;
                 } case OCTET_STREAM: {
                     if (!(res instanceof Serializable)) {

@@ -92,6 +92,7 @@ public class CoyoteAdapter implements Adapter {
     @Override
     @Deprecated // XXX - 这个标记仅表明此方法实现不完整
     public void service(com.ranni.connector.coyote.Request req, com.ranni.connector.coyote.Response res) throws Exception {
+//        System.out.println("\33[35;43;4mCoyoteAdapter#service()\33[0m");
         Request request = (Request) req.getNote(ADAPTER_NOTES);
         Response response = (Response) res.getNote(ADAPTER_NOTES);
         

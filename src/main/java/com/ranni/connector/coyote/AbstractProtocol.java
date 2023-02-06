@@ -326,6 +326,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler {
          */
         @Override
         public SocketState process(SocketWrapperBase<S> wrapper, SocketEvent status) {
+//            System.out.println("AbstractProtocol#process()");
             if (wrapper == null) {
                 return SocketState.CLOSED;
             }

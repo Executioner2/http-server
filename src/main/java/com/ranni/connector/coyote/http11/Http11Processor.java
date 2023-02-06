@@ -171,6 +171,7 @@ public class Http11Processor extends AbstractProcessor {
      */
     @Override
     public SocketState service(SocketWrapperBase<?> socketWrapper) throws IOException {
+//        System.out.println("Http11Processor#service()");
         RequestInfo ri = request.getRequestProcessor();
         ri.setStage(com.ranni.connector.coyote.Constants.STAGE_PARSE); // 切换到请求解析状态
         

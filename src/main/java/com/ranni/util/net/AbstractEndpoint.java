@@ -97,7 +97,7 @@ public abstract class AbstractEndpoint<S, U> {
     /**
      * 最大连接数
      */
-    private int maxConnections = 8 * 1024;
+    private int maxConnections = 8 * 1024; // -1; 
 
     /**
      * 多线程执行器（线程池）
@@ -149,7 +149,7 @@ public abstract class AbstractEndpoint<S, U> {
     /**
      * 设置初始的核心线程数
      */
-    private int minSpareThreads = 10;
+    private int minSpareThreads = 20;
     
     /**
      * 工作最大线程数
@@ -887,6 +887,7 @@ public abstract class AbstractEndpoint<S, U> {
      * @return 如果返回<b>ture</b>，则表示成功处理
      */
     public boolean processSocket(SocketWrapperBase<S> socketWrapper, SocketEvent event, boolean dispatch) {
+//        System.out.println("AbstractEndpoint#processSocket()");
         try {
             if (socketWrapper == null) {
                 return false;

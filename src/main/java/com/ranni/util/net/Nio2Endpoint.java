@@ -152,7 +152,6 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
         @Override
         public void completed(AsynchronousSocketChannel socket, Void attachment) {
             errorDelay = 0;
-            
             if (isRunning() && !isPaused()) {
                 if (getMaxConnections() == -1) {
                     // 继续同意连接，扔进AsynchronousChannelGroup中异步处理
@@ -169,6 +168,8 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
                     // 如果有连接传来就继续回调此处理器
                     serverSocket.accept(null, this);
                 } else {
+//                    destroySocket(socket);
+//                    return;
                     // 在一个新线程上重新接受请求
                     getExecutor().execute(this);
                 }
@@ -1196,6 +1197,7 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
          */
         @Override
         protected void doRun() {
+//            System.out.println("Nio2Endpoint#doRun()");
             boolean launch = false;
             try {
                 int handshake = -1;
@@ -1588,6 +1590,7 @@ public class Nio2Endpoint extends AbstractJsseEndpoint<Nio2Channel, Asynchronous
      */
     @Override
     protected void destroySocket(AsynchronousSocketChannel socket) {
+        System.err.println("有socket被拒收");
         countDownConnection();
         try {
             socket.close();
